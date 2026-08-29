@@ -65,7 +65,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
         categoriaId: _selectedCategoryId,
         query: _searchController.text.trim(),
         calidadMin: _selectedQuality,
-        genero: (_selectedGender != null && _selectedGender!.isNotEmpty) ? _selectedGender : null,
+        genero: (_selectedGender != null && _selectedGender!.isNotEmpty)
+            ? _selectedGender
+            : null,
       );
       setState(() {
         _products = prods;
@@ -151,11 +153,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           hintText: 'Buscar por prenda, tela, color...',
                           prefixIcon: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: AppSvg.raw(AppSvg.search, size: 16, color: AppColors.forest),
+                            child: AppSvg.raw(
+                              AppSvg.search,
+                              size: 16,
+                              color: AppColors.forest,
+                            ),
                           ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
-                                  icon: AppSvg.raw(AppSvg.close, size: 14, color: AppColors.textMuted),
+                                  icon: AppSvg.raw(
+                                    AppSvg.close,
+                                    size: 14,
+                                    color: AppColors.textMuted,
+                                  ),
                                   onPressed: () {
                                     _searchController.clear();
                                     _filterProducts();
@@ -174,10 +184,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
                       ),
                       onPressed: _filterProducts,
-                      child: AppSvg.raw(AppSvg.filter, size: 18, color: AppColors.white),
+                      child: AppSvg.raw(
+                        AppSvg.filter,
+                        size: 18,
+                        color: AppColors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -214,12 +231,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             label: Text(cat.nombre),
                             selectedColor: AppColors.forest,
                             labelStyle: TextStyle(
-                              color: isSelected ? AppColors.white : AppColors.textMain,
+                              color: isSelected
+                                  ? AppColors.white
+                                  : AppColors.textMain,
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
                             onSelected: (_) {
-                              setState(() => _selectedCategoryId = isSelected ? null : cat.id);
+                              setState(
+                                () => _selectedCategoryId = isSelected
+                                    ? null
+                                    : cat.id,
+                              );
                               _filterProducts();
                             },
                           ),
@@ -239,46 +262,54 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     child: CircularProgressIndicator(color: AppColors.forest),
                   )
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            AppSvg.raw(AppSvg.close, size: 48, color: AppColors.textMuted),
-                            const SizedBox(height: 12),
-                            Text(_errorMessage!),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _loadInitialData,
-                              child: const Text('Reintentar'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AppSvg.raw(
+                          AppSvg.close,
+                          size: 48,
+                          color: AppColors.textMuted,
                         ),
-                      )
-                    : _products.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No se encontraron prendas con estos filtros.',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            color: AppColors.forest,
-                            onRefresh: _filterProducts,
-                            child: GridView.builder(
-                              padding: const EdgeInsets.all(12),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.65,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                              ),
-                              itemCount: _products.length,
-                              itemBuilder: (context, index) {
-                                final product = _products[index];
-                                return _buildProductCard(product);
-                              },
-                            ),
+                        const SizedBox(height: 12),
+                        Text(_errorMessage!),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _loadInitialData,
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _products.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No se encontraron prendas con estos filtros.',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                : RefreshIndicator(
+                    color: AppColors.forest,
+                    onRefresh: _filterProducts,
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
                           ),
+                      itemCount: _products.length,
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        return _buildProductCard(product);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -312,18 +343,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             product.mainImageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Center(
-                              child: AppSvg.raw(AppSvg.tshirt, size: 36, color: AppColors.forest),
+                              child: AppSvg.raw(
+                                AppSvg.tshirt,
+                                size: 36,
+                                color: AppColors.forest,
+                              ),
                             ),
                           )
                         : Center(
-                            child: AppSvg.raw(AppSvg.tshirt, size: 36, color: AppColors.forest),
+                            child: AppSvg.raw(
+                              AppSvg.tshirt,
+                              size: 36,
+                              color: AppColors.forest,
+                            ),
                           ),
                   ),
                   Positioned(
                     top: 6,
                     left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.ink,
                         borderRadius: BorderRadius.circular(2),

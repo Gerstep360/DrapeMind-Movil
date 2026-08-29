@@ -60,7 +60,12 @@ class _LoginScreenState extends State<LoginScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _errorMessage = e.message);
     } catch (e) {
-      if (mounted) setState(() => _errorMessage = 'Ocurrió un error inesperado al conectar con el servidor ($e).');
+      if (mounted) {
+        setState(
+          () => _errorMessage =
+              'Ocurrió un error inesperado al conectar con el servidor ($e).',
+        );
+      }
     }
   }
 
@@ -87,12 +92,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppColors.forest.withAlpha(30),
                       shape: BoxShape.circle,
                     ),
-                    child: AppSvg.raw(AppSvg.lock, size: 24, color: AppColors.forest),
+                    child: AppSvg.raw(
+                      AppSvg.lock,
+                      size: 24,
+                      color: AppColors.forest,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
                     'ACTIVAR ACCESO RÁPIDO SEGURO',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.forest),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                      color: AppColors.forest,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
@@ -110,7 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 16,
                         height: 16,
                         decoration: BoxDecoration(
-                          color: isFilled ? AppColors.forest : Colors.transparent,
+                          color: isFilled
+                              ? AppColors.forest
+                              : Colors.transparent,
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.forest, width: 2),
                         ),
@@ -148,7 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Configurar más tarde', style: TextStyle(color: AppColors.textMuted)),
+                    child: const Text(
+                      'Configurar más tarde',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                   ),
                 ],
               ),
@@ -172,7 +191,14 @@ class _LoginScreenState extends State<LoginScreen> {
           border: Border.all(color: AppColors.lineStrong),
         ),
         child: Center(
-          child: Text(d, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.forest)),
+          child: Text(
+            d,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.forest,
+            ),
+          ),
         ),
       ),
     );
@@ -195,7 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             AppSvg.raw(AppSvg.sparkle, size: 18, color: AppColors.forest),
             const SizedBox(width: 8),
-            const Text('Configurar Conexión Backend', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+            const Text(
+              'Configurar Conexión Backend',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         content: Column(
@@ -219,13 +248,19 @@ class _LoginScreenState extends State<LoginScreen> {
               spacing: 6,
               children: [
                 ActionChip(
-                  label: const Text('Wi-Fi LAN (192.168.100.223:8000)', style: TextStyle(fontSize: 10.5)),
+                  label: const Text(
+                    'Wi-Fi LAN (192.168.100.223:8000)',
+                    style: TextStyle(fontSize: 10.5),
+                  ),
                   onPressed: () {
                     controller.text = '192.168.100.223:8000';
                   },
                 ),
                 ActionChip(
-                  label: const Text('ADB Reverse (127.0.0.1:8000)', style: TextStyle(fontSize: 10.5)),
+                  label: const Text(
+                    'ADB Reverse (127.0.0.1:8000)',
+                    style: TextStyle(fontSize: 10.5),
+                  ),
                   onPressed: () {
                     controller.text = '127.0.0.1:8000';
                   },
@@ -276,7 +311,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: _showServerConfigDialog,
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.paperLight,
                           borderRadius: BorderRadius.circular(12),
@@ -296,7 +334,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(width: 6),
                             Text(
                               'Servidor: ${ApiConfig.defaultHost}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.forest),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.forest,
+                              ),
                             ),
                           ],
                         ),
@@ -377,9 +419,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               Expanded(
                                 child: InkWell(
-                                  onTap: () => setState(() => _isRegister = false),
+                                  onTap: () =>
+                                      setState(() => _isRegister = false),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
@@ -408,9 +453,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               Expanded(
                                 child: InkWell(
-                                  onTap: () => setState(() => _isRegister = true),
+                                  onTap: () =>
+                                      setState(() => _isRegister = true),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
@@ -446,7 +494,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: AppColors.dangerBg,
-                                border: Border.all(color: AppColors.danger.withAlpha(80)),
+                                border: Border.all(
+                                  color: AppColors.danger.withAlpha(80),
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -468,11 +518,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 labelText: 'Nombre Completo',
                                 prefixIcon: Padding(
                                   padding: const EdgeInsets.all(12),
-                                  child: AppSvg.raw(AppSvg.user, size: 18, color: AppColors.forest),
+                                  child: AppSvg.raw(
+                                    AppSvg.user,
+                                    size: 18,
+                                    color: AppColors.forest,
+                                  ),
                                 ),
                               ),
-                              validator: (v) =>
-                                  v == null || v.trim().isEmpty ? 'Ingresa tu nombre' : null,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Ingresa tu nombre'
+                                  : null,
                             ),
                             const SizedBox(height: 14),
                           ],
@@ -484,11 +539,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelText: 'Correo Electrónico',
                               prefixIcon: Padding(
                                 padding: const EdgeInsets.all(12),
-                                child: AppSvg.raw(AppSvg.user, size: 18, color: AppColors.forest),
+                                child: AppSvg.raw(
+                                  AppSvg.user,
+                                  size: 18,
+                                  color: AppColors.forest,
+                                ),
                               ),
                             ),
-                            validator: (v) =>
-                                v == null || !v.contains('@') ? 'Ingresa un correo válido' : null,
+                            validator: (v) => v == null || !v.contains('@')
+                                ? 'Ingresa un correo válido'
+                                : null,
                           ),
                           const SizedBox(height: 14),
 
@@ -499,11 +559,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               labelText: 'Contraseña',
                               prefixIcon: Padding(
                                 padding: const EdgeInsets.all(12),
-                                child: AppSvg.raw(AppSvg.lock, size: 18, color: AppColors.forest),
+                                child: AppSvg.raw(
+                                  AppSvg.lock,
+                                  size: 18,
+                                  color: AppColors.forest,
+                                ),
                               ),
                             ),
-                            validator: (v) =>
-                                v == null || v.length < 4 ? 'Mínimo 4 caracteres' : null,
+                            validator: (v) => v == null || v.length < 4
+                                ? 'Mínimo 4 caracteres'
+                                : null,
                           ),
                           const SizedBox(height: 14),
 
@@ -515,7 +580,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 labelText: 'Teléfono (Opcional)',
                                 prefixIcon: Padding(
                                   padding: const EdgeInsets.all(12),
-                                  child: AppSvg.raw(AppSvg.user, size: 18, color: AppColors.forest),
+                                  child: AppSvg.raw(
+                                    AppSvg.user,
+                                    size: 18,
+                                    color: AppColors.forest,
+                                  ),
                                 ),
                               ),
                             ),
@@ -534,7 +603,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : Text(_isRegister ? 'Registrarme' : 'Entrar al Atelier'),
+                                : Text(
+                                    _isRegister
+                                        ? 'Registrarme'
+                                        : 'Entrar al Atelier',
+                                  ),
                           ),
                         ],
                       ),

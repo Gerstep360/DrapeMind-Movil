@@ -36,9 +36,7 @@ class AppTheme {
           foregroundColor: AppColors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
@@ -51,19 +49,17 @@ class AppTheme {
           foregroundColor: AppColors.forest,
           side: const BorderSide(color: AppColors.forest, width: 1.2),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
           borderSide: const BorderSide(color: AppColors.lineStrong),

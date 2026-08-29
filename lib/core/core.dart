@@ -18,6 +18,7 @@ export 'models/ai_models.dart';
 export 'models/ar_models.dart';
 export 'models/admin_metrics_models.dart';
 export 'models/realtime_models.dart';
+export 'models/branch_models.dart';
 
 // Services
 export 'services/auth_service.dart';
@@ -32,5 +33,4 @@ export 'services/ai_socket_service.dart';
 export 'services/events_socket_service.dart';
 export 'services/ar_service.dart';
 export 'services/security_service.dart';
-
-
+export 'services/branch_service.dart';

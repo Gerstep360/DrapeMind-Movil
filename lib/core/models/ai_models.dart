@@ -90,18 +90,18 @@ class AiActionItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        if (varianteId != null) 'variante_id': varianteId,
-        if (itemId != null) 'item_id': itemId,
-        'nombre': nombre,
-        'precio': precio,
-        'color': color,
-        'talla': talla,
-        'sku': sku,
-        'imagen': imagen,
-        'accion': accion.toServerString(),
-        'motivo': motivo,
-      };
+    'id': id,
+    if (varianteId != null) 'variante_id': varianteId,
+    if (itemId != null) 'item_id': itemId,
+    'nombre': nombre,
+    'precio': precio,
+    'color': color,
+    'talla': talla,
+    'sku': sku,
+    'imagen': imagen,
+    'accion': accion.toServerString(),
+    'motivo': motivo,
+  };
 }
 
 enum AiPresentationMode {
@@ -126,11 +126,7 @@ class AiNotice {
   final String title;
   final String message;
 
-  AiNotice({
-    required this.type,
-    required this.title,
-    required this.message,
-  });
+  AiNotice({required this.type, required this.title, required this.message});
 
   factory AiNotice.fromJson(Map<String, dynamic> json) {
     return AiNotice(
@@ -141,10 +137,10 @@ class AiNotice {
   }
 
   Map<String, dynamic> toJson() => {
-        'type': type,
-        'title': title,
-        'message': message,
-      };
+    'type': type,
+    'title': title,
+    'message': message,
+  };
 }
 
 class AiResponseMeta {
@@ -187,14 +183,14 @@ class AiResponseMeta {
   }
 
   Map<String, dynamic> toJson() => {
-        'kind': kind,
-        'total_bob': totalBob,
-        'budget_bob': budgetBob,
-        'budget_remaining_bob': budgetRemainingBob,
-        'item_count': itemCount,
-        'occasion': occasion,
-        'can_add_all': canAddAll,
-      };
+    'kind': kind,
+    'total_bob': totalBob,
+    'budget_bob': budgetBob,
+    'budget_remaining_bob': budgetRemainingBob,
+    'item_count': itemCount,
+    'occasion': occasion,
+    'can_add_all': canAddAll,
+  };
 }
 
 class AiSuggestedAction {
@@ -210,10 +206,7 @@ class AiSuggestedAction {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'label': label,
-        'prompt': prompt,
-      };
+  Map<String, dynamic> toJson() => {'label': label, 'prompt': prompt};
 }
 
 class AgentTraceStep {
@@ -231,11 +224,7 @@ class AgentTraceStep {
     this.durationMs,
   });
 
-  AgentTraceStep copyWith({
-    String? state,
-    String? summary,
-    int? durationMs,
-  }) {
+  AgentTraceStep copyWith({String? state, String? summary, int? durationMs}) {
     return AgentTraceStep(
       name: name,
       state: state ?? this.state,
@@ -256,12 +245,12 @@ class AgentTraceStep {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'state': state,
-        'summary': summary,
-        'started_at': startedAt,
-        'duration_ms': durationMs,
-      };
+    'name': name,
+    'state': state,
+    'summary': summary,
+    'started_at': startedAt,
+    'duration_ms': durationMs,
+  };
 }
 
 class ChatMessage {
@@ -304,7 +293,9 @@ class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
-      id: json['id']?.toString() ?? 'msg-${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          json['id']?.toString() ??
+          'msg-${DateTime.now().millisecondsSinceEpoch}',
       role: json['role']?.toString() ?? 'assistant',
       content: json['content']?.toString() ?? '',
       pending: json['pending'] == true,
@@ -316,13 +307,17 @@ class ChatMessage {
       trace: (json['trace'] as List? ?? [])
           .map((t) => AgentTraceStep.fromJson(t as Map<String, dynamic>))
           .toList(),
-      presentationMode: AiPresentationMode.fromString(json['presentation_mode']?.toString()),
+      presentationMode: AiPresentationMode.fromString(
+        json['presentation_mode']?.toString(),
+      ),
       responseTitle: json['response_title']?.toString(),
       notices: (json['notices'] as List? ?? [])
           .map((n) => AiNotice.fromJson(n as Map<String, dynamic>))
           .toList(),
       responseMeta: json['response_meta'] != null
-          ? AiResponseMeta.fromJson(json['response_meta'] as Map<String, dynamic>)
+          ? AiResponseMeta.fromJson(
+              json['response_meta'] as Map<String, dynamic>,
+            )
           : null,
       suggestedActions: (json['suggested_actions'] as List? ?? [])
           .map((s) => AiSuggestedAction.fromJson(s as Map<String, dynamic>))
@@ -335,22 +330,22 @@ class ChatMessage {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'role': role,
-        'content': content,
-        'pending': pending,
-        'error': error,
-        'tools': tools,
-        'action_items': actionItems.map((a) => a.toJson()).toList(),
-        'trace': trace.map((t) => t.toJson()).toList(),
-        'presentation_mode': presentationMode.name,
-        'response_title': responseTitle,
-        'notices': notices.map((n) => n.toJson()).toList(),
-        'response_meta': responseMeta?.toJson(),
-        'suggested_actions': suggestedActions.map((s) => s.toJson()).toList(),
-        'duration_ms': durationMs,
-        'created_at': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'role': role,
+    'content': content,
+    'pending': pending,
+    'error': error,
+    'tools': tools,
+    'action_items': actionItems.map((a) => a.toJson()).toList(),
+    'trace': trace.map((t) => t.toJson()).toList(),
+    'presentation_mode': presentationMode.name,
+    'response_title': responseTitle,
+    'notices': notices.map((n) => n.toJson()).toList(),
+    'response_meta': responseMeta?.toJson(),
+    'suggested_actions': suggestedActions.map((s) => s.toJson()).toList(),
+    'duration_ms': durationMs,
+    'created_at': createdAt.toIso8601String(),
+  };
 }
 
 class ChatSession {
@@ -391,17 +386,19 @@ class ChatSession {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-        'backend_session_id': backendSessionId,
-        'messages': messages.map((m) => m.toJson()).toList(),
-      };
+    'id': id,
+    'title': title,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'backend_session_id': backendSessionId,
+    'messages': messages.map((m) => m.toJson()).toList(),
+  };
 
   factory ChatSession.fromJson(Map<String, dynamic> json) {
     return ChatSession(
-      id: json['id']?.toString() ?? 'session-${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          json['id']?.toString() ??
+          'session-${DateTime.now().millisecondsSinceEpoch}',
       title: json['title']?.toString() ?? 'Conversación Atelier',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()

@@ -20,7 +20,9 @@ class ArService {
         ? '?${Uri(queryParameters: queryParams).query}'
         : '';
 
-    final response = await _apiClient.get('/ar/products/$productId/try-on-config$queryString');
+    final response = await _apiClient.get(
+      '/ar/products/$productId/try-on-config$queryString',
+    );
     return ArConfigModel.fromJson(response as Map<String, dynamic>);
   }
 }

@@ -69,90 +69,99 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.forest))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.forest),
+            )
           : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
-              : _orders.isEmpty
-                  ? Center(
+          ? Center(child: Text(_errorMessage!))
+          : _orders.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AppSvg.raw(
+                    AppSvg.package,
+                    size: 50,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No tienes pedidos registrados todavía',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.forestDark,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: AppColors.forest,
+              onRefresh: _loadOrders,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final order = _orders[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppSvg.raw(AppSvg.package, size: 50, color: AppColors.textMuted),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No tienes pedidos registrados todavía',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.forestDark,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Pedido ${order.codigoPublico}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              _buildStatusBadge(order.estado),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Tipo: ${order.tipoEntrega.displayName} · Canal: ${order.canal}',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.textMuted,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${order.items.length} prendas',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMutedStrong,
+                                ),
+                              ),
+                              Text(
+                                'Total: Bs ${order.total.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  color: AppColors.forest,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    )
-                  : RefreshIndicator(
-                      color: AppColors.forest,
-                      onRefresh: _loadOrders,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _orders.length,
-                        itemBuilder: (context, index) {
-                          final order = _orders[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Pedido ${order.codigoPublico}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 13.5,
-                                        ),
-                                      ),
-                                      _buildStatusBadge(order.estado),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Tipo: ${order.tipoEntrega.displayName} · Canal: ${order.canal}',
-                                    style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Divider(),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '${order.items.length} prendas',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textMutedStrong,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Total: Bs ${order.total.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 14,
-                                          color: AppColors.forest,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 

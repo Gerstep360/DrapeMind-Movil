@@ -80,7 +80,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.forestDark,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.acid.withAlpha(90), width: 1.5),
+                  border: Border.all(
+                    color: AppColors.acid.withAlpha(90),
+                    width: 1.5,
+                  ),
                 ),
                 child: AppSvg.raw(AppSvg.lock, size: 28, color: AppColors.acid),
               ),
@@ -125,7 +128,9 @@ class _PinLockScreenState extends State<PinLockScreen> {
                       color: isFilled ? AppColors.acid : Colors.transparent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isFilled ? AppColors.acid : AppColors.forest.withAlpha(120),
+                        color: isFilled
+                            ? AppColors.acid
+                            : AppColors.forest.withAlpha(120),
                         width: 2,
                       ),
                     ),
@@ -138,7 +143,11 @@ class _PinLockScreenState extends State<PinLockScreen> {
               if (_errorMessage != null)
                 Text(
                   _errorMessage!,
-                  style: const TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
                 )
               else
                 const SizedBox(height: 16),
@@ -160,7 +169,11 @@ class _PinLockScreenState extends State<PinLockScreen> {
                 },
                 child: const Text(
                   'Cerrar sesión o cambiar de cuenta',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted, decoration: TextDecoration.underline),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ],
@@ -226,7 +239,11 @@ class _PinLockScreenState extends State<PinLockScreen> {
         child: Center(
           child: Text(
             digit,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.white),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.white,
+            ),
           ),
         ),
       ),
@@ -248,9 +265,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
           color: AppColors.forest.withAlpha(40),
           shape: BoxShape.circle,
         ),
-        child: Center(
-          child: AppSvg.raw(icon, size: 20, color: AppColors.acid),
-        ),
+        child: Center(child: AppSvg.raw(icon, size: 20, color: AppColors.acid)),
       ),
     );
   }

@@ -2,10 +2,7 @@ class SalesMetrics {
   final int pedidosEntregados;
   final double ingresos;
 
-  SalesMetrics({
-    required this.pedidosEntregados,
-    required this.ingresos,
-  });
+  SalesMetrics({required this.pedidosEntregados, required this.ingresos});
 
   factory SalesMetrics.fromJson(Map<String, dynamic> json) {
     return SalesMetrics(
@@ -49,17 +46,18 @@ class SalesInventoryMetrics {
   final SalesMetrics ventas;
   final InventoryMetrics inventario;
 
-  SalesInventoryMetrics({
-    required this.ventas,
-    required this.inventario,
-  });
+  SalesInventoryMetrics({required this.ventas, required this.inventario});
 
   factory SalesInventoryMetrics.fromJson(Map<String, dynamic> json) {
     return SalesInventoryMetrics(
       ventas: SalesMetrics.fromJson(
-          json['ventas'] is Map ? json['ventas'] as Map<String, dynamic> : {}),
+        json['ventas'] is Map ? json['ventas'] as Map<String, dynamic> : {},
+      ),
       inventario: InventoryMetrics.fromJson(
-          json['inventario'] is Map ? json['inventario'] as Map<String, dynamic> : {}),
+        json['inventario'] is Map
+            ? json['inventario'] as Map<String, dynamic>
+            : {},
+      ),
     );
   }
 }
@@ -104,7 +102,8 @@ class AiRuntimeStatus {
           : int.tryParse(json['idle_seconds']?.toString() ?? ''),
       idleTimeoutSeconds: json['idle_timeout_seconds'] is int
           ? json['idle_timeout_seconds']
-          : int.tryParse(json['idle_timeout_seconds']?.toString() ?? '600') ?? 600,
+          : int.tryParse(json['idle_timeout_seconds']?.toString() ?? '600') ??
+                600,
       model: json['model']?.toString() ?? '',
       modelExists: json['model_exists'] ?? false,
       mmprojExists: json['mmproj_exists'] ?? false,

@@ -1,7 +1,9 @@
 enum UserRole {
   cliente,
   admin,
-  vendedor;
+  vendedor,
+  encargado,
+  cajero;
 
   static UserRole fromString(String? role) {
     switch (role?.toUpperCase()) {
@@ -9,6 +11,10 @@ enum UserRole {
         return UserRole.admin;
       case 'VENDEDOR':
         return UserRole.vendedor;
+      case 'ENCARGADO':
+        return UserRole.encargado;
+      case 'CAJERO':
+        return UserRole.cajero;
       default:
         return UserRole.cliente;
     }
@@ -20,6 +26,10 @@ enum UserRole {
         return 'ADMIN';
       case UserRole.vendedor:
         return 'VENDEDOR';
+      case UserRole.encargado:
+        return 'ENCARGADO';
+      case UserRole.cajero:
+        return 'CAJERO';
       case UserRole.cliente:
         return 'CLIENTE';
     }
@@ -60,14 +70,14 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'nombre': nombre,
-        'email': email,
-        'telefono': telefono,
-        'rol': rol.toServerString(),
-        'estado': estado,
-        'created_at': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'nombre': nombre,
+    'email': email,
+    'telefono': telefono,
+    'rol': rol.toServerString(),
+    'estado': estado,
+    'created_at': createdAt.toIso8601String(),
+  };
 }
 
 class TokenResponse {
@@ -99,9 +109,9 @@ class LoginRequest {
   LoginRequest({required this.email, required this.password});
 
   Map<String, dynamic> toJson() => {
-        'email': email.trim(),
-        'password': password,
-      };
+    'email': email.trim(),
+    'password': password,
+  };
 }
 
 class RegisterRequest {
@@ -118,9 +128,9 @@ class RegisterRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'nombre': nombre.trim(),
-        'email': email.trim(),
-        'password': password,
-        if (telefono != null && telefono!.isNotEmpty) 'telefono': telefono!.trim(),
-      };
+    'nombre': nombre.trim(),
+    'email': email.trim(),
+    'password': password,
+    if (telefono != null && telefono!.isNotEmpty) 'telefono': telefono!.trim(),
+  };
 }

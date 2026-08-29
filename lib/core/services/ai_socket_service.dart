@@ -49,6 +49,8 @@ class AiSocketService extends ChangeNotifier {
   String? _queuedMessage;
   int _responseStartedAt = 0;
   int _thinkingElapsedMs = 0;
+  bool _authRejected = false;
+  bool _manualDisconnect = false;
 
   String? _currentThought;
   final List<String> _liveThoughtSteps = [];
@@ -58,7 +60,8 @@ class AiSocketService extends ChangeNotifier {
   String? _activeSessionId;
   List<AgentTraceStep> _toolActivity = [];
 
-  AiSocketService({required AuthService authService}) : _authService = authService {
+  AiSocketService({required AuthService authService})
+    : _authService = authService {
     _loadSessionsFromStorage();
   }
 
@@ -68,7 +71,8 @@ class AiSocketService extends ChangeNotifier {
   List<String> get liveThoughtSteps => List.unmodifiable(_liveThoughtSteps);
   int get thinkingElapsedMs => _thinkingElapsedMs;
   double get thinkingElapsedSeconds => _thinkingElapsedMs / 1000.0;
-  String get thinkingElapsedFormatted => '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
+  String get thinkingElapsedFormatted =>
+      '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
 
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
   ChatSession get currentSession {
@@ -109,7 +113,9 @@ class AiSocketService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('[AiSocketService] Error cargando sesiones de SharedPreferences: $e');
+      debugPrint(
+        '[AiSocketService] Error cargando sesiones de SharedPreferences: $e',
+      );
     }
 
     // Inicializar sesión por defecto
@@ -191,10 +197,20 @@ class AiSocketService extends ChangeNotifier {
   // --- WEBSOCKET CONNECTION ---
   void connect() {
     final token = _authService.token;
-    if (token == null || token.isEmpty) return;
-    if (_status == AiSocketStatus.connected || _status == AiSocketStatus.connecting) return;
+    if (token == null || token.isEmpty || !_authService.hasValidToken) {
+      _status = AiSocketStatus.offline;
+      unawaited(_authService.logout());
+      notifyListeners();
+      return;
+    }
+    if (_status == AiSocketStatus.connected ||
+        _status == AiSocketStatus.connecting) {
+      return;
+    }
 
     _clearReconnect();
+    _manualDisconnect = false;
+    _authRejected = false;
     _status = AiSocketStatus.connecting;
     notifyListeners();
 
@@ -215,14 +231,18 @@ class AiSocketService extends ChangeNotifier {
           debugPrint('[AiSocketService] WebSocket error: $error');
           _status = AiSocketStatus.error;
           _stopThinkingTicker();
-          if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant' && currentSession.messages.last.pending) {
+          if (currentSession.messages.isNotEmpty &&
+              currentSession.messages.last.role == 'assistant' &&
+              currentSession.messages.last.pending) {
             final last = currentSession.messages.last;
             if (last.content.isEmpty) {
-              last.content = 'Error de comunicación con Altair AI. Revisa tu conexión o inicia sesión.';
+              last.content =
+                  'Error de comunicación con Altair AI. Revisa tu conexión o inicia sesión.';
               last.error = true;
             }
             last.pending = false;
-            last.durationMs = DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+            last.durationMs =
+                DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
             _saveSessionsToStorage();
           }
           notifyListeners();
@@ -231,17 +251,23 @@ class AiSocketService extends ChangeNotifier {
           debugPrint('[AiSocketService] WebSocket cerrado.');
           _cleanupSocket();
           _stopThinkingTicker();
-          if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant' && currentSession.messages.last.pending) {
+          if (currentSession.messages.isNotEmpty &&
+              currentSession.messages.last.role == 'assistant' &&
+              currentSession.messages.last.pending) {
             final last = currentSession.messages.last;
             if (last.content.isEmpty) {
-              last.content = 'Conexión cerrada. Vuelve a iniciar sesión si tu token expiró.';
+              last.content =
+                  'Conexión cerrada. Vuelve a iniciar sesión si tu token expiró.';
               last.error = true;
             }
             last.pending = false;
-            last.durationMs = DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+            last.durationMs =
+                DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
             _saveSessionsToStorage();
           }
-          if (_authService.isAuthenticated) {
+          if (!_manualDisconnect &&
+              !_authRejected &&
+              _authService.hasValidToken) {
             _status = AiSocketStatus.offline;
             notifyListeners();
             _scheduleReconnect();
@@ -252,7 +278,6 @@ class AiSocketService extends ChangeNotifier {
         },
       );
 
-      _reconnectAttempt = 0;
       _channel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
       _startHeartbeat();
     } catch (e) {
@@ -265,6 +290,7 @@ class AiSocketService extends ChangeNotifier {
   }
 
   void disconnect() {
+    _manualDisconnect = true;
     _clearReconnect();
     _stopHeartbeat();
     _stopThinkingTicker();
@@ -283,21 +309,23 @@ class AiSocketService extends ChangeNotifier {
 
     // Auto nombrar el título de la sesión si es la primera pregunta
     if (currentSession.messages.length <= 1) {
-      currentSession.title = clean.length > 28 ? '${clean.substring(0, 28)}...' : clean;
+      currentSession.title = clean.length > 28
+          ? '${clean.substring(0, 28)}...'
+          : clean;
     }
 
-    currentSession.messages.add(ChatMessage(
-      id: userMsgId,
-      role: 'user',
-      content: clean,
-    ));
+    currentSession.messages.add(
+      ChatMessage(id: userMsgId, role: 'user', content: clean),
+    );
 
-    currentSession.messages.add(ChatMessage(
-      id: assistantMsgId,
-      role: 'assistant',
-      content: '',
-      pending: true,
-    ));
+    currentSession.messages.add(
+      ChatMessage(
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+        pending: true,
+      ),
+    );
 
     currentSession.updatedAt = DateTime.now();
 
@@ -311,7 +339,8 @@ class AiSocketService extends ChangeNotifier {
     _saveSessionsToStorage();
     notifyListeners();
 
-    if (_status == AiSocketStatus.connected || _status == AiSocketStatus.ready) {
+    if (_status == AiSocketStatus.connected ||
+        _status == AiSocketStatus.ready) {
       _sendChat(clean);
     } else {
       _queuedMessage = clean;
@@ -321,9 +350,12 @@ class AiSocketService extends ChangeNotifier {
 
   void _startThinkingTicker() {
     _stopThinkingTicker();
-    _thinkingTickerTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+    _thinkingTickerTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      _,
+    ) {
       if (_responseStartedAt > 0) {
-        _thinkingElapsedMs = DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+        _thinkingElapsedMs =
+            DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
         notifyListeners();
       }
     });
@@ -336,11 +368,13 @@ class AiSocketService extends ChangeNotifier {
 
   void _sendChat(String content) {
     if (_channel != null) {
-      _channel!.sink.add(jsonEncode({
-        'type': 'chat',
-        'message': content,
-        'session_id': currentSession.backendSessionId,
-      }));
+      _channel!.sink.add(
+        jsonEncode({
+          'type': 'chat',
+          'message': content,
+          'session_id': currentSession.backendSessionId,
+        }),
+      );
     }
   }
 
@@ -349,6 +383,7 @@ class AiSocketService extends ChangeNotifier {
     final type = event['type']?.toString();
 
     if (type == 'connected') {
+      _reconnectAttempt = 0;
       _status = AiSocketStatus.connected;
       notifyListeners();
       if (_queuedMessage != null) {
@@ -360,7 +395,8 @@ class AiSocketService extends ChangeNotifier {
     }
 
     if (type == 'thought') {
-      final text = event['content']?.toString() ?? event['text']?.toString() ?? '';
+      final text =
+          event['content']?.toString() ?? event['text']?.toString() ?? '';
       if (text.isNotEmpty) {
         _currentThought = text;
         if (!_liveThoughtSteps.contains(text)) {
@@ -375,9 +411,13 @@ class AiSocketService extends ChangeNotifier {
 
     if (type == 'model_status') {
       final statusStr = event['status']?.toString();
-      _status = statusStr == 'loading' ? AiSocketStatus.loading : AiSocketStatus.ready;
+      _status = statusStr == 'loading'
+          ? AiSocketStatus.loading
+          : AiSocketStatus.ready;
       if (event['session_id'] != null) {
-        currentSession.backendSessionId = int.tryParse(event['session_id'].toString());
+        currentSession.backendSessionId = int.tryParse(
+          event['session_id'].toString(),
+        );
       }
       if (statusStr == 'loading') {
         _startTrace('Altair iniciando razonamiento...');
@@ -405,9 +445,12 @@ class AiSocketService extends ChangeNotifier {
     }
 
     if (type == 'presentation') {
-      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant') {
+      if (currentSession.messages.isNotEmpty &&
+          currentSession.messages.last.role == 'assistant') {
         final last = currentSession.messages.last;
-        last.presentationMode = AiPresentationMode.fromString(event['mode']?.toString());
+        last.presentationMode = AiPresentationMode.fromString(
+          event['mode']?.toString(),
+        );
         last.responseTitle = event['title']?.toString();
 
         if (event['notices'] is List) {
@@ -417,7 +460,9 @@ class AiSocketService extends ChangeNotifier {
         }
 
         if (event['response_meta'] is Map) {
-          last.responseMeta = AiResponseMeta.fromJson(event['response_meta'] as Map<String, dynamic>);
+          last.responseMeta = AiResponseMeta.fromJson(
+            event['response_meta'] as Map<String, dynamic>,
+          );
         }
 
         if (event['suggested_actions'] is List) {
@@ -433,7 +478,8 @@ class AiSocketService extends ChangeNotifier {
     if (type == 'token') {
       final content = event['content']?.toString() ?? '';
       _startTrace('compose_response');
-      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant') {
+      if (currentSession.messages.isNotEmpty &&
+          currentSession.messages.last.role == 'assistant') {
         currentSession.messages.last.content += content;
         notifyListeners();
       }
@@ -444,29 +490,38 @@ class AiSocketService extends ChangeNotifier {
       _stopThinkingTicker();
       _finishTrace('compose_response', 'Respuesta preparada');
       if (event['session_id'] != null) {
-        currentSession.backendSessionId = int.tryParse(event['session_id'].toString());
+        currentSession.backendSessionId = int.tryParse(
+          event['session_id'].toString(),
+        );
       }
       _status = AiSocketStatus.ready;
       _currentThought = null;
 
-      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant') {
+      if (currentSession.messages.isNotEmpty &&
+          currentSession.messages.last.role == 'assistant') {
         final last = currentSession.messages.last;
         last.pending = false;
 
         if (event['tools'] is List) {
-          last.tools = (event['tools'] as List).map((t) => t.toString()).toList();
+          last.tools = (event['tools'] as List)
+              .map((t) => t.toString())
+              .toList();
         }
 
         if (event['action_items'] is List) {
           last.actionItems = (event['action_items'] as List)
-              .map((item) => AiActionItem.fromJson(item as Map<String, dynamic>))
+              .map(
+                (item) => AiActionItem.fromJson(item as Map<String, dynamic>),
+              )
               .toList();
         }
 
         last.trace = _toolActivity.map((step) => step.copyWith()).toList();
 
         if (event['presentation_mode'] != null) {
-          last.presentationMode = AiPresentationMode.fromString(event['presentation_mode'].toString());
+          last.presentationMode = AiPresentationMode.fromString(
+            event['presentation_mode'].toString(),
+          );
         }
         if (event['response_title'] != null) {
           last.responseTitle = event['response_title'].toString();
@@ -477,7 +532,9 @@ class AiSocketService extends ChangeNotifier {
               .toList();
         }
         if (event['response_meta'] is Map) {
-          last.responseMeta = AiResponseMeta.fromJson(event['response_meta'] as Map<String, dynamic>);
+          last.responseMeta = AiResponseMeta.fromJson(
+            event['response_meta'] as Map<String, dynamic>,
+          );
         }
         if (event['suggested_actions'] is List) {
           last.suggestedActions = (event['suggested_actions'] as List)
@@ -499,23 +556,38 @@ class AiSocketService extends ChangeNotifier {
       _stopThinkingTicker();
       _status = AiSocketStatus.error;
       _currentThought = null;
-      final msg = event['message']?.toString() ?? 'No se pudo completar la consulta.';
-      if (msg.contains('expirada') || msg.contains('inválida') || msg.contains('inactivo') || msg.contains('sesión')) {
+      final msg =
+          event['message']?.toString() ?? 'No se pudo completar la consulta.';
+      final authError =
+          event['code']?.toString() == 'AUTH_INVALID' ||
+          msg.toLowerCase().contains('sesión inválida') ||
+          msg.toLowerCase().contains('sesion invalida') ||
+          msg.toLowerCase().contains('token') &&
+              msg.toLowerCase().contains('expir') ||
+          msg.toLowerCase().contains('usuario inactivo');
+      if (authError) {
+        _authRejected = true;
         _clearReconnect();
         _reconnectAttempt = 999;
+        _queuedMessage = null;
+        unawaited(_authService.logout());
+        unawaited(_channel?.sink.close(4401, 'auth_expired'));
       }
       for (final step in _toolActivity) {
         if (step.state == 'running') {
           _finishTrace(step.name, 'Proceso interrumpido');
         }
       }
-      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant' && currentSession.messages.last.pending) {
+      if (currentSession.messages.isNotEmpty &&
+          currentSession.messages.last.role == 'assistant' &&
+          currentSession.messages.last.pending) {
         final last = currentSession.messages.last;
         last.content = msg;
         last.pending = false;
         last.error = true;
         last.trace = _toolActivity.map((step) => step.copyWith()).toList();
-        last.durationMs = DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+        last.durationMs =
+            DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
       }
       currentSession.updatedAt = DateTime.now();
       _saveSessionsToStorage();
@@ -552,17 +624,20 @@ class AiSocketService extends ChangeNotifier {
 
   void _startTrace(String name) {
     if (_toolActivity.any((step) => step.name == name)) return;
-    _toolActivity.add(AgentTraceStep(
-      name: name,
-      state: 'running',
-      startedAt: DateTime.now().millisecondsSinceEpoch,
-    ));
+    _toolActivity.add(
+      AgentTraceStep(
+        name: name,
+        state: 'running',
+        startedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
   }
 
   void _finishTrace(String name, String summary) {
     final now = DateTime.now().millisecondsSinceEpoch;
     for (int i = 0; i < _toolActivity.length; i++) {
-      if (_toolActivity[i].name == name && _toolActivity[i].state == 'running') {
+      if (_toolActivity[i].name == name &&
+          _toolActivity[i].state == 'running') {
         _toolActivity[i] = _toolActivity[i].copyWith(
           state: 'done',
           summary: summary,
@@ -574,8 +649,11 @@ class AiSocketService extends ChangeNotifier {
 
   void _scheduleReconnect() {
     _clearReconnect();
+    if (!_authService.hasValidToken) return;
     if (_reconnectAttempt >= 5) {
-      debugPrint('[AiSocketService] Límite de reconexiones alcanzado. Inicia sesión nuevamente.');
+      debugPrint(
+        '[AiSocketService] Límite de reconexiones alcanzado. Inicia sesión nuevamente.',
+      );
       _status = AiSocketStatus.offline;
       notifyListeners();
       return;

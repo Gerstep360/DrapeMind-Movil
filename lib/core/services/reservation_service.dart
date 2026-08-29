@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../models/order_models.dart';
 import '../models/reservation_models.dart';
 import '../network/api_client.dart';
@@ -5,7 +7,8 @@ import '../network/api_client.dart';
 class ReservationService {
   final ApiClient _apiClient;
 
-  ReservationService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  ReservationService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
   /// Retrieve the current user's reservations
   Future<List<Reservation>> getMyReservations() async {
@@ -21,15 +24,36 @@ class ReservationService {
   /// Create a garment reservation for 48h
   Future<Reservation> createReservation({
     required int varianteId,
+    int cantidad = 1,
+    int? sucursalId,
     String? observacion,
   }) async {
     final response = await _apiClient.post(
       '/reservations',
       body: {
-        'variante_id': varianteId,
+        if (sucursalId != null) 'sucursal_id': sucursalId,
+        'items': [
+          {'variante_id': varianteId, 'cantidad': cantidad},
+        ],
         if (observacion != null && observacion.isNotEmpty)
           'observacion': observacion,
       },
+    );
+    return Reservation.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<Reservation> getReservation(int reservationId) async {
+    final response = await _apiClient.get('/reservations/$reservationId');
+    return Reservation.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<Uint8List> getReservationQr(int reservationId) =>
+      _apiClient.getBytes('/reservations/$reservationId/qr');
+
+  Future<Reservation> cancelReservation(int reservationId) async {
+    final response = await _apiClient.post(
+      '/reservations/$reservationId/cancel',
+      body: {},
     );
     return Reservation.fromJson(response as Map<String, dynamic>);
   }

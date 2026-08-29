@@ -29,13 +29,13 @@ class Category {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'nombre': nombre,
-        'slug': slug,
-        'descripcion': descripcion,
-        'parent_id': parentId,
-        'activo': activo,
-      };
+    'id': id,
+    'nombre': nombre,
+    'slug': slug,
+    'descripcion': descripcion,
+    'parent_id': parentId,
+    'activo': activo,
+  };
 }
 
 class ProductVariant {
@@ -92,18 +92,18 @@ class ProductVariant {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'producto_id': productoId,
-        'sku': sku,
-        'color': color,
-        'codigo_color': codigoColor,
-        'talla': talla,
-        'stock_total': stockTotal,
-        'stock_reservado': stockReservado,
-        'stock_disponible': stockDisponible,
-        'imagen': imagen,
-        'activo': activo,
-      };
+    'id': id,
+    'producto_id': productoId,
+    'sku': sku,
+    'color': color,
+    'codigo_color': codigoColor,
+    'talla': talla,
+    'stock_total': stockTotal,
+    'stock_reservado': stockReservado,
+    'stock_disponible': stockDisponible,
+    'imagen': imagen,
+    'activo': activo,
+  };
 }
 
 class Product {
@@ -216,22 +216,22 @@ class Product {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'categoria_id': categoriaId,
-        'nombre': nombre,
-        'descripcion': descripcion,
-        'marca': marca,
-        'material': material,
-        'precio': precio,
-        'costo_referencia': costoReferencia,
-        'calidad_nivel': calidadNivel,
-        'genero_objetivo': generoObjetivo,
-        'descripcion_ai': descripcionAi,
-        'tags_ai': tagsAi,
-        'imagenes': imagenes,
-        'activo': activo,
-        'created_at': createdAt.toIso8601String(),
-        'stock_disponible': stockDisponible,
-        'variantes': variantes.map((v) => v.toJson()).toList(),
-      };
+    'id': id,
+    'categoria_id': categoriaId,
+    'nombre': nombre,
+    'descripcion': descripcion,
+    'marca': marca,
+    'material': material,
+    'precio': precio,
+    'costo_referencia': costoReferencia,
+    'calidad_nivel': calidadNivel,
+    'genero_objetivo': generoObjetivo,
+    'descripcion_ai': descripcionAi,
+    'tags_ai': tagsAi,
+    'imagenes': imagenes,
+    'activo': activo,
+    'created_at': createdAt.toIso8601String(),
+    'stock_disponible': stockDisponible,
+    'variantes': variantes.map((v) => v.toJson()).toList(),
+  };
 }

@@ -7,8 +7,9 @@ class ApiException implements Exception {
   ApiException(this.message, {this.statusCode, this.details});
 
   @override
-  String toString() =>
-      statusCode != null ? 'ApiException ($statusCode): $message' : 'ApiException: $message';
+  String toString() => statusCode != null
+      ? 'ApiException ($statusCode): $message'
+      : 'ApiException: $message';
 }
 
 /// Thrown when 401 Unauthorized occurs (e.g. token expired or invalid credentials).

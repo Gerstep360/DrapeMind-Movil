@@ -160,18 +160,18 @@ class OrderItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'pedido_id': pedidoId,
-        'variante_id': varianteId,
-        'producto_id': productoId,
-        'nombre': nombre,
-        'sku': sku,
-        'color': color,
-        'talla': talla,
-        'cantidad': cantidad,
-        'precio_unitario': precioUnitario,
-        'subtotal': subtotal,
-      };
+    'id': id,
+    'pedido_id': pedidoId,
+    'variante_id': varianteId,
+    'producto_id': productoId,
+    'nombre': nombre,
+    'sku': sku,
+    'color': color,
+    'talla': talla,
+    'cantidad': cantidad,
+    'precio_unitario': precioUnitario,
+    'subtotal': subtotal,
+  };
 }
 
 class Order {
@@ -245,20 +245,20 @@ class Order {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'codigo_publico': codigoPublico,
-        'estado': estado.toServerString(),
-        'canal': canal,
-        'tipo_entrega': tipoEntrega.toServerString(),
-        'subtotal': subtotal,
-        'descuento': descuento,
-        'costo_envio': costoEnvio,
-        'total': total,
-        'created_at': createdAt.toIso8601String(),
-        'paid_at': paidAt?.toIso8601String(),
-        'completed_at': completedAt?.toIso8601String(),
-        'items': items.map((i) => i.toJson()).toList(),
-      };
+    'id': id,
+    'codigo_publico': codigoPublico,
+    'estado': estado.toServerString(),
+    'canal': canal,
+    'tipo_entrega': tipoEntrega.toServerString(),
+    'subtotal': subtotal,
+    'descuento': descuento,
+    'costo_envio': costoEnvio,
+    'total': total,
+    'created_at': createdAt.toIso8601String(),
+    'paid_at': paidAt?.toIso8601String(),
+    'completed_at': completedAt?.toIso8601String(),
+    'items': items.map((i) => i.toJson()).toList(),
+  };
 }
 
 class CheckoutRequest {
@@ -275,9 +275,10 @@ class CheckoutRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'tipo_entrega': tipoEntrega.toServerString(),
-        if (direccionId != null) 'direccion_id': direccionId,
-        if (costoEnvio != null) 'costo_envio': costoEnvio,
-        if (observacion != null && observacion!.isNotEmpty) 'observacion': observacion,
-      };
+    'tipo_entrega': tipoEntrega.toServerString(),
+    if (direccionId != null) 'direccion_id': direccionId,
+    if (costoEnvio != null) 'costo_envio': costoEnvio,
+    if (observacion != null && observacion!.isNotEmpty)
+      'observacion': observacion,
+  };
 }

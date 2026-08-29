@@ -38,13 +38,15 @@ class DrapeMindApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProxyProvider<AuthService, AiSocketService>(
-          create: (ctx) => AiSocketService(authService: ctx.read<AuthService>()),
+          create: (ctx) =>
+              AiSocketService(authService: ctx.read<AuthService>()),
           update: (ctx, auth, ai) {
             return ai ?? AiSocketService(authService: auth);
           },
         ),
         ChangeNotifierProxyProvider<AuthService, EventsSocketService>(
-          create: (ctx) => EventsSocketService(authService: ctx.read<AuthService>()),
+          create: (ctx) =>
+              EventsSocketService(authService: ctx.read<AuthService>()),
           update: (ctx, auth, events) {
             final service = events ?? EventsSocketService(authService: auth);
             if (auth.isAuthenticated) {
@@ -77,17 +79,13 @@ class AuthGate extends StatelessWidget {
     if (auth.isLoading && auth.currentUser == null) {
       return const Scaffold(
         backgroundColor: AppColors.paper,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.forest),
-        ),
+        body: Center(child: CircularProgressIndicator(color: AppColors.forest)),
       );
     }
 
     if (auth.isAuthenticated) {
       if (security.isLocked) {
-        return PinLockScreen(
-          onUnlocked: () {},
-        );
+        return PinLockScreen(onUnlocked: () {});
       }
       return const MainShell();
     }
@@ -95,4 +93,3 @@ class AuthGate extends StatelessWidget {
     return const LoginScreen();
   }
 }
-

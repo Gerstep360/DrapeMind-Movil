@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,7 +14,8 @@ class ApiClient {
   static const String _tokenKey = 'drapemind_auth_token';
   final http.Client _httpClient;
 
-  ApiClient({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
+  ApiClient({http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
 
   /// Retrieve stored JWT access token
   Future<String?> getToken() async {
@@ -126,15 +128,69 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParams);
-      final finalHeaders = await _buildHeaders(extraHeaders: headers, requiresAuth: requiresAuth);
-      final response = await _httpClient.get(uri, headers: finalHeaders).timeout(timeout);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: headers,
+        requiresAuth: requiresAuth,
+      );
+      final response = await _httpClient
+          .get(uri, headers: finalHeaders)
+          .timeout(timeout);
       return _processResponse(response);
     } on SocketException catch (e) {
-      throw NetworkException('Sin conexión a Internet o servidor no disponible.', details: e);
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
     } on TimeoutException catch (e) {
-      throw NetworkException('Tiempo de espera agotado al comunicarse con el servidor.', details: e);
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
     } on http.ClientException catch (e) {
-      throw NetworkException('Error en el cliente de red: ${e.message}', details: e);
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
+    }
+  }
+
+  /// Retrieve a binary resource with the same auth and error semantics.
+  Future<Uint8List> getBytes(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    try {
+      final uri = _buildUri(path, queryParams);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: {'Accept': 'image/png', ...?headers},
+        requiresAuth: requiresAuth,
+      );
+      final response = await _httpClient
+          .get(uri, headers: finalHeaders)
+          .timeout(timeout);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.bodyBytes;
+      }
+      _processResponse(response);
+      throw ApiException('No se pudo descargar el recurso.');
+    } on SocketException catch (e) {
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
+    } on TimeoutException catch (e) {
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
+    } on http.ClientException catch (e) {
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
     }
   }
 
@@ -148,16 +204,30 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParams);
-      final finalHeaders = await _buildHeaders(extraHeaders: headers, requiresAuth: requiresAuth);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: headers,
+        requiresAuth: requiresAuth,
+      );
       final payload = body != null ? jsonEncode(body) : null;
-      final response = await _httpClient.post(uri, headers: finalHeaders, body: payload).timeout(timeout);
+      final response = await _httpClient
+          .post(uri, headers: finalHeaders, body: payload)
+          .timeout(timeout);
       return _processResponse(response);
     } on SocketException catch (e) {
-      throw NetworkException('Sin conexión a Internet o servidor no disponible.', details: e);
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
     } on TimeoutException catch (e) {
-      throw NetworkException('Tiempo de espera agotado al comunicarse con el servidor.', details: e);
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
     } on http.ClientException catch (e) {
-      throw NetworkException('Error en el cliente de red: ${e.message}', details: e);
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
     }
   }
 
@@ -171,16 +241,30 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParams);
-      final finalHeaders = await _buildHeaders(extraHeaders: headers, requiresAuth: requiresAuth);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: headers,
+        requiresAuth: requiresAuth,
+      );
       final payload = body != null ? jsonEncode(body) : null;
-      final response = await _httpClient.put(uri, headers: finalHeaders, body: payload).timeout(timeout);
+      final response = await _httpClient
+          .put(uri, headers: finalHeaders, body: payload)
+          .timeout(timeout);
       return _processResponse(response);
     } on SocketException catch (e) {
-      throw NetworkException('Sin conexión a Internet o servidor no disponible.', details: e);
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
     } on TimeoutException catch (e) {
-      throw NetworkException('Tiempo de espera agotado al comunicarse con el servidor.', details: e);
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
     } on http.ClientException catch (e) {
-      throw NetworkException('Error en el cliente de red: ${e.message}', details: e);
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
     }
   }
 
@@ -194,16 +278,30 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParams);
-      final finalHeaders = await _buildHeaders(extraHeaders: headers, requiresAuth: requiresAuth);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: headers,
+        requiresAuth: requiresAuth,
+      );
       final payload = body != null ? jsonEncode(body) : null;
-      final response = await _httpClient.patch(uri, headers: finalHeaders, body: payload).timeout(timeout);
+      final response = await _httpClient
+          .patch(uri, headers: finalHeaders, body: payload)
+          .timeout(timeout);
       return _processResponse(response);
     } on SocketException catch (e) {
-      throw NetworkException('Sin conexión a Internet o servidor no disponible.', details: e);
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
     } on TimeoutException catch (e) {
-      throw NetworkException('Tiempo de espera agotado al comunicarse con el servidor.', details: e);
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
     } on http.ClientException catch (e) {
-      throw NetworkException('Error en el cliente de red: ${e.message}', details: e);
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
     }
   }
 
@@ -217,16 +315,30 @@ class ApiClient {
   }) async {
     try {
       final uri = _buildUri(path, queryParams);
-      final finalHeaders = await _buildHeaders(extraHeaders: headers, requiresAuth: requiresAuth);
+      final finalHeaders = await _buildHeaders(
+        extraHeaders: headers,
+        requiresAuth: requiresAuth,
+      );
       final payload = body != null ? jsonEncode(body) : null;
-      final response = await _httpClient.delete(uri, headers: finalHeaders, body: payload).timeout(timeout);
+      final response = await _httpClient
+          .delete(uri, headers: finalHeaders, body: payload)
+          .timeout(timeout);
       return _processResponse(response);
     } on SocketException catch (e) {
-      throw NetworkException('Sin conexión a Internet o servidor no disponible.', details: e);
+      throw NetworkException(
+        'Sin conexión a Internet o servidor no disponible.',
+        details: e,
+      );
     } on TimeoutException catch (e) {
-      throw NetworkException('Tiempo de espera agotado al comunicarse con el servidor.', details: e);
+      throw NetworkException(
+        'Tiempo de espera agotado al comunicarse con el servidor.',
+        details: e,
+      );
     } on http.ClientException catch (e) {
-      throw NetworkException('Error en el cliente de red: ${e.message}', details: e);
+      throw NetworkException(
+        'Error en el cliente de red: ${e.message}',
+        details: e,
+      );
     }
   }
 }

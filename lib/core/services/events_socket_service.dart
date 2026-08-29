@@ -15,6 +15,8 @@ class EventsSocketService extends ChangeNotifier {
   Timer? _reconnectTimer;
   Timer? _heartbeatTimer;
   int _reconnectAttempt = 0;
+  bool _authRejected = false;
+  bool _manualDisconnect = false;
 
   final _eventStreamController = StreamController<RealtimeEvent>.broadcast();
   Stream<RealtimeEvent> get onEvent => _eventStreamController.stream;
@@ -22,13 +24,20 @@ class EventsSocketService extends ChangeNotifier {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
-  EventsSocketService({required AuthService authService}) : _authService = authService;
+  EventsSocketService({required AuthService authService})
+    : _authService = authService;
 
   void connect() {
     final token = _authService.token;
-    if (token == null || token.isEmpty || _isConnected) return;
+    if (token == null || token.isEmpty || !_authService.hasValidToken) {
+      unawaited(_authService.logout());
+      return;
+    }
+    if (_channel != null || _isConnected) return;
 
     _clearReconnect();
+    _manualDisconnect = false;
+    _authRejected = false;
     try {
       final wsUri = Uri.parse(ApiConfig.eventsWsUrl);
       _channel = WebSocketChannel.connect(wsUri);
@@ -37,6 +46,19 @@ class EventsSocketService extends ChangeNotifier {
         (data) {
           try {
             final Map<String, dynamic> json = jsonDecode(data.toString());
+            if (json['type'] == 'connected') {
+              _reconnectAttempt = 0;
+              _isConnected = true;
+              notifyListeners();
+              return;
+            }
+            if (json['type'] == 'error' && json['code'] == 'AUTH_INVALID') {
+              _authRejected = true;
+              _clearReconnect();
+              unawaited(_authService.logout());
+              unawaited(_channel?.sink.close(4401, 'auth_expired'));
+              return;
+            }
             final event = RealtimeEvent.fromJson(json);
             _eventStreamController.add(event);
           } catch (e) {
@@ -52,15 +74,13 @@ class EventsSocketService extends ChangeNotifier {
           _isConnected = false;
           notifyListeners();
           _cleanup();
-          if (_authService.isAuthenticated) {
+          if (!_manualDisconnect &&
+              !_authRejected &&
+              _authService.hasValidToken) {
             _scheduleReconnect();
           }
         },
       );
-
-      _isConnected = true;
-      _reconnectAttempt = 0;
-      notifyListeners();
 
       // Auth handshake
       _channel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
@@ -74,6 +94,7 @@ class EventsSocketService extends ChangeNotifier {
   }
 
   void disconnect() {
+    _manualDisconnect = true;
     _clearReconnect();
     _stopHeartbeat();
     _cleanup();
@@ -83,6 +104,7 @@ class EventsSocketService extends ChangeNotifier {
 
   void _scheduleReconnect() {
     _clearReconnect();
+    if (!_authService.hasValidToken || _reconnectAttempt >= 5) return;
     final delaySeconds = min(30, pow(2, _reconnectAttempt++).toInt());
     _reconnectTimer = Timer(Duration(seconds: delaySeconds), () => connect());
   }

@@ -11,18 +11,30 @@ class AdminService {
 
   /// Create a new product
   Future<Product> createProduct(Map<String, dynamic> productData) async {
-    final response = await _apiClient.post('/admin/products', body: productData);
+    final response = await _apiClient.post(
+      '/admin/products',
+      body: productData,
+    );
     return Product.fromJson(response as Map<String, dynamic>);
   }
 
   /// Update an existing product
-  Future<Product> updateProduct(int id, Map<String, dynamic> productData) async {
-    final response = await _apiClient.put('/admin/products/$id', body: productData);
+  Future<Product> updateProduct(
+    int id,
+    Map<String, dynamic> productData,
+  ) async {
+    final response = await _apiClient.put(
+      '/admin/products/$id',
+      body: productData,
+    );
     return Product.fromJson(response as Map<String, dynamic>);
   }
 
   /// Add a variant to a product
-  Future<ProductVariant> createVariant(int productId, Map<String, dynamic> variantData) async {
+  Future<ProductVariant> createVariant(
+    int productId,
+    Map<String, dynamic> variantData,
+  ) async {
     final response = await _apiClient.post(
       '/admin/products/$productId/variants',
       body: variantData,

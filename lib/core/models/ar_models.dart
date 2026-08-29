@@ -29,13 +29,13 @@ class SizeDimensionMetric {
   }
 
   Map<String, dynamic> toJson() => {
-        'chest': chest,
-        'shoulders': shoulders,
-        'length': length,
-        'waist': waist,
-        'hip': hip,
-        'foot': foot,
-      };
+    'chest': chest,
+    'shoulders': shoulders,
+    'length': length,
+    'waist': waist,
+    'hip': hip,
+    'foot': foot,
+  };
 }
 
 class ArConfigModel {

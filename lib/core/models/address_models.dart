@@ -44,17 +44,17 @@ class Address {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'usuario_id': usuarioId,
-        'alias': alias,
-        'departamento': departamento,
-        'ciudad': ciudad,
-        'zona': zona,
-        'direccion': direccion,
-        'referencia': referencia,
-        'telefono_contacto': telefonoContacto,
-        'es_principal': esPrincipal,
-      };
+    'id': id,
+    'usuario_id': usuarioId,
+    'alias': alias,
+    'departamento': departamento,
+    'ciudad': ciudad,
+    'zona': zona,
+    'direccion': direccion,
+    'referencia': referencia,
+    'telefono_contacto': telefonoContacto,
+    'es_principal': esPrincipal,
+  };
 }
 
 class AddressInput {
@@ -79,15 +79,15 @@ class AddressInput {
   });
 
   Map<String, dynamic> toJson() => {
-        'alias': alias.trim(),
-        'departamento': departamento.trim(),
-        'ciudad': ciudad.trim(),
-        if (zona != null && zona!.isNotEmpty) 'zona': zona!.trim(),
-        'direccion': direccion.trim(),
-        if (referencia != null && referencia!.isNotEmpty)
-          'referencia': referencia!.trim(),
-        if (telefonoContacto != null && telefonoContacto!.isNotEmpty)
-          'telefono_contacto': telefonoContacto!.trim(),
-        'es_principal': esPrincipal,
-      };
+    'alias': alias.trim(),
+    'departamento': departamento.trim(),
+    'ciudad': ciudad.trim(),
+    if (zona != null && zona!.isNotEmpty) 'zona': zona!.trim(),
+    'direccion': direccion.trim(),
+    if (referencia != null && referencia!.isNotEmpty)
+      'referencia': referencia!.trim(),
+    if (telefonoContacto != null && telefonoContacto!.isNotEmpty)
+      'telefono_contacto': telefonoContacto!.trim(),
+    'es_principal': esPrincipal,
+  };
 }

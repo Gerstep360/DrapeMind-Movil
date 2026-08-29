@@ -4,7 +4,8 @@ import '../network/api_client.dart';
 class AddressService {
   final ApiClient _apiClient;
 
-  AddressService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  AddressService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
   /// Retrieve user saved delivery addresses
   Future<List<Address>> getMyAddresses() async {
@@ -21,6 +22,14 @@ class AddressService {
   Future<Address> createAddress(AddressInput input) async {
     final response = await _apiClient.post(
       '/users/me/addresses',
+      body: input.toJson(),
+    );
+    return Address.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<Address> updateAddress(int addressId, AddressInput input) async {
+    final response = await _apiClient.put(
+      '/users/me/addresses/$addressId',
       body: input.toJson(),
     );
     return Address.fromJson(response as Map<String, dynamic>);

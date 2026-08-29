@@ -50,16 +50,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final order = await _orderService.checkout(
         CheckoutRequest(
           tipoEntrega: _deliveryType,
-          direccionId: _deliveryType == DeliveryType.delivery ? _selectedAddressId : null,
+          direccionId: _deliveryType == DeliveryType.delivery
+              ? _selectedAddressId
+              : null,
           costoEnvio: _deliveryType == DeliveryType.delivery ? 25.0 : 0.0,
         ),
       );
 
       final payment = await _paymentService.initiatePayment(
-        PaymentCreate(
-          pedidoId: order.id,
-          metodo: _paymentMethod,
-        ),
+        PaymentCreate(pedidoId: order.id, metodo: _paymentMethod),
+        idempotencyKey: 'mobile-order-${order.id}-${_paymentMethod.name}',
       );
 
       // Refresh cart
@@ -90,7 +90,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final updated = await _paymentService.mockConfirmPayment(_activePayment!.id);
+      final updated = await _paymentService.mockConfirmPayment(
+        _activePayment!.id,
+      );
       setState(() {
         _activePayment = updated;
         _isLoading = false;
@@ -114,9 +116,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        title: const Text('FINALIZAR COMPRA'),
-      ),
+      appBar: AppBar(title: const Text('FINALIZAR COMPRA')),
       body: _completedOrder != null
           ? _buildSuccessView()
           : SingleChildScrollView(
@@ -135,7 +135,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           groupValue: _deliveryType,
                           title: const Text(
                             'Recojo en Showroom Atelier',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
                           ),
                           subtitle: const Text(
                             'Gratis · Prueba tus prendas antes de retirar',
@@ -149,7 +152,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           groupValue: _deliveryType,
                           title: const Text(
                             'Envío a Domicilio',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
                           ),
                           subtitle: const Text(
                             'Costo: Bs 25.00 · Entrega en 24-48 horas',
@@ -157,7 +163,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           onChanged: (v) => setState(() => _deliveryType = v!),
                         ),
-                        if (_deliveryType == DeliveryType.delivery && _addresses.isNotEmpty) ...[
+                        if (_deliveryType == DeliveryType.delivery &&
+                            _addresses.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                             child: DropdownButtonFormField<int>(
@@ -177,7 +184,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                                 );
                               }).toList(),
-                              onChanged: (v) => setState(() => _selectedAddressId = v),
+                              onChanged: (v) =>
+                                  setState(() => _selectedAddressId = v),
                             ),
                           ),
                         ],
@@ -197,11 +205,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           groupValue: _paymentMethod,
                           title: Row(
                             children: [
-                              AppSvg.raw(AppSvg.qr, size: 16, color: AppColors.forest),
+                              AppSvg.raw(
+                                AppSvg.qr,
+                                size: 16,
+                                color: AppColors.forest,
+                              ),
                               const SizedBox(width: 6),
                               const Text(
                                 'Pago Simple QR',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -217,11 +232,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           groupValue: _paymentMethod,
                           title: Row(
                             children: [
-                              AppSvg.raw(AppSvg.card, size: 16, color: AppColors.forest),
+                              AppSvg.raw(
+                                AppSvg.card,
+                                size: 16,
+                                color: AppColors.forest,
+                              ),
                               const SizedBox(width: 6),
                               const Text(
                                 'Tarjeta de Débito / Crédito',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -233,11 +255,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           groupValue: _paymentMethod,
                           title: Row(
                             children: [
-                              AppSvg.raw(AppSvg.store, size: 16, color: AppColors.forest),
+                              AppSvg.raw(
+                                AppSvg.store,
+                                size: 16,
+                                color: AppColors.forest,
+                              ),
                               const SizedBox(width: 6),
                               const Text(
                                 'Efectivo en Showroom',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -259,10 +288,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Subtotal prendas:', style: TextStyle(fontSize: 12.5)),
+                              const Text(
+                                'Subtotal prendas:',
+                                style: TextStyle(fontSize: 12.5),
+                              ),
                               Text(
                                 'Bs ${(cart?.subtotal ?? 0).toStringAsFixed(2)}',
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -270,10 +305,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Costo de envío:', style: TextStyle(fontSize: 12.5)),
+                              const Text(
+                                'Costo de envío:',
+                                style: TextStyle(fontSize: 12.5),
+                              ),
                               Text(
-                                _deliveryType == DeliveryType.delivery ? 'Bs 25.00' : 'Bs 0.00',
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                _deliveryType == DeliveryType.delivery
+                                    ? 'Bs 25.00'
+                                    : 'Bs 0.00',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -283,7 +326,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             children: [
                               const Text(
                                 'Total a Pagar:',
-                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                ),
                               ),
                               Text(
                                 'Bs ${((cart?.subtotal ?? 0) + (_deliveryType == DeliveryType.delivery ? 25.0 : 0.0)).toStringAsFixed(2)}',
@@ -400,13 +446,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           border: Border.all(color: AppColors.lineStrong),
                         ),
                         child: Center(
-                          child: AppSvg.raw(AppSvg.qr, size: 100, color: AppColors.forest),
+                          child: AppSvg.raw(
+                            AppSvg.qr,
+                            size: 100,
+                            color: AppColors.forest,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Total a pagar: Bs ${_completedOrder?.total.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(

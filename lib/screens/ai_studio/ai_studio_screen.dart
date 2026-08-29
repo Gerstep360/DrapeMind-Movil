@@ -12,7 +12,6 @@ import '../../core/theme/app_svg.dart';
 import '../ar_fitting/ar_fitting_screen.dart';
 import '../catalog/product_detail_screen.dart';
 
-
 class AiStudioScreen extends StatefulWidget {
   const AiStudioScreen({super.key});
 
@@ -108,7 +107,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     final cart = context.read<CartService>();
     final batch = items
         .where((i) => i.varianteId != null)
-        .map((i) => BatchCartItemRequest(varianteId: i.varianteId!, cantidad: 1))
+        .map(
+          (i) => BatchCartItemRequest(varianteId: i.varianteId!, cantidad: 1),
+        )
         .toList();
 
     if (batch.isEmpty) return;
@@ -119,7 +120,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.forest,
-            content: Text('Perchero actualizado con las ${batch.length} prendas del outfit'),
+            content: Text(
+              'Perchero actualizado con las ${batch.length} prendas del outfit',
+            ),
           ),
         );
       }
@@ -157,7 +160,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     children: [
                       Row(
                         children: [
-                          AppSvg.raw(AppSvg.clock, size: 18, color: AppColors.forest),
+                          AppSvg.raw(
+                            AppSvg.clock,
+                            size: 18,
+                            color: AppColors.forest,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'HISTORIAL DE CHATS (24H)',
@@ -171,7 +178,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         ],
                       ),
                       IconButton(
-                        icon: AppSvg.raw(AppSvg.close, size: 18, color: AppColors.textMuted),
+                        icon: AppSvg.raw(
+                          AppSvg.close,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -187,7 +198,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.forest,
                         borderRadius: BorderRadius.circular(6),
@@ -195,7 +209,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AppSvg.raw(AppSvg.plus, size: 16, color: AppColors.acid),
+                          AppSvg.raw(
+                            AppSvg.plus,
+                            size: 16,
+                            color: AppColors.acid,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'Iniciar Nueva Conversación',
@@ -224,43 +242,65 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           )
                         : ListView.separated(
                             itemCount: sessions.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
                             itemBuilder: (context, idx) {
                               final session = sessions[idx];
-                              final isCurrent = session.id == ai.currentSession.id;
+                              final isCurrent =
+                                  session.id == ai.currentSession.id;
 
-                              final timeAgo = DateTime.now().difference(session.updatedAt);
+                              final timeAgo = DateTime.now().difference(
+                                session.updatedAt,
+                              );
                               final timeStr = timeAgo.inMinutes < 60
                                   ? 'Hace ${timeAgo.inMinutes} min'
                                   : 'Hace ${timeAgo.inHours} h';
 
                               return Container(
                                 decoration: BoxDecoration(
-                                  color: isCurrent ? AppColors.white : AppColors.paperLight,
+                                  color: isCurrent
+                                      ? AppColors.white
+                                      : AppColors.paperLight,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: isCurrent ? AppColors.forest : AppColors.lineStrong,
+                                    color: isCurrent
+                                        ? AppColors.forest
+                                        : AppColors.lineStrong,
                                     width: isCurrent ? 1.5 : 1,
                                   ),
                                 ),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 4,
+                                  ),
                                   title: Text(
                                     session.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
-                                      color: isCurrent ? AppColors.forest : AppColors.textMain,
+                                      fontWeight: isCurrent
+                                          ? FontWeight.w900
+                                          : FontWeight.w600,
+                                      color: isCurrent
+                                          ? AppColors.forest
+                                          : AppColors.textMain,
                                     ),
                                   ),
                                   subtitle: Text(
                                     '${session.messages.length} mensajes · $timeStr',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
                                   trailing: IconButton(
-                                    icon: AppSvg.raw(AppSvg.trash, size: 16, color: AppColors.danger),
+                                    icon: AppSvg.raw(
+                                      AppSvg.trash,
+                                      size: 16,
+                                      color: AppColors.danger,
+                                    ),
                                     onPressed: () {
                                       ai.deleteSession(session.id);
                                       setModalState(() {});
@@ -317,7 +357,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       children: [
                         Row(
                           children: [
-                            AppSvg.raw(AppSvg.sparkle, size: 18, color: AppColors.forest),
+                            AppSvg.raw(
+                              AppSvg.sparkle,
+                              size: 18,
+                              color: AppColors.forest,
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'CUESTIONARIO DE MEDIDAS & OUTFIT',
@@ -331,7 +375,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ],
                         ),
                         IconButton(
-                          icon: AppSvg.raw(AppSvg.close, size: 18, color: AppColors.textMuted),
+                          icon: AppSvg.raw(
+                            AppSvg.close,
+                            size: 18,
+                            color: AppColors.textMuted,
+                          ),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -339,28 +387,53 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     const SizedBox(height: 6),
                     const Text(
                       'Configura tus preferencias para que Altair diseñe un look exacto.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 16),
 
                     // OCASIÓN
-                    const Text('OCASIÓN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    const Text(
+                      'OCASIÓN',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
-                      children: ['cena', 'fiesta', 'casual', 'trabajo', 'boda'].map((occ) {
-                        final isSel = _selectedOccasion == occ;
-                        return ChoiceChip(
-                          label: Text(occ.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isSel ? AppColors.white : AppColors.forest)),
-                          selected: isSel,
-                          selectedColor: AppColors.forest,
-                          backgroundColor: AppColors.white,
-                          side: const BorderSide(color: AppColors.lineStrong),
-                          onSelected: (val) {
-                            if (val) setModalState(() => _selectedOccasion = occ);
-                          },
-                        );
-                      }).toList(),
+                      children: ['cena', 'fiesta', 'casual', 'trabajo', 'boda']
+                          .map((occ) {
+                            final isSel = _selectedOccasion == occ;
+                            return ChoiceChip(
+                              label: Text(
+                                occ.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSel
+                                      ? AppColors.white
+                                      : AppColors.forest,
+                                ),
+                              ),
+                              selected: isSel,
+                              selectedColor: AppColors.forest,
+                              backgroundColor: AppColors.white,
+                              side: const BorderSide(
+                                color: AppColors.lineStrong,
+                              ),
+                              onSelected: (val) {
+                                if (val) {
+                                  setModalState(() => _selectedOccasion = occ);
+                                }
+                              },
+                            );
+                          })
+                          .toList(),
                     ),
                     const SizedBox(height: 14),
 
@@ -371,14 +444,36 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('PRENDA SUPERIOR', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+                              const Text(
+                                'PRENDA SUPERIOR',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
                                 value: _selectedTopType,
                                 isExpanded: true,
-                                decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                                items: ['polera', 'camisa', 'blusa', 'polo'].map((t) => DropdownMenuItem(value: t, child: Text(t.toUpperCase(), style: const TextStyle(fontSize: 12)))).toList(),
-                                onChanged: (v) => setModalState(() => _selectedTopType = v!),
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                items: ['polera', 'camisa', 'blusa', 'polo']
+                                    .map(
+                                      (t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          t.toUpperCase(),
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setModalState(() => _selectedTopType = v!),
                               ),
                             ],
                           ),
@@ -388,14 +483,36 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('TALLA SUPERIOR', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+                              const Text(
+                                'TALLA SUPERIOR',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
                                 value: _selectedTopSize,
                                 isExpanded: true,
-                                decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                                items: ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 12)))).toList(),
-                                onChanged: (v) => setModalState(() => _selectedTopSize = v!),
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                items: ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+                                    .map(
+                                      (s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(
+                                          s,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) =>
+                                    setModalState(() => _selectedTopSize = v!),
                               ),
                             ],
                           ),
@@ -411,14 +528,37 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('PRENDA INFERIOR', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+                              const Text(
+                                'PRENDA INFERIOR',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
                                 value: _selectedBottomType,
                                 isExpanded: true,
-                                decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                                items: ['pantalon', 'jean', 'falda'].map((b) => DropdownMenuItem(value: b, child: Text(b.toUpperCase(), style: const TextStyle(fontSize: 12)))).toList(),
-                                onChanged: (v) => setModalState(() => _selectedBottomType = v!),
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                items: ['pantalon', 'jean', 'falda']
+                                    .map(
+                                      (b) => DropdownMenuItem(
+                                        value: b,
+                                        child: Text(
+                                          b.toUpperCase(),
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) => setModalState(
+                                  () => _selectedBottomType = v!,
+                                ),
                               ),
                             ],
                           ),
@@ -428,14 +568,50 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('TALLA INFERIOR', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+                              const Text(
+                                'TALLA INFERIOR',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
                                 value: _selectedBottomSize,
                                 isExpanded: true,
-                                decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                                items: ['28', '30', '32', '34', '36', '38', 'S', 'M', 'L'].map((sz) => DropdownMenuItem(value: sz, child: Text(sz, style: const TextStyle(fontSize: 12)))).toList(),
-                                onChanged: (v) => setModalState(() => _selectedBottomSize = v!),
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                items:
+                                    [
+                                          '28',
+                                          '30',
+                                          '32',
+                                          '34',
+                                          '36',
+                                          '38',
+                                          'S',
+                                          'M',
+                                          'L',
+                                        ]
+                                        .map(
+                                          (sz) => DropdownMenuItem(
+                                            value: sz,
+                                            child: Text(
+                                              sz,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (v) => setModalState(
+                                  () => _selectedBottomSize = v!,
+                                ),
                               ),
                             ],
                           ),
@@ -448,14 +624,37 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('TALLA CALZADO', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+                        const Text(
+                          'TALLA CALZADO',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         DropdownButtonFormField<String>(
                           value: _selectedShoeSize,
                           isExpanded: true,
-                          decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                          items: ['38', '39', '40', '41', '42', '43', '44', '45'].map((sz) => DropdownMenuItem(value: sz, child: Text(sz, style: const TextStyle(fontSize: 12)))).toList(),
-                          onChanged: (v) => setModalState(() => _selectedShoeSize = v!),
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                          ),
+                          items:
+                              ['38', '39', '40', '41', '42', '43', '44', '45']
+                                  .map(
+                                    (sz) => DropdownMenuItem(
+                                      value: sz,
+                                      child: Text(
+                                        sz,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (v) =>
+                              setModalState(() => _selectedShoeSize = v!),
                         ),
                       ],
                     ),
@@ -465,8 +664,22 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('PRESUPUESTO MÁXIMO', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        Text('Bs ${_budget.toInt()}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.forest)),
+                        const Text(
+                          'PRESUPUESTO MÁXIMO',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        Text(
+                          'Bs ${_budget.toInt()}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.forest,
+                          ),
+                        ),
                       ],
                     ),
                     Slider(
@@ -486,11 +699,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.forest,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          final prompt = 'Arma un outfit para ocasión $_selectedOccasion, '
+                          final prompt =
+                              'Arma un outfit para ocasión $_selectedOccasion, '
                               'busco $_selectedTopType en talla $_selectedTopSize, '
                               '$_selectedBottomType en talla $_selectedBottomSize, '
                               'calzado talla $_selectedShoeSize y presupuesto de Bs ${_budget.toInt()}';
@@ -499,7 +715,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.acid),
+                            AppSvg.raw(
+                              AppSvg.sparkle,
+                              size: 16,
+                              color: AppColors.acid,
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'DISEÑAR OUTFIT A MEDIDA',
@@ -551,13 +771,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       const Text(
                         'ALTAIR · STYLIST IA',
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       Text(
                         ai.currentSession.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -602,19 +830,24 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       decoration: BoxDecoration(
                         color: ai.isBusy
                             ? AppColors.acid
-                            : (ai.status == AiSocketStatus.ready || ai.status == AiSocketStatus.connected
-                                ? AppColors.forest
-                                : AppColors.danger),
+                            : (ai.status == AiSocketStatus.ready ||
+                                      ai.status == AiSocketStatus.connected
+                                  ? AppColors.forest
+                                  : AppColors.danger),
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      ai.isBusy ? 'Razonando · ${ai.thinkingElapsedFormatted}' : ai.status.displayName,
+                      ai.isBusy
+                          ? 'Razonando · ${ai.thinkingElapsedFormatted}'
+                          : ai.status.displayName,
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: ai.isBusy ? AppColors.forest : AppColors.textMutedStrong,
+                        color: ai.isBusy
+                            ? AppColors.forest
+                            : AppColors.textMutedStrong,
                       ),
                     ),
                   ],
@@ -625,7 +858,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   onTap: _showQuestionnaireModal,
                   borderRadius: BorderRadius.circular(4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.forestDark,
                       borderRadius: BorderRadius.circular(4),
@@ -633,7 +869,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        AppSvg.raw(AppSvg.sparkle, size: 12, color: AppColors.acid),
+                        AppSvg.raw(
+                          AppSvg.sparkle,
+                          size: 12,
+                          color: AppColors.acid,
+                        ),
                         const SizedBox(width: 5),
                         const Text(
                           'Cuestionario a Medida',
@@ -681,14 +921,23 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       maxLines: 3,
                       minLines: 1,
                       decoration: InputDecoration(
-                        hintText: 'Consulta a Altair sobre looks o percheros...',
-                        hintStyle: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                        hintText:
+                            'Consulta a Altair sobre looks o percheros...',
+                        hintStyle: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textMuted,
+                        ),
                         filled: true,
                         fillColor: AppColors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(6),
-                          borderSide: const BorderSide(color: AppColors.lineStrong),
+                          borderSide: const BorderSide(
+                            color: AppColors.lineStrong,
+                          ),
                         ),
                       ),
                       onSubmitted: (_) => _sendMessage(),
@@ -697,9 +946,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
                       backgroundColor: AppColors.forest,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                     ),
                     onPressed: ai.isBusy ? null : () => _sendMessage(),
                     child: ai.isBusy
@@ -711,7 +965,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                               color: AppColors.acid,
                             ),
                           )
-                        : AppSvg.raw(AppSvg.send, size: 18, color: AppColors.acid),
+                        : AppSvg.raw(
+                            AppSvg.send,
+                            size: 18,
+                            color: AppColors.acid,
+                          ),
                   ),
                 ],
               ),
@@ -728,7 +986,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           // SENDER BADGE
           Row(
@@ -798,19 +1058,25 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: AppColors.paperLight,
-                          border: Border.all(color: AppColors.forest.withAlpha(50)),
+                          border: Border.all(
+                            color: AppColors.forest.withAlpha(50),
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           '${n.title}: ${n.message}',
-                          style: const TextStyle(fontSize: 11.5, color: AppColors.forest),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.forest,
+                          ),
                         ),
                       );
                     }),
                   ],
 
                   // OUTFIT RECEIPT SUMMARY
-                  if (msg.responseMeta != null && msg.responseMeta?.kind == 'outfit') ...[
+                  if (msg.responseMeta != null &&
+                      msg.responseMeta?.kind == 'outfit') ...[
                     const SizedBox(height: 12),
                     _buildOutfitReceipt(msg),
                   ],
@@ -852,16 +1118,25 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           onTap: () => _sendMessage(s.prompt),
                           borderRadius: BorderRadius.circular(4),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.paperLight,
-                              border: Border.all(color: AppColors.forest.withAlpha(80)),
+                              border: Border.all(
+                                color: AppColors.forest.withAlpha(80),
+                              ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                AppSvg.raw(AppSvg.sparkle, size: 12, color: AppColors.forest),
+                                AppSvg.raw(
+                                  AppSvg.sparkle,
+                                  size: 12,
+                                  color: AppColors.forest,
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   s.label,
@@ -978,7 +1253,11 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                               color: AppColors.forest,
                             ),
                           )
-                        : AppSvg.raw(AppSvg.check, size: 14, color: AppColors.forest),
+                        : AppSvg.raw(
+                            AppSvg.check,
+                            size: 14,
+                            color: AppColors.forest,
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -987,7 +1266,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: isLast ? FontWeight.w800 : FontWeight.w500,
-                        color: isLast ? AppColors.textMain : AppColors.textMuted,
+                        color: isLast
+                            ? AppColors.textMain
+                            : AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -1052,9 +1333,19 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Presupuesto: Bs ${budget.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.paper, fontSize: 11)),
+                Text(
+                  'Presupuesto: Bs ${budget.toStringAsFixed(0)}',
+                  style: const TextStyle(color: AppColors.paper, fontSize: 11),
+                ),
                 if (available != null)
-                  Text('Disponible: Bs ${available.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.acid, fontSize: 11, fontWeight: FontWeight.w700)),
+                  Text(
+                    'Disponible: Bs ${available.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppColors.acid,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
               ],
             ),
           ],
@@ -1066,7 +1357,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.acid,
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
                 onPressed: () => _replaceAllWithOutfit(msg.actionItems),
                 child: const Text(
@@ -1092,7 +1385,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       fullProduct = await catalogService.getProductDetail(item.id);
     } catch (_) {}
 
-    final productToUse = fullProduct ??
+    final productToUse =
+        fullProduct ??
         Product(
           id: item.id,
           categoriaId: 1,
@@ -1167,12 +1461,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                               item.fullImageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Center(
-                                child: AppSvg.raw(AppSvg.tshirt, size: 28, color: AppColors.forest),
+                                child: AppSvg.raw(
+                                  AppSvg.tshirt,
+                                  size: 28,
+                                  color: AppColors.forest,
+                                ),
                               ),
                             ),
                           )
                         : Center(
-                            child: AppSvg.raw(AppSvg.tshirt, size: 28, color: AppColors.forest),
+                            child: AppSvg.raw(
+                              AppSvg.tshirt,
+                              size: 28,
+                              color: AppColors.forest,
+                            ),
                           ),
                   ),
                   const SizedBox(width: 14),
@@ -1181,7 +1483,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.forestDark,
                             borderRadius: BorderRadius.circular(3),
@@ -1199,12 +1504,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         const SizedBox(height: 4),
                         Text(
                           item.nombre,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.forestDark),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.forestDark,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Bs ${item.precio.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.forest),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.forest,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Wrap(
@@ -1212,23 +1525,46 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           children: [
                             if (item.talla != null)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.paperLight,
-                                  border: Border.all(color: AppColors.lineStrong),
+                                  border: Border.all(
+                                    color: AppColors.lineStrong,
+                                  ),
                                   borderRadius: BorderRadius.circular(3),
                                 ),
-                                child: Text('Talla: ${item.talla}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                child: Text(
+                                  'Talla: ${item.talla}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             if (item.color != null)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.paperLight,
-                                  border: Border.all(color: AppColors.lineStrong),
+                                  border: Border.all(
+                                    color: AppColors.lineStrong,
+                                  ),
                                   borderRadius: BorderRadius.circular(3),
                                 ),
-                                child: Text(item.color!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                                child: Text(
+                                  item.color!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -1249,12 +1585,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ),
                   child: Row(
                     children: [
-                      AppSvg.raw(AppSvg.sparkle, size: 14, color: AppColors.forest),
+                      AppSvg.raw(
+                        AppSvg.sparkle,
+                        size: 14,
+                        color: AppColors.forest,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           item.motivo!,
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.forest),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.forest,
+                          ),
                         ),
                       ),
                     ],
@@ -1272,25 +1616,37 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.forestDark,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ArFittingScreen(product: productToUse),
+                            builder: (_) =>
+                                ArFittingScreen(product: productToUse),
                           ),
                         );
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.acid),
+                          AppSvg.raw(
+                            AppSvg.sparkle,
+                            size: 16,
+                            color: AppColors.acid,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'PROBAR EN ESPEJO VIRTUAL AR',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: AppColors.white),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                              color: AppColors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -1303,9 +1659,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isRemove ? AppColors.danger : AppColors.forest,
+                            backgroundColor: isRemove
+                                ? AppColors.danger
+                                : AppColors.forest,
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
                           ),
                           onPressed: () {
                             Navigator.pop(ctx);
@@ -1314,11 +1674,21 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              AppSvg.raw(isRemove ? AppSvg.trash : AppSvg.plus, size: 14, color: AppColors.white),
+                              AppSvg.raw(
+                                isRemove ? AppSvg.trash : AppSvg.plus,
+                                size: 14,
+                                color: AppColors.white,
+                              ),
                               const SizedBox(width: 6),
                               Text(
-                                isRemove ? 'Quitar del Perchero' : 'Añadir al Perchero',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.white),
+                                isRemove
+                                    ? 'Quitar del Perchero'
+                                    : 'Añadir al Perchero',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.white,
+                                ),
                               ),
                             ],
                           ),
@@ -1328,20 +1698,31 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       // Botón Ver Ficha Catálogo
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 14,
+                          ),
                           side: const BorderSide(color: AppColors.lineStrong),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ProductDetailScreen(productId: productToUse.id),
+                              builder: (_) => ProductDetailScreen(
+                                productId: productToUse.id,
+                              ),
                             ),
                           );
                         },
-                        child: AppSvg.raw(AppSvg.store, size: 16, color: AppColors.forest),
+                        child: AppSvg.raw(
+                          AppSvg.store,
+                          size: 16,
+                          color: AppColors.forest,
+                        ),
                       ),
                     ],
                   ),
@@ -1367,7 +1748,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           color: isRemove ? AppColors.danger.withAlpha(12) : AppColors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isRemove ? AppColors.danger.withAlpha(60) : AppColors.lineStrong,
+            color: isRemove
+                ? AppColors.danger.withAlpha(60)
+                : AppColors.lineStrong,
           ),
           boxShadow: [
             BoxShadow(
@@ -1395,12 +1778,20 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                         item.fullImageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Center(
-                          child: AppSvg.raw(AppSvg.tshirt, size: 22, color: AppColors.forest),
+                          child: AppSvg.raw(
+                            AppSvg.tshirt,
+                            size: 22,
+                            color: AppColors.forest,
+                          ),
                         ),
                       ),
                     )
                   : Center(
-                      child: AppSvg.raw(AppSvg.tshirt, size: 22, color: AppColors.forest),
+                      child: AppSvg.raw(
+                        AppSvg.tshirt,
+                        size: 22,
+                        color: AppColors.forest,
+                      ),
                     ),
             ),
             const SizedBox(width: 10),
@@ -1432,18 +1823,15 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Text(
-                        'Bs ${item.precio.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.forest),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '· ${item.talla ?? "M"} · ${item.color ?? "Tono Único"}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                    ],
+                  Text(
+                    'Bs ${item.precio.toStringAsFixed(2)} · ${item.talla ?? "M"} · ${item.color ?? "Tono Único"}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.forest,
+                    ),
                   ),
                   if (item.motivo != null) ...[
                     const SizedBox(height: 2),
@@ -1453,7 +1841,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 10,
-                        color: isRemove ? AppColors.danger : AppColors.textMutedStrong,
+                        color: isRemove
+                            ? AppColors.danger
+                            : AppColors.textMutedStrong,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1481,7 +1871,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 backgroundColor: isRemove ? AppColors.danger : AppColors.forest,
                 minimumSize: const Size(40, 32),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
               onPressed: () => _handleAction(item),
               child: AppSvg.raw(
@@ -1524,7 +1916,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               Expanded(
                 child: Text(
                   '${step.name}: ${step.summary ?? "Completado"}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMain),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMain,
+                  ),
                 ),
               ),
             ],

@@ -61,19 +61,19 @@ class CartItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'variante_id': varianteId,
-        'producto_id': productoId,
-        'nombre': nombre,
-        'sku': sku,
-        'color': color,
-        'talla': talla,
-        'cantidad': cantidad,
-        'precio_unitario': precioUnitario,
-        'subtotal': subtotal,
-        'stock_disponible': stockDisponible,
-        'imagen': imagen,
-      };
+    'id': id,
+    'variante_id': varianteId,
+    'producto_id': productoId,
+    'nombre': nombre,
+    'sku': sku,
+    'color': color,
+    'talla': talla,
+    'cantidad': cantidad,
+    'precio_unitario': precioUnitario,
+    'subtotal': subtotal,
+    'stock_disponible': stockDisponible,
+    'imagen': imagen,
+  };
 }
 
 class Cart {
@@ -116,12 +116,12 @@ class Cart {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'estado': estado,
-        'items': items.map((i) => i.toJson()).toList(),
-        'total_items': totalItems,
-        'subtotal': subtotal,
-      };
+    'id': id,
+    'estado': estado,
+    'items': items.map((i) => i.toJson()).toList(),
+    'total_items': totalItems,
+    'subtotal': subtotal,
+  };
 }
 
 class BatchCartItemRequest {
@@ -131,7 +131,7 @@ class BatchCartItemRequest {
   BatchCartItemRequest({required this.varianteId, this.cantidad = 1});
 
   Map<String, dynamic> toJson() => {
-        'variante_id': varianteId,
-        'cantidad': cantidad,
-      };
+    'variante_id': varianteId,
+    'cantidad': cantidad,
+  };
 }

@@ -4,13 +4,21 @@ import '../network/api_client.dart';
 class PaymentService {
   final ApiClient _apiClient;
 
-  PaymentService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  PaymentService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
 
   /// Initiate a payment for an existing order (QR, Tarjeta, Efectivo)
-  Future<Payment> initiatePayment(PaymentCreate request) async {
+  Future<Payment> initiatePayment(
+    PaymentCreate request, {
+    String? idempotencyKey,
+  }) async {
     final response = await _apiClient.post(
       '/payments',
       body: request.toJson(),
+      headers: {
+        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+          'Idempotency-Key': idempotencyKey,
+      },
     );
     return Payment.fromJson(response as Map<String, dynamic>);
   }

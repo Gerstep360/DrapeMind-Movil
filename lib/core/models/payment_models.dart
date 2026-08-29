@@ -151,18 +151,18 @@ class Payment {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'pedido_id': pedidoId,
-        'metodo': metodo.toServerString(),
-        'proveedor': proveedor,
-        'monto': monto,
-        'moneda': moneda,
-        'estado': estado.toServerString(),
-        'referencia_externa': referenciaExterna,
-        'qr_payload': qrPayload,
-        'created_at': createdAt?.toIso8601String(),
-        'paid_at': paidAt?.toIso8601String(),
-      };
+    'id': id,
+    'pedido_id': pedidoId,
+    'metodo': metodo.toServerString(),
+    'proveedor': proveedor,
+    'monto': monto,
+    'moneda': moneda,
+    'estado': estado.toServerString(),
+    'referencia_externa': referenciaExterna,
+    'qr_payload': qrPayload,
+    'created_at': createdAt?.toIso8601String(),
+    'paid_at': paidAt?.toIso8601String(),
+  };
 }
 
 class PaymentCreate {
@@ -172,7 +172,7 @@ class PaymentCreate {
   PaymentCreate({required this.pedidoId, required this.metodo});
 
   Map<String, dynamic> toJson() => {
-        'pedido_id': pedidoId,
-        'metodo': metodo.toServerString(),
-      };
+    'pedido_id': pedidoId,
+    'metodo': metodo.toServerString(),
+  };
 }
