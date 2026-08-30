@@ -2,7 +2,7 @@
 class ApiConfig {
   /// Tu IP local explícita de red (obtenida de ipconfig) para conectar desde
   /// emuladores, dispositivos físicos Android/iOS y navegadores.
-  static const String serverIp = '192.168.100.223';
+  static const String serverIp = '10.0.2.2';
   static const int serverPort = 8000;
 
   static String? _customHost;
