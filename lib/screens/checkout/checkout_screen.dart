@@ -110,6 +110,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  Future<void> _refreshPayment() async {
+    if (_activePayment == null || _isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      final updated = await _paymentService.getPayment(_activePayment!.id);
+      if (!mounted) return;
+      setState(() => _activePayment = updated);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Estado registrado: ${updated.estado.displayName}'),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo consultar el pago. Reintenta.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartService>().cart;
@@ -462,10 +487,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: _isLoading ? null : _confirmMockPayment,
-                        child: const Text('Simular Pago Exitoso (Demo QR)'),
+                      const Text(
+                        'Vista de demostración. Este icono no es un QR bancario.',
+                        textAlign: TextAlign.center,
                       ),
+                      if (_activePayment?.proveedor == 'MOCK')
+                        OutlinedButton(
+                          onPressed: _isLoading ? null : _confirmMockPayment,
+                          child: const Text('Simular Pago Exitoso (Demo QR)'),
+                        ),
                     ],
                   ),
                 ),
@@ -476,6 +506,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Volver al Atelier'),
               ),
+              if (_activePayment != null && !isPaid)
+                OutlinedButton(
+                  onPressed: _isLoading ? null : _refreshPayment,
+                  child: Text(
+                    _isLoading ? 'Consultando…' : 'Consultar estado del pago',
+                  ),
+                ),
             ],
           ),
         ),

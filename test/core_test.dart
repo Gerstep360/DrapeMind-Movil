@@ -126,8 +126,8 @@ void main() {
         'id': 8,
         'codigo_publico': 'RES-123456',
         'estado': 'CONFIRMADA',
-        'fecha_reserva': '2026-08-27T10:00:00Z',
-        'vence_at': '2026-08-29T10:00:00Z',
+        'fecha_reserva': DateTime.now().toUtc().toIso8601String(),
+        'vence_at': DateTime.now().toUtc().add(const Duration(days: 2)).toIso8601String(),
       };
       final reservation = Reservation.fromJson(resJson);
       expect(reservation.id, 8);
@@ -187,4 +187,3 @@ void main() {
     });
   });
 }
-

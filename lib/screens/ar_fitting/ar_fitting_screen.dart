@@ -1033,14 +1033,16 @@ class _ArFittingScreenState extends State<ArFittingScreen>
               child: CircularProgressIndicator(color: AppColors.forest),
             )
           : _errorMessage != null
-          ? Center(
-              child: Text(
-                _errorMessage!,
-                style: const TextStyle(color: AppColors.danger),
-              ),
-            )
-          : Column(
-              children: [
+            ? Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Padding(padding: const EdgeInsets.all(20), child: Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.danger))),
+                  OutlinedButton(onPressed: _loadArConfig, child: const Text('Reintentar configuración')),
+                ]),
+              )
+            : Column(
+                children: [
+                  const Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text('Vista 2D orientativa. El calce y las medidas son estimaciones; comprueba la talla antes de comprar.', style: TextStyle(fontSize: 11), textAlign: TextAlign.center)),
                 // SUB-BARRA DE ESTADO Y COMPARADOR
                 Container(
                   padding: const EdgeInsets.symmetric(

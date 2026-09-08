@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/altair_message_body.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/ai_models.dart';
@@ -1040,8 +1041,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                 children: [
                   // TEXT CONTENT
                   if (msg.content.isNotEmpty)
-                    Text(
-                      msg.content,
+                    AltairMessageBody(
+                      text: msg.content,
                       style: TextStyle(
                         fontSize: 13.5,
                         height: 1.45,

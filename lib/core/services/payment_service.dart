@@ -24,6 +24,11 @@ class PaymentService {
   }
 
   /// Get payments registered for a specific order
+  Future<Payment> getPayment(int paymentId) async {
+    final response = await _apiClient.get('/payments/$paymentId');
+    return Payment.fromJson(response as Map<String, dynamic>);
+  }
+
   Future<List<Payment>> getOrderPayments(int orderId) async {
     final response = await _apiClient.get('/payments/order/$orderId');
     if (response is List) {
