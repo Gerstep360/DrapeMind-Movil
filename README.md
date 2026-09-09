@@ -9,9 +9,15 @@ Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, 
 La aplicación ya se encuentra compilada y preconfigurada para conectarse directamente al servidor VPS de producción.
 
 ### 📥 Enlaces de Descarga Directa:
-* **[Descargar APK Release v1.0.0 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.0/drapemind-release.apk)** *(23.9 MB)*
-* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.0/app-release.apk)**
-* **[Ver Release Oficial en GitHub (Tag v1.0.0)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.0)**
+* **[Descargar APK Release v1.0.1 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.1/drapemind-release.apk)** *(23.9 MB)*
+* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.1/app-release.apk)**
+* **[Ver Release Oficial en GitHub (Tag v1.0.1)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.1)**
+
+### 📋 Novedades v1.0.1 (Arreglos y Streaming Altair):
+* **Streaming de Respuestas en Tiempo Real:** Recepción de snapshots del campo público `answer` vía WebSockets conforme el modelo genera el texto, eliminando esperas completas y animación artificial de escritura por bloques.
+* **Privacidad y Auditoría Limpia:** Filtrado de razonamiento interno (`reasoning_content`) y llamadas crudas a herramientas. La auditoría de acciones refleja exclusivamente consultas reales a herramientas con indicador fiel de éxito o error.
+* **Sugerencias Interactivas del Modelo:** Soporte para botones de sugerencia contextuales generados por Altair para continuar el diálogo con un solo toque.
+* **Optimización y Accesibilidad:** Ajustes de rendimiento para entornos de CPU y soporte para modo de movimiento reducido en indicadores.
 
 ---
 

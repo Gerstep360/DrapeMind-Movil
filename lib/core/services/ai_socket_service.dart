@@ -394,16 +394,12 @@ class AiSocketService extends ChangeNotifier {
       return;
     }
 
-    if (type == 'thought') {
+    if (type == 'thought' || type == 'progress') {
       final text =
           event['content']?.toString() ?? event['text']?.toString() ?? '';
       if (text.isNotEmpty) {
         _currentThought = text;
-        if (!_liveThoughtSteps.contains(text)) {
-          _liveThoughtSteps.add(text);
-        }
-        _startTrace(text);
-        _finishTrace(text, 'Completado');
+        // Progress is not a verified tool execution.
         notifyListeners();
       }
       return;
@@ -419,18 +415,14 @@ class AiSocketService extends ChangeNotifier {
           event['session_id'].toString(),
         );
       }
-      if (statusStr == 'loading') {
-        _startTrace('Altair iniciando razonamiento...');
-      } else {
-        _finishTrace('Altair iniciando razonamiento...', 'Listo');
-      }
+      _currentThought = statusStr == 'loading' ? 'Preparando Altair…' : 'Pensando…';
       notifyListeners();
       return;
     }
 
     if (type == 'tool_start') {
       final name = event['name']?.toString() ?? 'tool';
-      final formatted = _formatToolName(name);
+      final formatted = event['label']?.toString() ?? _formatToolName(name);
       _currentThought = formatted;
       _startTrace(formatted);
       notifyListeners();
@@ -439,7 +431,9 @@ class AiSocketService extends ChangeNotifier {
 
     if (type == 'tool_result') {
       final name = event['name']?.toString() ?? 'tool';
-      _finishTrace(_formatToolName(name), _resultSummary(event['result']));
+      final failed = event['result'] is Map && event['result']['error'] != null;
+      _finishTrace(event['label']?.toString() ?? _formatToolName(name),
+          failed ? 'La consulta devolvió un error' : _resultSummary(event['result']), failed: failed);
       notifyListeners();
       return;
     }
@@ -475,9 +469,17 @@ class AiSocketService extends ChangeNotifier {
       return;
     }
 
+    if (type == 'answer_snapshot') {
+      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant') {
+        currentSession.messages.last.content = event['content']?.toString() ?? '';
+        notifyListeners();
+      }
+      return;
+    }
+
     if (type == 'token') {
       final content = event['content']?.toString() ?? '';
-      _startTrace('compose_response');
+      // Tokens are generated content, not a tool action.
       if (currentSession.messages.isNotEmpty &&
           currentSession.messages.last.role == 'assistant') {
         currentSession.messages.last.content += content;
@@ -488,7 +490,7 @@ class AiSocketService extends ChangeNotifier {
 
     if (type == 'done') {
       _stopThinkingTicker();
-      _finishTrace('compose_response', 'Respuesta preparada');
+      // Keep only executed tools in the action history.
       if (event['session_id'] != null) {
         currentSession.backendSessionId = int.tryParse(
           event['session_id'].toString(),
@@ -575,7 +577,7 @@ class AiSocketService extends ChangeNotifier {
       }
       for (final step in _toolActivity) {
         if (step.state == 'running') {
-          _finishTrace(step.name, 'Proceso interrumpido');
+          _finishTrace(step.name, 'Proceso interrumpido', failed: true);
         }
       }
       if (currentSession.messages.isNotEmpty &&
@@ -633,13 +635,13 @@ class AiSocketService extends ChangeNotifier {
     );
   }
 
-  void _finishTrace(String name, String summary) {
+  void _finishTrace(String name, String summary, {bool failed = false}) {
     final now = DateTime.now().millisecondsSinceEpoch;
     for (int i = 0; i < _toolActivity.length; i++) {
       if (_toolActivity[i].name == name &&
           _toolActivity[i].state == 'running') {
         _toolActivity[i] = _toolActivity[i].copyWith(
-          state: 'done',
+          state: failed ? 'error' : 'done',
           summary: summary,
           durationMs: max(0, now - _toolActivity[i].startedAt),
         );

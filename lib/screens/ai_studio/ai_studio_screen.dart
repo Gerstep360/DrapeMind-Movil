@@ -1016,8 +1016,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
           // LIVE THINKING CARD DURANTE RAZONAMIENTO (SI PENDING)
           if (msg.pending)
-            _buildLiveThinkingCard(ai)
-          else
+            _buildLiveThinkingCard(ai),
+          if (!msg.pending || msg.content.isNotEmpty)
             // BUBBLE CONTENT COMPLETED
             Container(
               padding: const EdgeInsets.all(14),
@@ -1898,7 +1898,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           AppSvg.raw(AppSvg.shield, size: 13, color: AppColors.forest),
           const SizedBox(width: 6),
           Text(
-            'Auditoría: ${trace.length} pasos verificados${durationMs != null ? ' (${(durationMs / 1000).toStringAsFixed(1)}s)' : ''}',
+            'Acciones: ${trace.length} consultas${durationMs != null ? ' (${(durationMs / 1000).toStringAsFixed(1)}s)' : ''}',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -1912,7 +1912,10 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
             children: [
-              AppSvg.raw(AppSvg.check, size: 12, color: AppColors.forest),
+              if (step.state == 'done')
+                AppSvg.raw(AppSvg.check, size: 12, color: AppColors.forest)
+              else
+                const Icon(Icons.error_outline, size: 12),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
