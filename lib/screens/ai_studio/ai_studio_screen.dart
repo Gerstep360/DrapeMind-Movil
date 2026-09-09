@@ -1045,7 +1045,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           // LIVE THINKING CARD DURANTE RAZONAMIENTO (SI PENDING)
           if (msg.pending)
             _buildLiveThinkingCard(ai),
-          if (!msg.pending || msg.content.isNotEmpty)
+          if (!msg.pending || msg.content.isNotEmpty || msg.actionItems.isNotEmpty)
             // BUBBLE CONTENT COMPLETED
             Container(
               padding: const EdgeInsets.all(14),
@@ -1111,6 +1111,14 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ],
 
                   // ACTION CARDS (PRODUCTS / ORDERS / RESERVATIONS)
+                  if (msg.responseMeta?.productPicker.isNotEmpty == true)
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final option in msg.responseMeta!.productPicker)
+                        OutlinedButton(
+                          onPressed: () => context.read<AiSocketService>().selectProduct(option['id'] as int),
+                          child: Text(option['label'] as String),
+                        ),
+                    ]),
                   if (msg.actionItems.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     const Divider(),

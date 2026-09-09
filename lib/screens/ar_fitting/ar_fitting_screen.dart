@@ -21,7 +21,7 @@ class ArFittingScreen extends StatefulWidget {
 }
 
 class _ArFittingScreenState extends State<ArFittingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _arService = ArService();
   final _reservationService = ReservationService();
 
@@ -33,6 +33,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
   bool _isCameraMode = false;
   bool _isCameraStarting = false;
   CameraController? _cameraController;
+  int _cameraGeneration = 0;
   String? _cameraError;
   bool _isCompareMode = false;
   late String _selectedSize;
@@ -50,6 +51,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedSize = widget.initialVariant?.talla ?? 'M';
 
     _animCtrl = AnimationController(
@@ -67,14 +69,41 @@ class _ArFittingScreenState extends State<ArFittingScreen>
 
   @override
   void dispose() {
+    _cameraGeneration++;
+    WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
     _animCtrl.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.inactive &&
+        state != AppLifecycleState.paused &&
+        state != AppLifecycleState.detached) {
+      return;
+    }
+    _cameraGeneration++;
+    final controller = _cameraController;
+    _cameraController = null;
+    controller?.dispose();
+    if (mounted) {
+      setState(() {
+        _isCameraMode = false;
+        _isCameraStarting = false;
+      });
+    }
+  }
+
   Future<void> _toggleCameraMode() async {
+    if (_isCameraStarting) return;
     if (_isCameraMode) {
-      setState(() => _isCameraMode = false);
+      final controller = _cameraController;
+      setState(() {
+        _isCameraMode = false;
+        _cameraController = null;
+      });
+      await controller?.dispose();
       return;
     }
     if (_cameraController?.value.isInitialized == true) {
@@ -85,6 +114,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
       _isCameraStarting = true;
       _cameraError = null;
     });
+    final generation = ++_cameraGeneration;
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -103,7 +133,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
         enableAudio: false,
       );
       await controller.initialize();
-      if (!mounted) {
+      if (!mounted || generation != _cameraGeneration) {
         await controller.dispose();
         return;
       }
@@ -114,7 +144,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
         _isCameraStarting = false;
       });
     } on CameraException catch (error) {
-      if (!mounted) return;
+      if (!mounted || generation != _cameraGeneration) return;
       setState(() {
         _cameraError = error.description ?? 'No se pudo iniciar la cámara';
         _isCameraMode = false;
@@ -171,9 +201,12 @@ class _ArFittingScreenState extends State<ArFittingScreen>
       );
       _applyConfig(config);
     } catch (_) {
-      // Fallback dimensional de alta precisión local para máxima disponibilidad
-      final fallback = _buildLocalArConfig();
-      _applyConfig(fallback);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
+            'No pudimos consultar la prenda. Reintenta para usar tallas y disponibilidad del catálogo.';
+      });
     }
   }
 
@@ -193,160 +226,6 @@ class _ArFittingScreenState extends State<ArFittingScreen>
       }
       _isLoading = false;
     });
-  }
-
-  ArConfigModel _buildLocalArConfig() {
-    final sizes = widget.product.variantes
-        .where((v) => v.activo && v.talla.isNotEmpty)
-        .map((v) => v.talla)
-        .toSet()
-        .toList();
-    final available = sizes.isNotEmpty ? sizes : ['XS', 'S', 'M', 'L', 'XL'];
-
-    final name = widget.product.nombre.toLowerCase();
-    final isBottom =
-        name.contains('pantalon') ||
-        name.contains('pantalón') ||
-        name.contains('jean') ||
-        name.contains('falda') ||
-        name.contains('palazzo');
-
-    final metrics = <String, SizeDimensionMetric>{
-      'XS': SizeDimensionMetric(
-        chest: 90,
-        shoulders: 42,
-        length: isBottom ? 96 : 68,
-        waist: 74,
-        hip: 90,
-        foot: 24,
-      ),
-      'S': SizeDimensionMetric(
-        chest: 96,
-        shoulders: 44,
-        length: isBottom ? 98 : 70,
-        waist: 80,
-        hip: 96,
-        foot: 25,
-      ),
-      'M': SizeDimensionMetric(
-        chest: 102,
-        shoulders: 46,
-        length: isBottom ? 100 : 72,
-        waist: 86,
-        hip: 102,
-        foot: 26.5,
-      ),
-      'L': SizeDimensionMetric(
-        chest: 108,
-        shoulders: 48,
-        length: isBottom ? 102 : 74,
-        waist: 92,
-        hip: 108,
-        foot: 27.5,
-      ),
-      'XL': SizeDimensionMetric(
-        chest: 114,
-        shoulders: 50,
-        length: isBottom ? 104 : 76,
-        waist: 98,
-        hip: 114,
-        foot: 28.5,
-      ),
-      'XXL': SizeDimensionMetric(
-        chest: 120,
-        shoulders: 52,
-        length: isBottom ? 106 : 78,
-        waist: 104,
-        hip: 120,
-        foot: 29.5,
-      ),
-      '28': SizeDimensionMetric(
-        chest: 92,
-        shoulders: 42,
-        length: 98,
-        waist: 72,
-        hip: 88,
-        foot: 24,
-      ),
-      '30': SizeDimensionMetric(
-        chest: 96,
-        shoulders: 44,
-        length: 100,
-        waist: 76,
-        hip: 92,
-        foot: 25,
-      ),
-      '32': SizeDimensionMetric(
-        chest: 102,
-        shoulders: 46,
-        length: 102,
-        waist: 82,
-        hip: 98,
-        foot: 26.5,
-      ),
-      '34': SizeDimensionMetric(
-        chest: 108,
-        shoulders: 48,
-        length: 104,
-        waist: 88,
-        hip: 104,
-        foot: 27.5,
-      ),
-      '36': SizeDimensionMetric(
-        chest: 114,
-        shoulders: 50,
-        length: 106,
-        waist: 94,
-        hip: 110,
-        foot: 28.5,
-      ),
-    };
-
-    // Determinar recomendación inicial
-    String rec = 'M';
-    if (isBottom) {
-      if (_userWaist <= 76) {
-        rec = available.contains('S')
-            ? 'S'
-            : (available.contains('30') ? '30' : available.first);
-      } else if (_userWaist <= 86) {
-        rec = available.contains('M')
-            ? 'M'
-            : (available.contains('32') ? '32' : available.first);
-      } else if (_userWaist <= 94) {
-        rec = available.contains('L')
-            ? 'L'
-            : (available.contains('34') ? '34' : available.first);
-      } else {
-        rec = available.contains('XL')
-            ? 'XL'
-            : (available.contains('36') ? '36' : available.last);
-      }
-    } else {
-      if (_userChest <= 92) {
-        rec = available.contains('S') ? 'S' : available.first;
-      } else if (_userChest <= 102) {
-        rec = available.contains('M') ? 'M' : available.first;
-      } else if (_userChest <= 110) {
-        rec = available.contains('L') ? 'L' : available.first;
-      } else {
-        rec = available.contains('XL') ? 'XL' : available.last;
-      }
-    }
-
-    return ArConfigModel(
-      productoId: widget.product.id,
-      supported: true,
-      mode: '2d-overlay',
-      assetUrl: widget.product.mainImageUrl,
-      instructions: 'Alinea tus hombros y torso con la guía biomecánica.',
-      sizeMetrics: metrics,
-      fabricElasticity: 0.06,
-      fitCategory: 'regular',
-      availableSizes: available,
-      recommendedSize: rec,
-      material: widget.product.material ?? 'Tejido Atelier',
-    );
   }
 
   // --- CÁLCULO DE AJUSTE / HOLGURA (FIT SCORE) ---
@@ -413,13 +292,25 @@ class _ArFittingScreenState extends State<ArFittingScreen>
   void _addToCartSelectedSize() async {
     final cart = context.read<CartService>();
 
-    final variant = widget.product.variantes.firstWhere(
-      (v) =>
-          v.talla.toUpperCase() == _selectedSize.toUpperCase() &&
-          v.activo &&
-          v.stockDisponible > 0,
-      orElse: () => widget.product.variantes.first,
-    );
+    final matches = widget.product.variantes
+        .where(
+          (v) =>
+              v.talla.toUpperCase() == _selectedSize.toUpperCase() &&
+              v.activo &&
+              v.stockDisponible > 0,
+        )
+        .toList();
+    if (matches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Talla $_selectedSize no disponible. Elige otra talla para continuar.',
+          ),
+        ),
+      );
+      return;
+    }
+    final variant = matches.first;
 
     try {
       await cart.addItem(variant.id, cantidad: 1);
@@ -446,10 +337,25 @@ class _ArFittingScreenState extends State<ArFittingScreen>
   }
 
   void _createReservationSelectedSize() async {
-    final variant = widget.product.variantes.firstWhere(
-      (v) => v.talla.toUpperCase() == _selectedSize.toUpperCase() && v.activo,
-      orElse: () => widget.product.variantes.first,
-    );
+    final matches = widget.product.variantes
+        .where(
+          (v) =>
+              v.talla.toUpperCase() == _selectedSize.toUpperCase() &&
+              v.activo &&
+              v.stockDisponible > 0,
+        )
+        .toList();
+    if (matches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Talla $_selectedSize no disponible. Elige otra talla para continuar.',
+          ),
+        ),
+      );
+      return;
+    }
+    final variant = matches.first;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1033,16 +939,35 @@ class _ArFittingScreenState extends State<ArFittingScreen>
               child: CircularProgressIndicator(color: AppColors.forest),
             )
           : _errorMessage != null
-            ? Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Padding(padding: const EdgeInsets.all(20), child: Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.danger))),
-                  OutlinedButton(onPressed: _loadArConfig, child: const Text('Reintentar configuración')),
-                ]),
-              )
-            : Column(
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text('Vista 2D orientativa. El calce y las medidas son estimaciones; comprueba la talla antes de comprar.', style: TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.danger),
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: _loadArConfig,
+                    child: const Text('Reintentar configuración'),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Text(
+                    'Vista 2D orientativa. El calce y las medidas son estimaciones; comprueba la talla antes de comprar.',
+                    style: TextStyle(fontSize: 11),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 // SUB-BARRA DE ESTADO Y COMPARADOR
                 Container(
                   padding: const EdgeInsets.symmetric(

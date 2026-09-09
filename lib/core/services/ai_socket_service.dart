@@ -8,6 +8,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/api_config.dart';
 import '../models/ai_models.dart';
 import 'auth_service.dart';
+import '../network/api_client.dart';
+import '../network/api_exception.dart';
 
 enum AiSocketStatus {
   offline,
@@ -38,6 +40,8 @@ enum AiSocketStatus {
 class AiSocketService extends ChangeNotifier {
   static const String _storageKey = 'drapemind_ai_sessions_v2';
   final AuthService _authService;
+  final ApiClient _contextApi = ApiClient();
+  bool _contextBusy = false;
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
@@ -139,6 +143,7 @@ class AiSocketService extends ChangeNotifier {
 
   /// Crea una nueva sesión de chat separada
   void createNewSession({String? title}) {
+    if (_contextBusy || _sessions.any((s) => s.messages.any((m) => m.pending))) return;
     final newSession = ChatSession.create(
       title: title ?? 'Conversación #${_sessions.length + 1}',
     );
@@ -153,6 +158,7 @@ class AiSocketService extends ChangeNotifier {
 
   /// Cambia a otra conversación existente
   void switchSession(String sessionId) {
+    if (_contextBusy || _sessions.any((s) => s.messages.any((m) => m.pending))) return;
     if (_activeSessionId == sessionId) return;
     if (_sessions.any((s) => s.id == sessionId)) {
       _activeSessionId = sessionId;
@@ -164,7 +170,10 @@ class AiSocketService extends ChangeNotifier {
   }
 
   /// Elimina una sesión del historial
-  void deleteSession(String sessionId) {
+  Future<void> deleteSession(String sessionId) async {
+    if (_contextBusy || _sessions.any((s) => s.messages.any((m) => m.pending))) return;
+    final session = _sessions.where((s) => s.id == sessionId).firstOrNull;
+    if (!await _deleteRemote(session?.backendSessionId)) return;
     _sessions.removeWhere((s) => s.id == sessionId);
     if (_sessions.isEmpty) {
       createNewSession(title: 'Nueva Conversación');
@@ -176,7 +185,9 @@ class AiSocketService extends ChangeNotifier {
   }
 
   /// Reinicia los mensajes de la sesión actual
-  void clearConversation() {
+  Future<void> clearConversation() async {
+    if (_contextBusy || isBusy) return;
+    if (!await _deleteRemote(currentSession.backendSessionId)) return;
     currentSession.messages = [];
     currentSession.backendSessionId = null;
     currentSession.updatedAt = DateTime.now();
@@ -294,6 +305,38 @@ class AiSocketService extends ChangeNotifier {
   }
 
   // --- SEND MESSAGE & LIVE THINKING TICKER ---
+  Future<bool> _deleteRemote(int? id) async {
+    if (id == null) return true;
+    _contextBusy = true;
+    try {
+      await _contextApi.delete('/ai/sessions/$id');
+      return true;
+    } on ApiException catch (error) {
+      if (error.statusCode == 404) return true;
+      _currentThought = 'No se pudo eliminar el chat del servidor. Reintenta.';
+      _status = AiSocketStatus.error;
+      notifyListeners();
+      return false;
+    } finally { _contextBusy = false; }
+  }
+
+  Future<void> selectProduct(int id) async {
+    if (_contextBusy || isBusy) return;
+    final session = currentSession;
+    if (session.backendSessionId == null) return;
+    _contextBusy = true;
+    try {
+      final result = await _contextApi.post('/ai/sessions/${session.backendSessionId}/selection', body: {'product_id': id});
+      if (_activeSessionId == session.id && result is Map && result['followup'] is String) {
+        sendMessage(result['followup'] as String);
+      }
+    } on ApiException {
+      _currentThought = 'Esta opción ya no está disponible. Consulta de nuevo.';
+      _status = AiSocketStatus.error;
+      notifyListeners();
+    } finally { _contextBusy = false; }
+  }
+
   void sendMessage(String content) {
     final clean = content.trim();
     if (clean.isEmpty || isBusy) return;
@@ -429,6 +472,15 @@ class AiSocketService extends ChangeNotifier {
       _finishTrace(event['label']?.toString() ?? _formatToolName(name),
           failed ? 'La consulta devolvió un error' : _resultSummary(event['result']), failed: failed);
       notifyListeners();
+      return;
+    }
+
+    if (type == 'results') {
+      if (currentSession.messages.isNotEmpty && currentSession.messages.last.role == 'assistant') {
+        currentSession.messages.last.actionItems = (event['action_items'] as List? ?? [])
+            .map((item) => AiActionItem.fromJson(item as Map<String, dynamic>)).toList();
+        notifyListeners();
+      }
       return;
     }
 

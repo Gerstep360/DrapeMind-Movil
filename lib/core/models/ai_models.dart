@@ -144,6 +144,7 @@ class AiNotice {
 }
 
 class AiResponseMeta {
+  final List<Map<String, dynamic>> productPicker;
   final String? kind;
   final double? totalBob;
   final double? budgetBob;
@@ -153,6 +154,7 @@ class AiResponseMeta {
   final bool? canAddAll;
 
   AiResponseMeta({
+    this.productPicker = const [],
     this.kind,
     this.totalBob,
     this.budgetBob,
@@ -164,6 +166,9 @@ class AiResponseMeta {
 
   factory AiResponseMeta.fromJson(Map<String, dynamic> json) {
     return AiResponseMeta(
+      productPicker: (json['product_picker'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .where((item) => item['id'] is int && item['label'] is String).toList(),
       kind: json['kind']?.toString(),
       totalBob: json['total_bob'] is num
           ? (json['total_bob'] as num).toDouble()
@@ -190,6 +195,7 @@ class AiResponseMeta {
     'item_count': itemCount,
     'occasion': occasion,
     'can_add_all': canAddAll,
+    'product_picker': productPicker,
   };
 }
 

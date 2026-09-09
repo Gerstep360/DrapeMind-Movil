@@ -42,11 +42,13 @@ class AdminService {
     return ProductVariant.fromJson(response as Map<String, dynamic>);
   }
 
-  /// Adjust stock for inventory
+  /// Adjust stock for inventory (CU-35)
   Future<void> adjustInventory({
     required int varianteId,
     required int nuevoStockTotal,
     required String observacion,
+    int? sucursalId,
+    String? tipo,
   }) async {
     await _apiClient.post(
       '/admin/inventory/adjustments',
@@ -54,6 +56,8 @@ class AdminService {
         'variante_id': varianteId,
         'nuevo_stock_total': nuevoStockTotal,
         'observacion': observacion,
+        if (sucursalId != null) 'sucursal_id': sucursalId,
+        if (tipo != null) 'tipo': tipo,
       },
     );
   }
