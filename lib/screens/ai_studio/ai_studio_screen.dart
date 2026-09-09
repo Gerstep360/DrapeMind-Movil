@@ -894,13 +894,41 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
           // CHAT MESSAGE STREAM
           Expanded(
-            child: ListView.builder(
+            child: messages.isEmpty ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome_outlined, size: 42, color: AppColors.forest),
+                    SizedBox(height: 20),
+                    Text('Tu siguiente versión.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600)),
+                    SizedBox(height: 12),
+                    Text('Un espacio para explorar tu estilo. Cuéntale a Altair qué tienes en mente.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(height: 1.6, color: AppColors.textMutedStrong)),
+                  ],
+                ),
+              ),
+            ) : ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final message = messages[index];
-                return _buildMessageBubble(message, ai);
+                return TweenAnimationBuilder<double>(
+                  key: ValueKey(message.id),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero : const Duration(milliseconds: 280),
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(offset: Offset(0, 10 * (1 - value)), child: child),
+                  ),
+                  child: _buildMessageBubble(message, ai),
+                );
               },
             ),
           ),
@@ -923,7 +951,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       minLines: 1,
                       decoration: InputDecoration(
                         hintText:
-                            'Consulta a Altair sobre looks o percheros...',
+                            '¿Qué tienes en mente?',
                         hintStyle: const TextStyle(
                           fontSize: 12.5,
                           color: AppColors.textMuted,
@@ -935,7 +963,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           vertical: 10,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(24),
                           borderSide: const BorderSide(
                             color: AppColors.lineStrong,
                           ),
@@ -953,7 +981,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                       ),
                       backgroundColor: AppColors.forest,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                     ),
                     onPressed: ai.isBusy ? null : () => _sendMessage(),
@@ -1023,18 +1051,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               padding: const EdgeInsets.all(14),
               constraints: const BoxConstraints(maxWidth: 580),
               decoration: BoxDecoration(
-                color: isUser ? AppColors.forest : AppColors.white,
+                color: isUser ? AppColors.forest : Colors.transparent,
                 border: Border.all(
-                  color: isUser ? AppColors.forest : AppColors.lineStrong,
+                  color: isUser ? AppColors.forest : Colors.transparent,
                 ),
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: isUser ? [
                   BoxShadow(
                     color: Colors.black.withAlpha(8),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
-                ],
+                ] : [],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1172,8 +1200,8 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        border: Border.all(color: AppColors.forest.withAlpha(80), width: 1.5),
-        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.forest.withAlpha(20)),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: AppColors.forest.withAlpha(12),
@@ -1201,7 +1229,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Altair Razonando en Vivo',
+                    'Pensando',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w900,

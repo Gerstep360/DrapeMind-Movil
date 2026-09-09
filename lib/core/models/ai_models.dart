@@ -374,14 +374,7 @@ class ChatSession {
       title: title ?? 'Conversación Atelier',
       createdAt: now,
       updatedAt: now,
-      messages: [
-        ChatMessage(
-          id: 'welcome-${now.millisecondsSinceEpoch}',
-          role: 'assistant',
-          content:
-              'Saludos, soy Altair, tu Personal Stylist de DrapeMind Atelier. Puedo analizar tu perchero, diseñar propuestas por ocasión y equilibrar tu guardarropa con stock y datos reales.',
-        ),
-      ],
+      messages: [],
     );
   }
 

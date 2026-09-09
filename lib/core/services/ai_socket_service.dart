@@ -177,13 +177,7 @@ class AiSocketService extends ChangeNotifier {
 
   /// Reinicia los mensajes de la sesión actual
   void clearConversation() {
-    currentSession.messages = [
-      ChatMessage(
-        id: 'welcome-${DateTime.now().millisecondsSinceEpoch}',
-        role: 'assistant',
-        content: 'Nueva conversación lista. ¿Qué look deseas diseñar hoy?',
-      ),
-    ];
+    currentSession.messages = [];
     currentSession.backendSessionId = null;
     currentSession.updatedAt = DateTime.now();
     _toolActivity = [];
