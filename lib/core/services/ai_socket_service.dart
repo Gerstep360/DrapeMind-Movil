@@ -338,8 +338,8 @@ class AiSocketService extends ChangeNotifier {
   }
 
   void sendMessage(String content) {
-    final clean = content.trim();
-    if (clean.isEmpty || isBusy) return;
+    final clean = content;
+    if (clean.trim().isEmpty || isBusy) return;
 
     final userMsgId = 'user-${DateTime.now().millisecondsSinceEpoch}';
     final assistantMsgId = 'assistant-${DateTime.now().millisecondsSinceEpoch}';
