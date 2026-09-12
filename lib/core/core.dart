@@ -19,6 +19,7 @@ export 'models/ar_models.dart';
 export 'models/admin_metrics_models.dart';
 export 'models/realtime_models.dart';
 export 'models/branch_models.dart';
+export 'models/style_profile_models.dart';
 
 // Services
 export 'services/auth_service.dart';

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
 import '../catalog/product_detail_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -22,6 +23,7 @@ class _AccountScreenState extends State<AccountScreen> {
   List<Address> _addresses = [];
   List<Product> _favorites = [];
   List<Branch> _branches = [];
+  StyleProfile? _styleProfile;
   bool _loading = true;
   bool _savingProfile = false;
   String? _error;
@@ -54,12 +56,14 @@ class _AccountScreenState extends State<AccountScreen> {
         _addressService.getMyAddresses(),
         _catalogService.getFavorites(),
         _branchService.getBranches(),
+        context.read<AuthService>().getStyleProfile(),
       ]);
       if (!mounted) return;
       setState(() {
         _addresses = results[0] as List<Address>;
         _favorites = results[1] as List<Product>;
         _branches = results[2] as List<Branch>;
+        _styleProfile = results[3] as StyleProfile?;
         _loading = false;
       });
     } catch (_) {
@@ -68,6 +72,18 @@ class _AccountScreenState extends State<AccountScreen> {
         _error = 'No pudimos sincronizar todos los datos de tu cuenta.';
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _openOnboarding() async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const OnboardingScreen(isReconfiguring: true),
+      ),
+    );
+    if (updated == true || mounted) {
+      await _loadAccount();
     }
   }
 
@@ -429,6 +445,162 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 14),
+            _Section(
+              eyebrow: 'CU-19 / CU-20 · ADN DE ESTILO',
+              title: 'Preferencias de estilo',
+              trailing: TextButton.icon(
+                onPressed: _openOnboarding,
+                icon: const Icon(Icons.edit_note, size: 18),
+                label: Text(_styleProfile != null ? 'Modificar' : 'Configurar'),
+              ),
+              child: _loading
+                  ? const LinearProgressIndicator()
+                  : _styleProfile == null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Aún no has configurado tu perfil de estilo. Completa el onboarding para recibir recomendaciones hiper-personalizadas de Altair.',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: _openOnboarding,
+                          icon: const Icon(Icons.auto_awesome, size: 17),
+                          label: const Text('Iniciar Onboarding de Estilo →'),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_styleProfile!.siluetaPreferida != null || _styleProfile!.genero != null) ...[
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.acid,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _styleProfile!.siluetaPreferida ?? 'Silueta Estándar',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
+                              ),
+                              if (_styleProfile!.genero != null) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.paperDark,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _styleProfile!.genero!.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.paperLight,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.line),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Column(
+                                children: [
+                                  const Text('TOP', style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 3),
+                                  Text(_styleProfile!.tallaSuperior ?? '-', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                                ],
+                              ),
+                              Container(width: 1, height: 26, color: AppColors.line),
+                              Column(
+                                children: [
+                                  const Text('BOTTOM', style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 3),
+                                  Text(_styleProfile!.tallaInferior ?? '-', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                                ],
+                              ),
+                              Container(width: 1, height: 26, color: AppColors.line),
+                              Column(
+                                children: [
+                                  const Text('CALZADO', style: TextStyle(fontSize: 10, color: AppColors.textMuted, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 3),
+                                  Text(_styleProfile!.tallaCalzado ?? '-', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_styleProfile!.estilosPreferidos.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text('ESTILOS DECLARADOS:', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMutedStrong)),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _styleProfile!.estilosPreferidos.map((st) => Chip(
+                              label: Text(st, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                              backgroundColor: AppColors.paperDark,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              side: BorderSide.none,
+                            )).toList(),
+                          ),
+                        ],
+                        if (_styleProfile!.coloresFavoritos.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          const Text('PALETAS FAVORITAS:', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMutedStrong)),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _styleProfile!.coloresFavoritos.map((col) => Chip(
+                              label: Text(col, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+                              backgroundColor: AppColors.paperLight,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              side: const BorderSide(color: AppColors.line),
+                            )).toList(),
+                          ),
+                        ],
+                        if (_styleProfile!.presupuestoHabitual != null && _styleProfile!.presupuestoHabitual! > 0) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Text('PRESUPUESTO HABITUAL: ', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMutedStrong)),
+                              Text('Hasta Bs ${_styleProfile!.presupuestoHabitual!.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.forest)),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        OutlinedButton.icon(
+                          onPressed: _openOnboarding,
+                          icon: const Icon(Icons.tune, size: 16),
+                          label: const Text('Modificar respuestas en Onboarding ✎'),
+                        ),
+                      ],
+                    ),
             ),
             const SizedBox(height: 14),
             _Section(

@@ -44,6 +44,7 @@ class User {
   final UserRole rol;
   final String estado;
   final DateTime createdAt;
+  final bool hasStyleProfile;
 
   User({
     required this.id,
@@ -53,6 +54,7 @@ class User {
     required this.rol,
     required this.estado,
     required this.createdAt,
+    this.hasStyleProfile = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -66,6 +68,29 @@ class User {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
+      hasStyleProfile: json['has_style_profile'] == true,
+    );
+  }
+
+  User copyWith({
+    int? id,
+    String? nombre,
+    String? email,
+    String? telefono,
+    UserRole? rol,
+    String? estado,
+    DateTime? createdAt,
+    bool? hasStyleProfile,
+  }) {
+    return User(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      email: email ?? this.email,
+      telefono: telefono ?? this.telefono,
+      rol: rol ?? this.rol,
+      estado: estado ?? this.estado,
+      createdAt: createdAt ?? this.createdAt,
+      hasStyleProfile: hasStyleProfile ?? this.hasStyleProfile,
     );
   }
 
@@ -77,6 +102,7 @@ class User {
     'rol': rol.toServerString(),
     'estado': estado,
     'created_at': createdAt.toIso8601String(),
+    'has_style_profile': hasStyleProfile,
   };
 }
 

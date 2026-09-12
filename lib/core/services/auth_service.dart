@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/auth_models.dart';
+import '../models/style_profile_models.dart';
 import '../network/api_client.dart';
 import '../network/api_exception.dart';
 import 'security_service.dart';
@@ -10,6 +11,7 @@ class AuthService extends ChangeNotifier {
   final ApiClient _apiClient;
   User? _currentUser;
   bool _isLoading = false;
+  bool _onboardingSkipped = false;
   String? _token;
   Timer? _expiryTimer;
 
@@ -23,6 +25,7 @@ class AuthService extends ChangeNotifier {
   bool get isEncargado => _currentUser?.rol == UserRole.encargado;
   bool get isCajero => _currentUser?.rol == UserRole.cajero;
   bool get isLoading => _isLoading;
+  bool get onboardingSkipped => _onboardingSkipped;
   String? get token => _token;
 
   /// Check token in storage and load user profile
@@ -187,12 +190,50 @@ class AuthService extends ChangeNotifier {
     return _currentUser!;
   }
 
+  void skipOnboarding() {
+    _onboardingSkipped = true;
+    notifyListeners();
+  }
+
+  void markStyleProfileCompleted() {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(hasStyleProfile: true);
+      notifyListeners();
+    }
+  }
+
+  Future<StyleProfile?> getStyleProfile() async {
+    try {
+      final response = await _apiClient.get('/users/me/style-profile');
+      if (response is Map<String, dynamic>) {
+        return StyleProfile.fromJson(response);
+      }
+      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<StyleProfile> saveStyleProfile(StyleProfile profile) async {
+    final response = await _apiClient.post(
+      '/users/me/style-profile',
+      body: profile.toJson(inferOutfit: false),
+    );
+    final saved = StyleProfile.fromJson(response as Map<String, dynamic>);
+    markStyleProfileCompleted();
+    return saved;
+  }
+
   /// Logout and clear storage
   Future<void> logout() async {
     _expiryTimer?.cancel();
     _expiryTimer = null;
     _currentUser = null;
     _token = null;
+    _onboardingSkipped = false;
     await _apiClient.clearToken();
     await SecurityService().clearCachedUserProfile();
     notifyListeners();

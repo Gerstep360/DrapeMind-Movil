@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/pin_lock_screen.dart';
 import 'screens/main_shell.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +87,11 @@ class AuthGate extends StatelessWidget {
     if (auth.isAuthenticated) {
       if (security.isLocked) {
         return PinLockScreen(onUnlocked: () {});
+      }
+      if (auth.currentUser != null &&
+          !auth.currentUser!.hasStyleProfile &&
+          !auth.onboardingSkipped) {
+        return const OnboardingScreen(isReconfiguring: false);
       }
       return const MainShell();
     }
