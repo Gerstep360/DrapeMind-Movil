@@ -78,4 +78,20 @@ class CatalogService {
   Future<void> removeFavorite(int productId) async {
     await _apiClient.delete('/catalog/favorites/$productId');
   }
+
+  Future<bool> toggleFavorite(int productId) async {
+    try {
+      final favs = await getFavorites();
+      final isFav = favs.any((f) => f.id == productId);
+      if (isFav) {
+        await removeFavorite(productId);
+        return false;
+      } else {
+        await addFavorite(productId);
+        return true;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
 }

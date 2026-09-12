@@ -1,28 +1,63 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// Global configuration for DrapeMind Backend API & WebSockets.
 class ApiConfig {
-  /// IP pública del servidor VPS de producción
+  /// IP pública del servidor VPS oficial de producción
   static const String defaultServerIp = '167.86.106.105';
   static const int defaultServerPort = 80;
   static const String defaultPathPrefix = '/DrapeMind';
 
+  /// Hosts predefinidos de fácil conmutación
+  static const String hostVPS = '167.86.106.105';
+  static const String hostLAN = '192.168.100.223:8000';
+  static const String hostLocal = '127.0.0.1:8000';
+
   static String? _customHost;
 
-  /// Cambia manualmente el host o IP si se desea probar en red local (ej. '192.168.1.50:8000')
-  static void setCustomHost(String host) {
+  /// Carga la IP guardada previamente en el dispositivo, limpiando IPs antiguas deprecadas
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('custom_api_host');
+      if (saved != null && saved.isNotEmpty) {
+        if (saved.contains('157.173.102.129')) {
+          await prefs.remove('custom_api_host');
+          _customHost = null;
+        } else {
+          _customHost = saved.trim();
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Cambia manualmente el host o IP (ej. '167.86.106.105', '127.0.0.1:8000', '192.168.100.223:8000')
+  static Future<void> setCustomHost(String host) async {
     final clean = host.trim();
     if (clean.contains('157.173.102.129')) {
-      _customHost = null;
+      await resetHost();
       return;
     }
-    _customHost = clean.isEmpty ? null : clean;
+    if (clean.isEmpty || clean == defaultServerIp) {
+      await resetHost();
+      return;
+    }
+    _customHost = clean;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_api_host', clean);
+    } catch (_) {}
   }
 
-  /// Restablece el host al VPS oficial de producción
-  static void resetHost() {
+  /// Restablece el host al VPS oficial de producción (167.86.106.105)
+  static Future<void> resetHost() async {
     _customHost = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('custom_api_host');
+    } catch (_) {}
   }
 
-  /// Host activo: usa la IP del VPS por defecto (167.86.106.105) o la configurada manualmente
+  /// Host activo: usa el VPS de producción o el configurado (ADB Reverse / LAN)
   static String get defaultHost {
     if (_customHost != null && _customHost!.isNotEmpty) {
       if (_customHost!.contains('157.173.102.129')) {
@@ -31,7 +66,6 @@ class ApiConfig {
       }
       return _customHost!;
     }
-    // Conexión directa por defecto al VPS de producción oficial
     return defaultServerIp;
   }
 
@@ -43,18 +77,21 @@ class ApiConfig {
   /// Determina si el host actual incluye prefijo de ruta (ej. VPS con /DrapeMind)
   static String get _effectivePrefix {
     if (_customHost != null && _customHost!.isNotEmpty) {
-      // Si el usuario configuró una IP local como '192.168.x.x:8000' o localhost sin subpath
       if (_customHost!.contains('/')) {
         return '';
       }
-      if (_customHost!.contains(':8000') || _customHost!.contains('192.168.') || _customHost!.contains('localhost') || _customHost!.contains('10.0.2.2')) {
+      if (_customHost!.contains(':8000') ||
+          _customHost!.contains('192.168.') ||
+          _customHost!.contains('localhost') ||
+          _customHost!.contains('127.0.0.1') ||
+          _customHost!.contains('10.0.2.2')) {
         return '';
       }
     }
     return defaultPathPrefix;
   }
 
-  /// Base URL: e.g. http://167.86.106.105/DrapeMind o http://192.168.1.50:8000
+  /// Base URL: e.g. http://167.86.106.105/DrapeMind o http://127.0.0.1:8000
   static String get baseUrl {
     final host = defaultHost;
     if (host.startsWith('http://') || host.startsWith('https://')) {
@@ -69,13 +106,15 @@ class ApiConfig {
 
   /// AI WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/ai
   static String get aiWsUrl {
-    final base = baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+    final base =
+        baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/ai';
   }
 
   /// Realtime Events WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/events
   static String get eventsWsUrl {
-    final base = baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+    final base =
+        baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/events';
   }
 

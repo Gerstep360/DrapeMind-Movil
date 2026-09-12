@@ -40,4 +40,13 @@ class OrderService {
     );
     return Order.fromJson(response as Map<String, dynamic>);
   }
+
+  /// Retrieve official purchase receipt / voucher (CU-12)
+  Future<Map<String, dynamic>> getOrderReceipt(int orderId) async {
+    final response = await _apiClient.get(
+      '/orders/$orderId/receipt',
+      queryParams: {'format': 'json'},
+    );
+    return response as Map<String, dynamic>;
+  }
 }

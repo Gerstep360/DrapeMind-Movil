@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
@@ -25,6 +26,7 @@ class _AccountScreenState extends State<AccountScreen> {
   List<Product> _favorites = [];
   List<Branch> _branches = [];
   StyleProfile? _styleProfile;
+  int? _preferredBranchId;
   bool _loading = true;
   bool _savingProfile = false;
   String? _error;
@@ -59,21 +61,36 @@ class _AccountScreenState extends State<AccountScreen> {
         _branchService.getBranches(),
         context.read<AuthService>().getStyleProfile(),
       ]);
+      final prefs = await SharedPreferences.getInstance();
+      final branchId = prefs.getInt('drapemind_selected_branch_id');
+
       if (!mounted) return;
       setState(() {
         _addresses = results[0] as List<Address>;
         _favorites = results[1] as List<Product>;
         _branches = results[2] as List<Branch>;
         _styleProfile = results[3] as StyleProfile?;
+        _preferredBranchId = branchId;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'No pudimos sincronizar todos los datos de tu cuenta.';
+        _error = e is ApiException ? e.message : 'No pudimos sincronizar todos los datos de tu cuenta.';
         _loading = false;
       });
     }
+  }
+
+  Future<void> _setPreferredBranch(Branch branch) async {
+    setState(() => _preferredBranchId = branch.id);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('drapemind_selected_branch_id', branch.id);
+      if (mounted) {
+        _showMessage('Showroom preferido: ${branch.nombre}');
+      }
+    } catch (_) {}
   }
 
   Future<void> _openOnboarding() async {
@@ -100,13 +117,202 @@ class _AccountScreenState extends State<AccountScreen> {
         telefono: _phoneController.text,
       );
       if (mounted) _showMessage('Perfil actualizado.');
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        _showMessage('No se pudo actualizar el perfil.', danger: true);
+        final msg = e is ApiException ? e.message : 'No se pudo actualizar el perfil.';
+        _showMessage(msg, danger: true);
       }
     } finally {
       if (mounted) setState(() => _savingProfile = false);
     }
+  }
+
+  Future<void> _showServerDialog() async {
+    final customController = TextEditingController();
+    final currentHost = ApiConfig.defaultHost;
+
+    final options = [
+      {
+        'label': 'VPS Oficial (Producción)',
+        'host': ApiConfig.hostVPS,
+        'desc': 'Nube pública en 167.86.106.105',
+        'isDefault': true,
+      },
+      {
+        'label': 'Wi-Fi LAN Local (Desarrollo)',
+        'host': ApiConfig.hostLAN,
+        'desc': 'IP local de oficina / laboratorio (${ApiConfig.hostLAN})',
+        'isDefault': false,
+      },
+      {
+        'label': 'Localhost / ADB Reverse',
+        'host': ApiConfig.hostLocal,
+        'desc': 'Túnel cableado reverse (${ApiConfig.hostLocal})',
+        'isDefault': false,
+      },
+    ];
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paperLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              18,
+              20,
+              MediaQuery.viewInsetsOf(context).bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.lineStrong,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: const [
+                      Icon(Icons.dns_outlined, color: AppColors.forest, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'CONMUTADOR DE SERVIDOR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Selecciona el entorno backend al que deseas conectar la app:',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  ...options.map((opt) {
+                    final optHost = opt['host'] as String;
+                    final isSelected = currentHost == optHost;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.lime.withValues(alpha: 0.25) : AppColors.white,
+                        border: Border.all(
+                          color: isSelected ? AppColors.forest : AppColors.line,
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        onTap: () async {
+                          if (opt['isDefault'] == true) {
+                            await ApiConfig.resetHost();
+                          } else {
+                            await ApiConfig.setCustomHost(optHost);
+                          }
+                          if (context.mounted) {
+                            context.read<AiSocketService>().reconnectWithCurrentConfig();
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            _showMessage('Conectado a ${opt['label']}');
+                            setState(() {});
+                            _loadAccount();
+                          }
+                        },
+                        leading: Icon(
+                          isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                          color: isSelected ? AppColors.forest : AppColors.textMuted,
+                        ),
+                        title: Text(
+                          opt['label'] as String,
+                          style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                            color: AppColors.ink,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${opt['desc']}\n${opt['host']}',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMutedStrong),
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'O especifica un Host / IP personalizado:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: customController,
+                          decoration: InputDecoration(
+                            hintText: 'ej. 192.168.1.10:8000',
+                            filled: true,
+                            fillColor: AppColors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppColors.line),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final txt = customController.text.trim();
+                          if (txt.isEmpty) return;
+                          await ApiConfig.setCustomHost(txt);
+                          if (context.mounted) {
+                            context.read<AiSocketService>().reconnectWithCurrentConfig();
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (mounted) {
+                            _showMessage('Conectado a host personalizado: $txt');
+                            setState(() {});
+                            _loadAccount();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.lime,
+                          foregroundColor: AppColors.ink,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Aplicar', style: TextStyle(fontWeight: FontWeight.w900)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    customController.dispose();
   }
 
   Future<void> _removeFavorite(Product product) async {
@@ -835,39 +1041,106 @@ class _AccountScreenState extends State<AccountScreen> {
                           'Las sucursales aparecerán cuando el servidor esté disponible.',
                     )
                   : Column(
-                      children: _branches
-                          .map(
-                            (branch) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(
-                                Icons.storefront_outlined,
-                                color: AppColors.forest,
-                              ),
-                              title: Text(
-                                branch.nombre,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${branch.direccion}\n${branch.ciudad ?? ''}${branch.departamento == null ? '' : ', ${branch.departamento}'}',
-                              ),
-                              isThreeLine: true,
+                      children: _branches.map((branch) {
+                        final isPreferred = _preferredBranchId == branch.id;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isPreferred ? AppColors.lime.withValues(alpha: 0.2) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isPreferred ? AppColors.forest : Colors.transparent,
                             ),
-                          )
-                          .toList(),
+                          ),
+                          child: ListTile(
+                            onTap: () => _setPreferredBranch(branch),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            leading: Icon(
+                              isPreferred ? Icons.store : Icons.storefront_outlined,
+                              color: isPreferred ? AppColors.forest : AppColors.ink,
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    branch.nombre,
+                                    style: TextStyle(
+                                      fontWeight: isPreferred ? FontWeight.w900 : FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                if (isPreferred)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.lime,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'PREFERIDO ✓',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.ink,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              '${branch.direccion}\n${branch.ciudad ?? ''}${branch.departamento == null ? '' : ', ${branch.departamento}'}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            isThreeLine: true,
+                          ),
+                        );
+                      }).toList(),
                     ),
             ),
             const SizedBox(height: 14),
             _Section(
               eyebrow: 'CONEXIÓN',
               title: 'Servidor configurado',
-              child: SelectableText(
-                '${ApiConfig.baseUrl}\n${ApiConfig.aiWsUrl}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMutedStrong,
-                ),
+              trailing: TextButton.icon(
+                onPressed: _showServerDialog,
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: const Text('Conmutar'),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Host activo: ${ApiConfig.defaultHost}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  SelectableText(
+                    'API: ${ApiConfig.baseUrl}\nIA WebSocket: ${ApiConfig.aiWsUrl}',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textMutedStrong,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 18),

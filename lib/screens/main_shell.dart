@@ -31,7 +31,7 @@ class _MainShellState extends State<MainShell> {
     final cart = context.watch<CartService>();
 
     final screens = [
-      const CatalogScreen(),
+      CatalogScreen(onOpenAiStudio: () => setState(() => _currentIndex = 1)),
       const AiStudioScreen(),
       CartScreen(onOpenAiStudio: () => setState(() => _currentIndex = 1)),
       const OrdersScreen(),

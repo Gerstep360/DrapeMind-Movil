@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
 import '../models/style_profile_models.dart';
 import '../network/api_client.dart';
@@ -206,13 +207,25 @@ class AuthService extends ChangeNotifier {
     try {
       final response = await _apiClient.get('/users/me/style-profile');
       if (response is Map<String, dynamic>) {
-        return StyleProfile.fromJson(response);
+        final profile = StyleProfile.fromJson(response);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('drapemind_cached_style_profile', jsonEncode(response));
+        } catch (_) {}
+        return profile;
       }
       return null;
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;
       rethrow;
     } catch (_) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getString('drapemind_cached_style_profile');
+        if (cached != null && cached.isNotEmpty) {
+          return StyleProfile.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+        }
+      } catch (_) {}
       return null;
     }
   }
@@ -223,6 +236,10 @@ class AuthService extends ChangeNotifier {
       body: profile.toJson(inferOutfit: false),
     );
     final saved = StyleProfile.fromJson(response as Map<String, dynamic>);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('drapemind_cached_style_profile', jsonEncode(response));
+    } catch (_) {}
     markStyleProfileCompleted();
     return saved;
   }

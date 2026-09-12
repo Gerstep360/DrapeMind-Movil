@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_svg.dart';
+import 'body_try_on_screen.dart';
 
 class ArFittingScreen extends StatefulWidget {
   final Product product;
@@ -34,8 +35,6 @@ class _ArFittingScreenState extends State<ArFittingScreen>
   bool _isCameraMode = false;
   bool _isCameraStarting = false;
   CameraController? _cameraController;
-  int _cameraGeneration = 0;
-  String? _cameraError;
   bool _isCompareMode = false;
   late String _selectedSize;
   String _compareSize = 'L';
@@ -70,7 +69,6 @@ class _ArFittingScreenState extends State<ArFittingScreen>
 
   @override
   void dispose() {
-    _cameraGeneration++;
     WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
     _animCtrl.dispose();
@@ -84,7 +82,6 @@ class _ArFittingScreenState extends State<ArFittingScreen>
         state != AppLifecycleState.detached) {
       return;
     }
-    _cameraGeneration++;
     final controller = _cameraController;
     _cameraController = null;
     controller?.dispose();
@@ -96,69 +93,6 @@ class _ArFittingScreenState extends State<ArFittingScreen>
     }
   }
 
-  Future<void> _toggleCameraMode() async {
-    if (_isCameraStarting) return;
-    if (_isCameraMode) {
-      final controller = _cameraController;
-      setState(() {
-        _isCameraMode = false;
-        _cameraController = null;
-      });
-      await controller?.dispose();
-      return;
-    }
-    if (_cameraController?.value.isInitialized == true) {
-      setState(() => _isCameraMode = true);
-      return;
-    }
-    setState(() {
-      _isCameraStarting = true;
-      _cameraError = null;
-    });
-    final generation = ++_cameraGeneration;
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        throw CameraException(
-          'no-camera',
-          'No se detectó una cámara disponible',
-        );
-      }
-      final selected = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
-      );
-      final controller = CameraController(
-        selected,
-        ResolutionPreset.medium,
-        enableAudio: false,
-      );
-      await controller.initialize();
-      if (!mounted || generation != _cameraGeneration) {
-        await controller.dispose();
-        return;
-      }
-      await _cameraController?.dispose();
-      setState(() {
-        _cameraController = controller;
-        _isCameraMode = true;
-        _isCameraStarting = false;
-      });
-    } on CameraException catch (error) {
-      if (!mounted || generation != _cameraGeneration) return;
-      setState(() {
-        _cameraError = error.description ?? 'No se pudo iniciar la cámara';
-        _isCameraMode = false;
-        _isCameraStarting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.danger,
-          content: Text(_cameraError!),
-        ),
-      );
-    }
-  }
 
   Widget _buildCameraPreview() {
     final controller = _cameraController;
@@ -930,8 +864,9 @@ class _ArFittingScreenState extends State<ArFittingScreen>
               size: 18,
               color: AppColors.white,
             ),
-            tooltip: _isCameraMode ? 'Modo Maniquí' : 'Vista sobre cámara (sin seguimiento)',
-            onPressed: _toggleCameraMode,
+            tooltip: 'Escanear cuerpo y probar polera AR',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => const BodyTryOnScreen())),
           ),
         ],
       ),
@@ -970,6 +905,12 @@ class _ArFittingScreenState extends State<ArFittingScreen>
                   ),
                 ),
                 // SUB-BARRA DE ESTADO Y COMPARADOR
+                TextButton.icon(
+                  icon: const Icon(Icons.accessibility_new_rounded),
+                  label: const Text('Escanear cuerpo · probar polera Studio'),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => const BodyTryOnScreen())),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,

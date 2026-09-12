@@ -40,6 +40,12 @@ dependencies:
   provider: ^6.1.5+1
   flutter_svg: ^2.2.3
   camera: ^0.11.0+2
+  google_mlkit_pose_detection: ^0.15.0
+  flutter_stripe: 12.0.2
+  # Keep the native/interface set compatible with Dart 3.8.1 and flutter_stripe 12.0.2.
+  stripe_android: 12.0.1
+  stripe_ios: 12.0.1
+  stripe_platform_interface: 12.0.0
 
 dev_dependencies:
   flutter_test:

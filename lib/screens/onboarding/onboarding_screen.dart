@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/core.dart';
 import '../main_shell.dart';
@@ -225,8 +226,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final branches = await _branchService.getBranches();
       _branches = branches;
-      if (_branches.isNotEmpty && _selectedBranchId == null) {
-        _selectedBranchId = _branches.first.id;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final savedBranchId = prefs.getInt('drapemind_selected_branch_id');
+        if (savedBranchId != null && _branches.any((b) => b.id == savedBranchId)) {
+          _selectedBranchId = savedBranchId;
+        } else if (_branches.isNotEmpty && _selectedBranchId == null) {
+          _selectedBranchId = _branches.first.id;
+        }
+      } catch (_) {
+        if (_branches.isNotEmpty && _selectedBranchId == null) {
+          _selectedBranchId = _branches.first.id;
+        }
       }
 
       if (!mounted) return;
@@ -346,8 +357,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       completado: true,
     );
 
+    final auth = context.read<AuthService>();
+    if (_selectedBranchId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('drapemind_selected_branch_id', _selectedBranchId!);
+      } catch (_) {}
+    }
+
     try {
-      await context.read<AuthService>().saveStyleProfile(profile);
+      await auth.saveStyleProfile(profile);
 
       if (mounted) {
         if (widget.isReconfiguring) {
@@ -372,7 +391,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _errorMessage = 'No se pudieron guardar tus preferencias. Reintenta.';
+          _errorMessage = 'No se pudieron sincronizar tus preferencias con el servidor. Se guardaron localmente.';
         });
       }
     }
@@ -423,12 +442,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _buildHeader(),
                   if (_currentStep < 4) _buildStepIndicator(),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 320),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.06, 0.0),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: SingleChildScrollView(
+                        key: ValueKey<int>(_currentStep),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: _buildCurrentStepContent(),
                       ),
-                      child: _buildCurrentStepContent(),
                     ),
                   ),
                   if (_currentStep < 4) _buildFooterActions(),
@@ -520,7 +557,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP INDICATOR
+  // STEP INDICATOR (ANIMATED PROGRESS & PILLS)
   // ---------------------------------------------------------------------------
   Widget _buildStepIndicator() {
     final steps = [
@@ -530,47 +567,83 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       {'label': '04 Detalles', 'step': 3},
     ];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: steps.map((s) {
-          final stepIndex = s['step'] as int;
-          final isCurrent = _currentStep == stepIndex;
-          final isPast = _currentStep > stepIndex;
-
-          return GestureDetector(
-            onTap: () {
-              if (stepIndex < _currentStep) {
-                setState(() => _currentStep = stepIndex);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isCurrent
-                    ? dmLime
-                    : (isPast ? Colors.transparent : Colors.transparent),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isCurrent
-                      ? Colors.transparent
-                      : (isPast ? dmInk : dmBorder),
-                  width: 1,
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(
+                begin: 0.25,
+                end: ((_currentStep + 1) / 4.0).clamp(0.0, 1.0),
               ),
-              child: Text(
-                s['label'] as String,
-                style: TextStyle(
-                  color: dmInk,
-                  fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
-                  fontSize: 11,
-                ),
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) => LinearProgressIndicator(
+                value: value,
+                backgroundColor: dmBorder.withValues(alpha: 0.5),
+                valueColor: const AlwaysStoppedAnimation<Color>(dmInk),
+                minHeight: 3,
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: steps.map((s) {
+              final stepIndex = s['step'] as int;
+              final isCurrent = _currentStep == stepIndex;
+              final isPast = _currentStep > stepIndex;
+
+              return GestureDetector(
+                onTap: () {
+                  if (stepIndex < _currentStep) {
+                    setState(() => _currentStep = stepIndex);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? dmLime
+                        : (isPast ? dmCyan.withValues(alpha: 0.35) : Colors.transparent),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isCurrent
+                          ? Colors.transparent
+                          : (isPast ? dmInk : dmBorder),
+                      width: 1.1,
+                    ),
+                    boxShadow: isCurrent
+                        ? [
+                            BoxShadow(
+                              color: dmLime.withValues(alpha: 0.45),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    s['label'] as String,
+                    style: TextStyle(
+                      color: dmInk,
+                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -622,7 +695,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ..._branches.map((branch) {
               final isSelected = _selectedBranchId == branch.id;
               return GestureDetector(
-                onTap: () => setState(() => _selectedBranchId = branch.id),
+                onTap: () async {
+                  setState(() => _selectedBranchId = branch.id);
+                  try {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setInt('drapemind_selected_branch_id', branch.id);
+                  } catch (_) {}
+                },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),

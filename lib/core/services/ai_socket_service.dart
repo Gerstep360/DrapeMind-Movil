@@ -39,6 +39,7 @@ enum AiSocketStatus {
 
 class AiSocketService extends ChangeNotifier {
   static const String _storageKey = 'drapemind_ai_sessions_v2';
+  static const String _modelStorageKey = 'drapemind_altair_model';
   final AuthService _authService;
   final ApiClient _contextApi = ApiClient();
   bool _contextBusy = false;
@@ -51,6 +52,7 @@ class AiSocketService extends ChangeNotifier {
 
   int _reconnectAttempt = 0;
   String? _queuedMessage;
+  String? _queuedMode;
   int _responseStartedAt = 0;
   int _thinkingElapsedMs = 0;
   bool _authRejected = false;
@@ -63,10 +65,12 @@ class AiSocketService extends ChangeNotifier {
   List<ChatSession> _sessions = [];
   String? _activeSessionId;
   List<AgentTraceStep> _toolActivity = [];
+  String _activeModel = 'dynamic';
 
   AiSocketService({required AuthService authService})
     : _authService = authService {
     _loadSessionsFromStorage();
+    _loadStoredModel();
   }
 
   // --- GETTERS ---
@@ -77,6 +81,36 @@ class AiSocketService extends ChangeNotifier {
   double get thinkingElapsedSeconds => _thinkingElapsedMs / 1000.0;
   String get thinkingElapsedFormatted =>
       '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
+  String get activeModel => _activeModel;
+
+  Future<void> _loadStoredModel() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_modelStorageKey);
+      if (saved == 'mini' || saved == 'dynamic' || saved == 'gemma') {
+        _activeModel = saved!;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setActiveModel(String model) async {
+    if (model != 'mini' && model != 'dynamic' && model != 'gemma') return;
+    _activeModel = model;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_modelStorageKey, model);
+    } catch (_) {}
+  }
+
+  /// Reconectar explícitamente con la configuración actual (útil tras cambio de host/IP)
+  void reconnectWithCurrentConfig() {
+    disconnect();
+    Future.delayed(const Duration(milliseconds: 250), () {
+      connect();
+    });
+  }
 
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
   ChatSession get currentSession {
@@ -337,10 +371,11 @@ class AiSocketService extends ChangeNotifier {
     } finally { _contextBusy = false; }
   }
 
-  void sendMessage(String content) {
+  void sendMessage(String content, {String? mode}) {
     final clean = content;
     if (clean.trim().isEmpty || isBusy) return;
 
+    final effectiveMode = mode ?? _activeModel;
     final userMsgId = 'user-${DateTime.now().millisecondsSinceEpoch}';
     final assistantMsgId = 'assistant-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -378,9 +413,10 @@ class AiSocketService extends ChangeNotifier {
 
     if (_status == AiSocketStatus.connected ||
         _status == AiSocketStatus.ready) {
-      _sendChat(clean);
+      _sendChat(clean, effectiveMode);
     } else {
       _queuedMessage = clean;
+      _queuedMode = effectiveMode;
       connect();
     }
   }
@@ -403,13 +439,14 @@ class AiSocketService extends ChangeNotifier {
     _thinkingTickerTimer = null;
   }
 
-  void _sendChat(String content) {
+  void _sendChat(String content, [String? mode]) {
     if (_channel != null) {
       _channel!.sink.add(
         jsonEncode({
           'type': 'chat',
           'message': content,
           'session_id': currentSession.backendSessionId,
+          'mode': mode ?? _activeModel,
         }),
       );
     }
@@ -425,8 +462,10 @@ class AiSocketService extends ChangeNotifier {
       notifyListeners();
       if (_queuedMessage != null) {
         final msg = _queuedMessage!;
+        final qm = _queuedMode ?? _activeModel;
         _queuedMessage = null;
-        _sendChat(msg);
+        _queuedMode = null;
+        _sendChat(msg, qm);
       }
       return;
     }

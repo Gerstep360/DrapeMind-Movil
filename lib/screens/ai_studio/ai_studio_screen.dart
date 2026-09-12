@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/altair_message_body.dart';
 import 'package:provider/provider.dart';
 
@@ -24,7 +25,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // Variables para el cuestionario de medidas modal
+  // Variables para el cuestionario de medidas modal (persistidas)
   String _selectedOccasion = 'cena';
   String _selectedTopType = 'polera';
   String _selectedTopSize = 'M';
@@ -36,9 +37,283 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSavedQuestionnaire();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AiSocketService>().connect();
     });
+  }
+
+  Future<void> _loadSavedQuestionnaire() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final occ = prefs.getString('ai_quest_occ');
+      final topT = prefs.getString('ai_quest_top_type');
+      final topS = prefs.getString('ai_quest_top_size');
+      final botT = prefs.getString('ai_quest_bot_type');
+      final botS = prefs.getString('ai_quest_bot_size');
+      final shoe = prefs.getString('ai_quest_shoe');
+      final bgt = prefs.getDouble('ai_quest_budget');
+
+      if (mounted) {
+        setState(() {
+          if (occ != null) _selectedOccasion = occ;
+          if (topT != null) _selectedTopType = topT;
+          if (topS != null) _selectedTopSize = topS;
+          if (botT != null) _selectedBottomType = botT;
+          if (botS != null) _selectedBottomSize = botS;
+          if (shoe != null) _selectedShoeSize = shoe;
+          if (bgt != null) _budget = bgt;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveQuestionnairePrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('ai_quest_occ', _selectedOccasion);
+      await prefs.setString('ai_quest_top_type', _selectedTopType);
+      await prefs.setString('ai_quest_top_size', _selectedTopSize);
+      await prefs.setString('ai_quest_bot_type', _selectedBottomType);
+      await prefs.setString('ai_quest_bot_size', _selectedBottomSize);
+      await prefs.setString('ai_quest_shoe', _selectedShoeSize);
+      await prefs.setDouble('ai_quest_budget', _budget);
+    } catch (_) {}
+  }
+
+  Widget _getModelIcon(String model) {
+    switch (model) {
+      case 'mini':
+        return const Icon(Icons.bolt, size: 14, color: AppColors.warning);
+      case 'gemma':
+        return const Icon(Icons.psychology, size: 14, color: AppColors.forest);
+      case 'dynamic':
+      default:
+        return AppSvg.raw(AppSvg.sparkle, size: 13, color: AppColors.ink);
+    }
+  }
+
+  String _getModelShortLabel(String model) {
+    switch (model) {
+      case 'mini':
+        return 'Mini';
+      case 'gemma':
+        return 'Gemma';
+      case 'dynamic':
+      default:
+        return 'Dinámico';
+    }
+  }
+
+  String _getModelFullLabel(String model) {
+    switch (model) {
+      case 'mini':
+        return 'Altair Mini · ~1s';
+      case 'gemma':
+        return 'Altair (Gemma) · 9B';
+      case 'dynamic':
+      default:
+        return 'Dinámico (Recomendado)';
+    }
+  }
+
+  void _showModelSelectorModal(BuildContext context, AiSocketService ai) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.lineStrong,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'MODELO DE INTELIGENCIA ARTIFICIAL',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Selecciona la velocidad y profundidad de razonamiento de Altair.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
+
+              // Option 1: Altair Mini
+              _buildModelOptionTile(
+                ctx: ctx,
+                ai: ai,
+                modelKey: 'mini',
+                title: 'Altair Mini',
+                badgeText: 'Ultrarrápido',
+                badgeColor: AppColors.warningBg,
+                badgeTextColor: AppColors.warning,
+                description: 'Solo modelo Scout · Respuestas inmediatas en ~1-2s',
+                icon: const Icon(Icons.bolt, size: 20, color: AppColors.warning),
+              ),
+              const SizedBox(height: 10),
+
+              // Option 2: Dinámico (Recomendado)
+              _buildModelOptionTile(
+                ctx: ctx,
+                ai: ai,
+                modelKey: 'dynamic',
+                title: 'Dinámico',
+                badgeText: 'Recomendado',
+                badgeColor: AppColors.lime,
+                badgeTextColor: AppColors.ink,
+                description: 'Scout rápido con delegación profunda a Gemma si se requiere',
+                icon: AppSvg.raw(AppSvg.sparkle, size: 18, color: AppColors.ink),
+              ),
+              const SizedBox(height: 10),
+
+              // Option 3: Gemma
+              _buildModelOptionTile(
+                ctx: ctx,
+                ai: ai,
+                modelKey: 'gemma',
+                title: 'Altair (Solo Gemma)',
+                badgeText: 'Razonamiento 9B',
+                badgeColor: AppColors.paperDark,
+                badgeTextColor: AppColors.forest,
+                description: 'Razonamiento exhaustivo Gemma 9B (~110s)',
+                icon: const Icon(Icons.psychology, size: 20, color: AppColors.forest),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildModelOptionTile({
+    required BuildContext ctx,
+    required AiSocketService ai,
+    required String modelKey,
+    required String title,
+    required String badgeText,
+    required Color badgeColor,
+    required Color badgeTextColor,
+    required String description,
+    required Widget icon,
+  }) {
+    final isSelected = ai.activeModel == modelKey;
+
+    return InkWell(
+      onTap: () {
+        ai.setActiveModel(modelKey);
+        Navigator.pop(ctx);
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.white : AppColors.paperLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.ink : AppColors.line,
+            width: isSelected ? 1.8 : 1,
+          ),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x0A10110F),
+                    blurRadius: 10,
+                    offset: Offset(0, 3),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.paperDark : AppColors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(child: icon),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: badgeTextColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                  color: AppColors.ink,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, size: 14, color: AppColors.lime),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -356,24 +631,30 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            AppSvg.raw(
-                              AppSvg.sparkle,
-                              size: 18,
-                              color: AppColors.forest,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'CUESTIONARIO DE MEDIDAS & OUTFIT',
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.8,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              AppSvg.raw(
+                                AppSvg.sparkle,
+                                size: 18,
                                 color: AppColors.forest,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'CUESTIONARIO DE MEDIDAS & OUTFIT',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.8,
+                                    color: AppColors.forest,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         IconButton(
                           icon: AppSvg.raw(
@@ -705,6 +986,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                           ),
                         ),
                         onPressed: () {
+                          _saveQuestionnairePrefs();
                           Navigator.pop(context);
                           final prompt =
                               'Arma un outfit para ocasión $_selectedOccasion, '
@@ -835,7 +1117,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         children: [
           // FLOATING SLIM TOOLBAR (Cuestionario & Estado)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: const BoxDecoration(
               color: AppColors.white,
               border: Border(bottom: BorderSide(color: AppColors.line)),
@@ -843,62 +1125,100 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             child: Row(
               children: [
                 // Live Stopwatch / Status indicator
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: ai.isBusy
-                            ? AppColors.acid
-                            : (ai.status == AiSocketStatus.ready ||
-                                      ai.status == AiSocketStatus.connected
-                                  ? AppColors.forest
-                                  : AppColors.danger),
-                        shape: BoxShape.circle,
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: ai.isBusy
+                              ? AppColors.acid
+                              : (ai.status == AiSocketStatus.ready ||
+                                        ai.status == AiSocketStatus.connected
+                                    ? AppColors.forest
+                                    : AppColors.danger),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      ai.isBusy
-                          ? 'Razonando · ${ai.thinkingElapsedFormatted}'
-                          : ai.status.displayName,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: ai.isBusy
-                            ? AppColors.forest
-                            : AppColors.textMutedStrong,
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          ai.isBusy
+                              ? 'Razonando · ${ai.thinkingElapsedFormatted}'
+                              : ai.status.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: ai.isBusy
+                                ? AppColors.forest
+                                : AppColors.textMutedStrong,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const Spacer(),
-                // Questionnaire button
+                // MODEL SELECTOR CHIP
+                InkWell(
+                  onTap: () => _showModelSelectorModal(context, ai),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.paperLight,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppColors.lineStrong),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _getModelIcon(ai.activeModel),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getModelShortLabel(ai.activeModel),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down, size: 14, color: AppColors.ink),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Questionnaire pill button
                 InkWell(
                   onTap: _showQuestionnaireModal,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(999),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
-                      vertical: 4,
+                      vertical: 4.5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.forestDark,
-                      borderRadius: BorderRadius.circular(4),
+                      color: AppColors.ink,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         AppSvg.raw(
                           AppSvg.sparkle,
-                          size: 12,
-                          color: AppColors.acid,
+                          size: 11,
+                          color: AppColors.lime,
                         ),
                         const SizedBox(width: 5),
                         const Text(
-                          'Cuestionario a Medida',
+                          'Medidas',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -915,25 +1235,9 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
           // CHAT MESSAGE STREAM
           Expanded(
-            child: messages.isEmpty ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_awesome_outlined, size: 42, color: AppColors.forest),
-                    SizedBox(height: 20),
-                    Text('Tu siguiente versión.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600)),
-                    SizedBox(height: 12),
-                    Text('Un espacio para explorar tu estilo. Cuéntale a Altair qué tienes en mente.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(height: 1.6, color: AppColors.textMutedStrong)),
-                  ],
-                ),
-              ),
-            ) : ListView.builder(
+            child: messages.isEmpty
+                ? _buildAngularWelcomeState()
+                : ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               itemCount: messages.length,
@@ -956,76 +1260,273 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
 
           // DOCKED BOTTOM COMPOSER
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
             decoration: const BoxDecoration(
               color: AppColors.paper,
               border: Border(top: BorderSide(color: AppColors.line)),
             ),
             child: SafeArea(
               top: false,
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      maxLines: 3,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText:
-                            '¿Qué tienes en mente?',
-                        hintStyle: const TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.textMuted,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: AppColors.lineStrong,
+                  // Active Model bar with quick switch chip
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _showModelSelectorModal(context, ai),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: AppColors.lineStrong),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _getModelIcon(ai.activeModel),
+                                const SizedBox(width: 5),
+                                Text(
+                                  _getModelFullLabel(ai.activeModel),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.textMuted),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
+                        const Spacer(),
+                        InkWell(
+                          onTap: _showQuestionnaireModal,
+                          borderRadius: BorderRadius.circular(999),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            child: Row(
+                              children: [
+                                AppSvg.raw(AppSvg.sparkle, size: 12, color: AppColors.forest),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  'Cuestionario',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.forest,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 13,
-                      ),
-                      backgroundColor: AppColors.forest,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    onPressed: ai.isBusy ? null : () => _sendMessage(),
-                    child: ai.isBusy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.acid,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _inputController,
+                          maxLines: 3,
+                          minLines: 1,
+                          decoration: InputDecoration(
+                            hintText: '¿Qué tienes en mente para tu look?',
+                            hintStyle: const TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textMuted,
                             ),
-                          )
-                        : AppSvg.raw(
-                            AppSvg.send,
-                            size: 18,
-                            color: AppColors.acid,
+                            filled: true,
+                            fillColor: AppColors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(
+                                color: AppColors.lineStrong,
+                              ),
+                            ),
                           ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: ai.isBusy ? null : () => _sendMessage(),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: const BoxDecoration(
+                            color: AppColors.lime,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: ai.isBusy
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.ink,
+                                    ),
+                                  )
+                                : AppSvg.raw(
+                                    AppSvg.send,
+                                    size: 18,
+                                    color: AppColors.ink,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAngularWelcomeState() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Sparkle circle mark
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.ink,
+              shape: BoxShape.circle,
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1810110F),
+                  blurRadius: 20,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Center(
+              child: AppSvg.raw(
+                AppSvg.sparkle,
+                size: 28,
+                color: AppColors.lime,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Title
+          const Text(
+            '¿Qué armamos hoy?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.6,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Subtitle lead
+          const Text(
+            'Pregúntame por prendas, combinaciones, outfits completos o asesoría para tu estilo.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.5,
+              color: AppColors.textMutedStrong,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // 2x2 Grid of Welcome Prompt Pills (Identical to Angular)
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildPromptPill(
+                iconSvg: AppSvg.sparkle,
+                label: 'Armar un outfit',
+                onTap: () => _sendMessage('Arma un outfit elegante con presupuesto de Bs 700'),
+              ),
+              _buildPromptPill(
+                iconSvg: AppSvg.tshirt,
+                label: 'Mejorar mi perchero',
+                onTap: () => _sendMessage('Mira mi perchero y dime qué puedo combinar o mejorar'),
+              ),
+              _buildPromptPill(
+                iconSvg: AppSvg.bag,
+                label: 'Look económico',
+                onTap: () => _sendMessage('Dime opciones casuales y económicas por menos de Bs 300'),
+              ),
+              _buildPromptPill(
+                iconSvg: AppSvg.settings,
+                label: 'Cuestionario a medida',
+                onTap: _showQuestionnaireModal,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPromptPill({
+    required String iconSvg,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: AppColors.line),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0610110F),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppSvg.raw(iconSvg, size: 14, color: AppColors.ink),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1047,7 +1548,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
               AppSvg.raw(
                 isUser ? AppSvg.user : AppSvg.sparkle,
                 size: 13,
-                color: isUser ? AppColors.textMuted : AppColors.forest,
+                color: isUser ? AppColors.textMuted : AppColors.ink,
               ),
               const SizedBox(width: 5),
               Text(
@@ -1954,12 +2455,16 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         children: [
           AppSvg.raw(AppSvg.shield, size: 13, color: AppColors.forest),
           const SizedBox(width: 6),
-          Text(
-            'Acciones: ${trace.length} consultas${durationMs != null ? ' (${(durationMs / 1000).toStringAsFixed(1)}s)' : ''}',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMutedStrong,
+          Expanded(
+            child: Text(
+              'Acciones: ${trace.length} consultas${durationMs != null ? ' (${(durationMs / 1000).toStringAsFixed(1)}s)' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMutedStrong,
+              ),
             ),
           ),
         ],

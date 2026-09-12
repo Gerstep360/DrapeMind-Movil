@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_svg.dart';
+import 'stripe_payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -22,6 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   List<Address> _addresses = [];
   int? _selectedAddressId;
   bool _isLoading = false;
+  bool _stripeEnabled = false;
   Order? _completedOrder;
   Payment? _activePayment;
 
@@ -29,11 +31,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _loadAddresses();
+    _paymentService
+        .provider()
+        .then((value) {
+          if (mounted) {
+            setState(() {
+              _stripeEnabled = value == 'stripe';
+              if (_stripeEnabled) _paymentMethod = PaymentMethod.tarjeta;
+            });
+          }
+        })
+        .catchError((_) {});
   }
 
   Future<void> _loadAddresses() async {
     try {
       final list = await _addressService.getMyAddresses();
+      if (!mounted) return;
       setState(() {
         _addresses = list;
         if (list.isNotEmpty) {
@@ -57,6 +71,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
 
+      if (!mounted) return;
+      setState(() => _completedOrder = order);
+      context.read<CartService>().getCart();
+      if (_stripeEnabled && _paymentMethod == PaymentMethod.tarjeta) {
+        setState(() => _isLoading = false);
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => StripePaymentScreen(orderId: order.id),
+          ),
+        );
+        return;
+      }
       final payment = await _paymentService.initiatePayment(
         PaymentCreate(pedidoId: order.id, metodo: _paymentMethod),
         idempotencyKey: 'mobile-order-${order.id}-${_paymentMethod.name}',
@@ -67,14 +93,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context.read<CartService>().getCart();
       }
 
+      if (!mounted) return;
       setState(() {
         _completedOrder = order;
         _activePayment = payment;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.danger,
@@ -151,7 +178,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 color: AppColors.ink,
                 shape: BoxShape.circle,
               ),
-              child: AppSvg.raw(AppSvg.package, size: 14, color: AppColors.lime),
+              child: AppSvg.raw(
+                AppSvg.package,
+                size: 14,
+                color: AppColors.lime,
+              ),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -249,32 +280,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Card(
                     child: Column(
                       children: [
-                        RadioListTile<PaymentMethod>(
-                          value: PaymentMethod.qr,
-                          groupValue: _paymentMethod,
-                          title: Row(
-                            children: [
-                              AppSvg.raw(
-                                AppSvg.qr,
-                                size: 16,
-                                color: AppColors.forest,
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Pago Simple QR',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
+                        if (!_stripeEnabled)
+                          RadioListTile<PaymentMethod>(
+                            value: PaymentMethod.qr,
+                            groupValue: _paymentMethod,
+                            title: Row(
+                              children: [
+                                AppSvg.raw(
+                                  AppSvg.qr,
+                                  size: 16,
+                                  color: AppColors.forest,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Pago Simple QR',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: const Text(
+                              'La disponibilidad depende de la pasarela configurada',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                            onChanged: (v) =>
+                                setState(() => _paymentMethod = v!),
                           ),
-                          subtitle: const Text(
-                            'Genera código QR compatible con cualquier banco',
-                            style: TextStyle(fontSize: 11),
-                          ),
-                          onChanged: (v) => setState(() => _paymentMethod = v!),
-                        ),
                         const Divider(),
                         RadioListTile<PaymentMethod>(
                           value: PaymentMethod.tarjeta,
@@ -445,6 +478,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (!isPaid && _stripeEnabled)
+                TextButton.icon(
+                  icon: const Icon(Icons.credit_card),
+                  label: const Text('Pagar con tarjeta'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          StripePaymentScreen(orderId: _completedOrder!.id),
+                    ),
+                  ),
+                ),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(

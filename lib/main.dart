@@ -8,8 +8,9 @@ import 'screens/auth/pin_lock_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.init();
   runApp(const DrapeMindApp());
 }
 

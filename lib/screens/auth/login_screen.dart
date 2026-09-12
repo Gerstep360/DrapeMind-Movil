@@ -261,13 +261,13 @@ class _LoginScreenState extends State<LoginScreen> {
               runSpacing: 8,
               children: [
                 ActionChip(
-                  backgroundColor: AppColors.lime.withAlpha(50),
+                  backgroundColor: AppColors.lime.withAlpha(60),
                   side: const BorderSide(color: AppColors.lime, width: 1.2),
                   label: const Text(
                     'VPS Oficial (167.86.106.105)',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.ink,
                     ),
                   ),
@@ -276,13 +276,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 ActionChip(
+                  backgroundColor: AppColors.cyan.withAlpha(60),
+                  side: const BorderSide(color: AppColors.cyan, width: 1.2),
+                  label: const Text(
+                    'Wi-Fi LAN (192.168.100.223:8000)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  onPressed: () {
+                    controller.text = '192.168.100.223:8000';
+                  },
+                ),
+                ActionChip(
                   backgroundColor: AppColors.paperDark,
                   side: const BorderSide(color: AppColors.line),
                   label: const Text(
-                    'Localhost (127.0.0.1:8000)',
+                    'ADB Reverse / Local (127.0.0.1:8000)',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.ink,
                     ),
                   ),
@@ -306,14 +321,16 @@ class _LoginScreenState extends State<LoginScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            onPressed: () {
+            onPressed: () async {
               final text = controller.text.trim();
               if (text == '167.86.106.105' || text.isEmpty) {
-                ApiConfig.resetHost();
+                await ApiConfig.resetHost();
               } else {
-                ApiConfig.setCustomHost(text);
+                await ApiConfig.setCustomHost(text);
               }
-              Navigator.pop(ctx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
               setState(() {});
             },
             child: const Text('Guardar'),
@@ -438,9 +455,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: const Text(
-                        'ATELIER & AI STUDIO',
+                        'MODA OPERADA CON INTELIGENCIA',
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.2,
                           color: AppColors.ink,
@@ -448,7 +465,29 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Del perchero\na la decisión.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.7,
+                      color: AppColors.ink,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Inventario real, reservas en tienda y un estilista IA que consulta herramientas antes de responder.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textMutedStrong,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   // MAIN CARD
                   Container(
@@ -470,7 +509,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // SEGMENTED PILL TABS
+                          // SEGMENTED PILL TABS (Iniciar sesión / Registrarse)
                           Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
@@ -499,10 +538,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                             : null,
                                       ),
                                       child: Text(
-                                        'Iniciar Sesión',
+                                        'Iniciar sesión',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          fontSize: 13.5,
+                                          fontSize: 13,
                                           fontWeight: !_isRegister
                                               ? FontWeight.w800
                                               : FontWeight.w600,
@@ -534,10 +573,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                             : null,
                                       ),
                                       child: Text(
-                                        'Crear Cuenta',
+                                        'Registrarse',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          fontSize: 13.5,
+                                          fontSize: 13,
                                           fontWeight: _isRegister
                                               ? FontWeight.w800
                                               : FontWeight.w600,
@@ -552,7 +591,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 18),
+
+                          // Form Heading Title & Subtitle (Identical to Angular)
+                          Text(
+                            !_isRegister ? 'Bienvenido de vuelta' : 'Crea tu cuenta',
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.4,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            !_isRegister
+                                ? 'Ingresa con tu cuenta de administrador, vendedor o cliente.'
+                                : 'Regístrate para guardar favoritos, reservar prendas y diseñar con IA.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
 
                           if (_errorMessage != null) ...[
                             Container(
@@ -676,15 +738,42 @@ class _LoginScreenState extends State<LoginScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : Text(
-                                    _isRegister
-                                        ? 'Crear Cuenta'
-                                        : 'Entrar al Atelier',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _isRegister
+                                            ? 'Registrarme y acceder'
+                                            : 'Entrar al sistema',
+                                        style: const TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 16,
+                                        color: AppColors.lime,
+                                      ),
+                                    ],
                                   ),
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: TextButton(
+                              onPressed: () => setState(() => _isRegister = !_isRegister),
+                              child: Text(
+                                !_isRegister
+                                    ? '¿No tienes una cuenta aún? Regístrate aquí'
+                                    : '¿Ya tienes cuenta? Inicia sesión',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),

@@ -2,6 +2,15 @@ import '../models/payment_models.dart';
 import '../network/api_client.dart';
 
 class PaymentService {
+  Future<String> provider() async {
+    final response = await _apiClient.get('/payments/config') as Map<String, dynamic>;
+    return response['provider'] as String;
+  }
+  Future<Map<String, dynamic>> stripeIntent(int orderId) async {
+    final response = await _apiClient.post('/payments/stripe-intent', body: {'order_id': orderId});
+    return response as Map<String, dynamic>;
+  }
+
   final ApiClient _apiClient;
 
   PaymentService({ApiClient? apiClient})
