@@ -1,7 +1,7 @@
 /// Global configuration for DrapeMind Backend API & WebSockets.
 class ApiConfig {
   /// IP pública del servidor VPS de producción
-  static const String defaultServerIp = '157.173.102.129';
+  static const String defaultServerIp = '167.86.106.105';
   static const int defaultServerPort = 80;
   static const String defaultPathPrefix = '/DrapeMind';
 

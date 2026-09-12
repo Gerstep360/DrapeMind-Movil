@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
@@ -890,7 +891,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'PROBADOR AR · ${widget.product.nombre.toUpperCase()}',
+              'VESTIDOR 2D · ${widget.product.nombre.toUpperCase()}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -929,7 +930,7 @@ class _ArFittingScreenState extends State<ArFittingScreen>
               size: 18,
               color: AppColors.white,
             ),
-            tooltip: _isCameraMode ? 'Modo Maniquí' : 'Modo Espejo AR',
+            tooltip: _isCameraMode ? 'Modo Maniquí' : 'Vista sobre cámara (sin seguimiento)',
             onPressed: _toggleCameraMode,
           ),
         ],
@@ -1188,14 +1189,19 @@ class _ArFittingScreenState extends State<ArFittingScreen>
                     children: [
                       // Render del Asset de la Prenda
                       if (_arConfig?.assetUrl != null)
-                        Image.network(
-                          _arConfig!.fullAssetUrl,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) =>
-                              _buildFallbackGarmentVector(size),
+                        InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 2.5,
+                          child: Uri.tryParse(_arConfig!.fullAssetUrl)?.path.toLowerCase().endsWith('.svg') == true
+                              ? SvgPicture.network(_arConfig!.fullAssetUrl,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => _missingGarmentImage())
+                              : Image.network(_arConfig!.fullAssetUrl,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => _missingGarmentImage()),
                         )
                       else
-                        _buildFallbackGarmentVector(size),
+                        _missingGarmentImage(),
 
                       // Mapa de Tensión / Holgura (Heatmap Contour)
                       Positioned.fill(
@@ -1366,12 +1372,13 @@ class _ArFittingScreenState extends State<ArFittingScreen>
     );
   }
 
-  Widget _buildFallbackGarmentVector(String size) {
+  Widget _missingGarmentImage() {
     return Center(
-      child: AppSvg.raw(
-        AppSvg.tshirt,
-        size: 140,
-        color: AppColors.forest.withAlpha(200),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(24)),
+        child: const Text('Esta prenda no tiene una imagen utilizable en el vestidor. Puedes consultar sus tallas y volver a intentarlo.',
+          textAlign: TextAlign.center, style: TextStyle(color: AppColors.forest)),
       ),
     );
   }
