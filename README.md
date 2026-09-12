@@ -9,16 +9,15 @@ Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, 
 La aplicación ya se encuentra compilada y preconfigurada para conectarse directamente al servidor VPS de producción.
 
 ### 📥 Enlaces de Descarga Directa:
-* **[Descargar APK Release v1.0.2 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.2/drapemind-release.apk)** *(24 MB)*
-* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.2/app-release.apk)**
-* **[Ver Release Oficial en GitHub (Tag v1.0.2)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.2)**
+* **[Descargar APK Release v1.0.3 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.3/drapemind-release.apk)** *(24 MB)*
+* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.3/app-release.apk)**
+* **[Ver Release Oficial en GitHub (Tag v1.0.3)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.3)**
 
-### 📋 Novedades v1.0.2 (Recepción/Ajustes CU-35 y Optimizaciones):
-* **Gestión y Auditoría de Inventario (CU-35):** Soporte en cliente para recepción de mercadería (`ENTRADA`) y ajustes físicos (`AJUSTE`) con aislamiento y sincronización por sucursal.
-* **Streaming de Respuestas en Tiempo Real:** Recepción de snapshots del campo público `answer` vía WebSockets conforme el modelo genera el texto, eliminando esperas completas y animación artificial de escritura por bloques.
-* **Privacidad y Auditoría Limpia:** Filtrado de razonamiento interno (`reasoning_content`) y llamadas crudas a herramientas. La auditoría de acciones refleja exclusivamente consultas reales a herramientas con indicador fiel de éxito o error.
-* **Sugerencias Interactivas del Modelo:** Soporte para botones de sugerencia contextuales generados por Altair para continuar el diálogo con un solo toque.
-* **Optimización y Accesibilidad:** Ajustes de rendimiento para entornos de CPU y soporte para modo de movimiento reducido en indicadores.
+### 📋 Novedades v1.0.3 (Onboarding Atelier UI/UX y Reconfiguración de Estilo):
+* **Experiencia Onboarding Móvil Completa:** Flujo guiado de onboarding con la estética oficial de *DrapeMind Atelier UI/UX* (paleta `#F4F5EA`, tarjetas orgánicas con radio de 28px, acentos *Drape Lime* `#DFFF3F` y *Soft Cyan* `#C9EEF0`).
+* **Selección de Showroom / Sucursal:** Selección de tienda física de compra con disponibilidad dinámica vía `BranchService`.
+* **Cuestionario de Estilo & Preferencias:** Expresión de género, universos de estilo, tallas personalizadas (superior, inferior, calzado), siluetas, paletas de color y rangos de presupuesto.
+* **Reconfiguración desde Mi Cuenta (CU-19 / CU-20):** Sección dedicada a ADN de Estilo con resumen de datos y acceso directo para modificar las respuestas en el Onboarding en cualquier momento con precarga de valores.
 
 ---
 
