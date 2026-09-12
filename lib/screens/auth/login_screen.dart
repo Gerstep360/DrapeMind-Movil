@@ -216,14 +216,26 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: AppColors.paperLight,
         title: Row(
           children: [
-            AppSvg.raw(AppSvg.sparkle, size: 18, color: AppColors.forest),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.lime,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.ink),
+            ),
+            const SizedBox(width: 10),
             const Text(
-              'Configurar Conexión Backend',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              'Servidor Backend',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
             ),
           ],
         ),
@@ -232,34 +244,47 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Selecciona o ingresa la IP y puerto del servidor:',
+              'Selecciona o ingresa la IP y puerto del servidor activo:',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                labelText: 'Host (IP:Puerto)',
-                hintText: '192.168.100.223:8000 o 127.0.0.1:8000',
+                labelText: 'Host (IP pública o local)',
+                hintText: '167.86.106.105 o 127.0.0.1:8000',
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Wrap(
-              spacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 ActionChip(
+                  backgroundColor: AppColors.lime.withAlpha(50),
+                  side: const BorderSide(color: AppColors.lime, width: 1.2),
                   label: const Text(
-                    'Wi-Fi LAN (192.168.100.223:8000)',
-                    style: TextStyle(fontSize: 10.5),
+                    'VPS Oficial (167.86.106.105)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
                   ),
                   onPressed: () {
-                    controller.text = '192.168.100.223:8000';
+                    controller.text = '167.86.106.105';
                   },
                 ),
                 ActionChip(
+                  backgroundColor: AppColors.paperDark,
+                  side: const BorderSide(color: AppColors.line),
                   label: const Text(
-                    'ADB Reverse (127.0.0.1:8000)',
-                    style: TextStyle(fontSize: 10.5),
+                    'Localhost (127.0.0.1:8000)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
                   ),
                   onPressed: () {
                     controller.text = '127.0.0.1:8000';
@@ -272,12 +297,22 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.forest),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.ink,
+              foregroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             onPressed: () {
-              ApiConfig.setCustomHost(controller.text.trim());
+              final text = controller.text.trim();
+              if (text == '167.86.106.105' || text.isEmpty) {
+                ApiConfig.resetHost();
+              } else {
+                ApiConfig.setCustomHost(text);
+              }
               Navigator.pop(ctx);
               setState(() {});
             },
@@ -309,35 +344,42 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.center,
                     child: InkWell(
                       onTap: _showServerConfigDialog,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(999),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                          horizontal: 14,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.paperLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.lineStrong),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppColors.line),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0810110F),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 6,
-                              height: 6,
+                              width: 8,
+                              height: 8,
                               decoration: const BoxDecoration(
-                                color: AppColors.forest,
+                                color: Color(0xFF57A773),
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
                               'Servidor: ${ApiConfig.defaultHost}',
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.forest,
+                                color: AppColors.ink,
                               ),
                             ),
                           ],
@@ -345,67 +387,81 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   // BRAND HEADER
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      width: 64,
+                      height: 64,
                       decoration: BoxDecoration(
-                        color: AppColors.forest,
+                        color: AppColors.ink,
                         shape: BoxShape.circle,
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
-                            color: AppColors.forest.withAlpha(50),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                            color: Color(0x1A10110F),
+                            blurRadius: 20,
+                            offset: Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: AppSvg.raw(
-                        AppSvg.sparkle,
-                        size: 32,
-                        color: AppColors.acid,
+                      child: Center(
+                        child: Text(
+                          'D',
+                          style: const TextStyle(
+                            color: AppColors.lime,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   const Text(
-                    'DRAPEMIND',
+                    'DrapeMind',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'serif',
-                      fontSize: 26,
+                      fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                      color: AppColors.forestDark,
+                      letterSpacing: -0.6,
+                      color: AppColors.ink,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Haute Couture & AI Personal Stylist',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      color: AppColors.textMuted,
+                  const SizedBox(height: 6),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'ATELIER & AI STUDIO',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: AppColors.ink,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
                   // MAIN CARD
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: AppColors.white,
-                      border: Border.all(color: AppColors.lineStrong),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
+                      border: Border.all(color: AppColors.line),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withAlpha(10),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
+                          color: Color(0x0A10110F),
+                          blurRadius: 24,
+                          offset: Offset(0, 8),
                         ),
                       ],
                     ),
@@ -414,78 +470,87 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // TABS
-                          Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () =>
-                                      setState(() => _isRegister = false),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
+                          // SEGMENTED PILL TABS
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.paperDark,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _isRegister = false),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: !_isRegister ? AppColors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(999),
+                                        boxShadow: !_isRegister
+                                            ? const [
+                                                BoxShadow(
+                                                  color: Color(0x0F10110F),
+                                                  blurRadius: 6,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        'Iniciar Sesión',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: !_isRegister
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
                                           color: !_isRegister
-                                              ? AppColors.forest
-                                              : Colors.transparent,
-                                          width: 2.5,
+                                              ? AppColors.ink
+                                              : AppColors.textMuted,
                                         ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Iniciar Sesión',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: !_isRegister
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
-                                        color: !_isRegister
-                                            ? AppColors.forest
-                                            : AppColors.textMuted,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () =>
-                                      setState(() => _isRegister = true),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _isRegister = true),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: _isRegister ? AppColors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(999),
+                                        boxShadow: _isRegister
+                                            ? const [
+                                                BoxShadow(
+                                                  color: Color(0x0F10110F),
+                                                  blurRadius: 6,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        'Crear Cuenta',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: _isRegister
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
                                           color: _isRegister
-                                              ? AppColors.forest
-                                              : Colors.transparent,
-                                          width: 2.5,
+                                              ? AppColors.ink
+                                              : AppColors.textMuted,
                                         ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Crear Cuenta',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: _isRegister
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
-                                        color: _isRegister
-                                            ? AppColors.forest
-                                            : AppColors.textMuted,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 20),
 
@@ -497,7 +562,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 border: Border.all(
                                   color: AppColors.danger.withAlpha(80),
                                 ),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
                                 _errorMessage!,
@@ -521,7 +586,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: AppSvg.raw(
                                     AppSvg.user,
                                     size: 18,
-                                    color: AppColors.forest,
+                                    color: AppColors.ink,
                                   ),
                                 ),
                               ),
@@ -542,7 +607,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: AppSvg.raw(
                                   AppSvg.user,
                                   size: 18,
-                                  color: AppColors.forest,
+                                  color: AppColors.ink,
                                 ),
                               ),
                             ),
@@ -562,7 +627,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: AppSvg.raw(
                                   AppSvg.lock,
                                   size: 18,
-                                  color: AppColors.forest,
+                                  color: AppColors.ink,
                                 ),
                               ),
                             ),
@@ -583,7 +648,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: AppSvg.raw(
                                     AppSvg.user,
                                     size: 18,
-                                    color: AppColors.forest,
+                                    color: AppColors.ink,
                                   ),
                                 ),
                               ),
@@ -593,6 +658,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           const SizedBox(height: 10),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.ink,
+                              foregroundColor: AppColors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
                             onPressed: auth.isLoading ? null : _submit,
                             child: auth.isLoading
                                 ? const SizedBox(
@@ -605,8 +678,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : Text(
                                     _isRegister
-                                        ? 'Registrarme'
+                                        ? 'Crear Cuenta'
                                         : 'Entrar al Atelier',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                           ),
                         ],
@@ -668,15 +745,16 @@ class _LoginScreenState extends State<LoginScreen> {
     required String pass,
   }) {
     return ActionChip(
-      avatar: AppSvg.raw(svgIcon, size: 14, color: AppColors.forest),
+      avatar: AppSvg.raw(svgIcon, size: 14, color: AppColors.ink),
       backgroundColor: AppColors.paperLight,
-      side: const BorderSide(color: AppColors.lineStrong),
+      side: const BorderSide(color: AppColors.line),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       label: Text(
         label,
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: AppColors.forest,
+          color: AppColors.ink,
         ),
       ),
       onPressed: () => _quickFill(email, pass),

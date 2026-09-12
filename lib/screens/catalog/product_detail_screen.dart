@@ -259,40 +259,59 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        title: Text(_product?.nombre ?? 'Detalle de Prenda'),
+        titleSpacing: 0,
+        title: Text(
+          _product?.nombre ?? 'Detalle de Prenda',
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: AppColors.ink,
+          ),
+        ),
         actions: [
           if (_product != null)
             IconButton(
               onPressed: _togglingFavorite ? null : _toggleFavorite,
               icon: Icon(
                 _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: AppColors.acid,
+                color: _isFavorite ? AppColors.danger : AppColors.ink,
               ),
               tooltip: _isFavorite
                   ? 'Quitar de favoritos'
                   : 'Guardar en favoritos',
             ),
           if (_product != null)
-            IconButton(
-              icon: AppSvg.raw(AppSvg.sparkle, size: 20, color: AppColors.acid),
-              tooltip: 'Probar en Espejo AR',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ArFittingScreen(
-                      product: _product!,
-                      initialVariant: _selectedVariant,
-                    ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.lime,
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                );
-              },
+                  child: AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.ink),
+                ),
+                tooltip: 'Probar en Espejo AR',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ArFittingScreen(
+                        product: _product!,
+                        initialVariant: _selectedVariant,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.forest),
+              child: CircularProgressIndicator(color: AppColors.ink),
             )
           : _errorMessage != null
           ? Center(child: Text(_errorMessage!))
@@ -631,8 +650,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   decoration: const BoxDecoration(
                     color: AppColors.white,
                     border: Border(
-                      top: BorderSide(color: AppColors.lineStrong),
+                      top: BorderSide(color: AppColors.line),
                     ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x0A10110F),
+                        blurRadius: 20,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
                   ),
                   child: SafeArea(
                     top: false,
@@ -640,6 +667,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.ink,
+                              side: const BorderSide(color: AppColors.line),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
                             onPressed: _reserving ? null : _createReservation,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -647,13 +682,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 AppSvg.raw(
                                   AppSvg.clock,
                                   size: 16,
-                                  color: AppColors.forest,
+                                  color: AppColors.ink,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   _reserving
                                       ? 'Consultando...'
                                       : 'Reservar 48h',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ],
                             ),
@@ -662,6 +701,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.lime,
+                              foregroundColor: AppColors.ink,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              elevation: 0,
+                            ),
                             onPressed: _addToCart,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -669,10 +717,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 AppSvg.raw(
                                   AppSvg.bag,
                                   size: 16,
-                                  color: AppColors.white,
+                                  color: AppColors.ink,
                                 ),
                                 const SizedBox(width: 6),
-                                const Text('Al Perchero'),
+                                const Text(
+                                  'Al Perchero',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                    color: AppColors.ink,
+                                  ),
+                                ),
                               ],
                             ),
                           ),

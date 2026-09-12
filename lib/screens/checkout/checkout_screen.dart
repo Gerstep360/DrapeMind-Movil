@@ -141,7 +141,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(title: const Text('FINALIZAR COMPRA')),
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                shape: BoxShape.circle,
+              ),
+              child: AppSvg.raw(AppSvg.package, size: 14, color: AppColors.lime),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Finalizar Compra',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ),
       body: _completedOrder != null
           ? _buildSuccessView()
           : SingleChildScrollView(

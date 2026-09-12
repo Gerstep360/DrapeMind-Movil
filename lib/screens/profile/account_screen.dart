@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/core.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_svg.dart';
 import '../catalog/product_detail_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 
@@ -345,24 +346,55 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(title: const Text('MI CUENTA EN EL ATELIER')),
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                shape: BoxShape.circle,
+              ),
+              child: AppSvg.raw(AppSvg.user, size: 14, color: AppColors.lime),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Mi Perfil',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ),
       body: RefreshIndicator(
-        color: AppColors.forest,
+        color: AppColors.ink,
         onRefresh: _loadAccount,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.forestDark,
-                borderRadius: BorderRadius.circular(6),
+                color: AppColors.ink,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1510110F),
+                    blurRadius: 20,
+                    offset: Offset(0, 6),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: AppColors.acid,
+                    backgroundColor: AppColors.lime,
                     child: Text(
                       (user?.nombre.isNotEmpty == true
                               ? user!.nombre.substring(0, 1)
@@ -392,18 +424,25 @@ class _AccountScreenState extends State<AccountScreen> {
                         Text(
                           user?.email ?? '',
                           style: const TextStyle(
-                            color: AppColors.paper,
+                            color: AppColors.paperDark,
                             fontSize: 12,
                           ),
                         ),
-                        const SizedBox(height: 7),
-                        Text(
-                          user?.rol.toServerString() ?? 'CLIENTE',
-                          style: const TextStyle(
-                            color: AppColors.acid,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.lime,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            user?.rol.toServerString() ?? 'CLIENTE',
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
                           ),
                         ),
                       ],
@@ -864,11 +903,18 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: AppColors.white,
       border: Border.all(color: AppColors.line),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x0410110F),
+          blurRadius: 16,
+          offset: Offset(0, 4),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -876,21 +922,22 @@ class _Section extends StatelessWidget {
         Text(
           eyebrow,
           style: const TextStyle(
-            fontSize: 9.5,
+            fontSize: 10,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.2,
-            color: AppColors.forest,
+            color: AppColors.ink,
           ),
         ),
+        const SizedBox(height: 2),
         Row(
           children: [
             Expanded(
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontFamily: 'serif',
-                  fontSize: 20,
+                  fontSize: 19,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
                   color: AppColors.ink,
                 ),
               ),
@@ -898,7 +945,7 @@ class _Section extends StatelessWidget {
             if (trailing != null) trailing!,
           ],
         ),
-        const Divider(height: 20),
+        const Divider(height: 24),
         child,
       ],
     ),

@@ -25,10 +25,10 @@ La aplicación ya se encuentra compilada y preconfigurada para conectarse direct
 
 La aplicación viene configurada de fábrica en [`lib/core/config/api_config.dart`](lib/core/config/api_config.dart) para comunicarse automáticamente con el servidor en la nube:
 
-* **Servidor VPS:** `http://157.173.102.129/DrapeMind`
-* **API REST:** `http://157.173.102.129/DrapeMind/api/v1`
-* **WebSockets Altair IA:** `ws://157.173.102.129/DrapeMind/api/v1/ws/ai`
-* **WebSockets Eventos en Tiempo Real:** `ws://157.173.102.129/DrapeMind/api/v1/ws/events`
+* **Servidor VPS:** `http://167.86.106.105/DrapeMind`
+* **API REST:** `http://167.86.106.105/DrapeMind/api/v1`
+* **WebSockets Altair IA:** `ws://167.86.106.105/DrapeMind/api/v1/ws/ai`
+* **WebSockets Eventos en Tiempo Real:** `ws://167.86.106.105/DrapeMind/api/v1/ws/events`
 
 > [!NOTE]
 > **Cambio dinámico de servidor:** Desde la pantalla de Login o desde el Perfil de Usuario, puedes presionar el botón de configuración de red para cambiar manualmente la IP (ej. a una IP local `192.168.x.x:8000`) si deseas probar en entorno de desarrollo local.

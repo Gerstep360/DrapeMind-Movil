@@ -43,12 +43,19 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.paperLight,
-          border: Border(top: BorderSide(color: AppColors.lineStrong)),
+          border: Border(top: BorderSide(color: AppColors.line, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0F10110F),
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
+          ],
         ),
         child: SafeArea(
           child: NavigationBar(
-            backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.forest,
+            backgroundColor: AppColors.paperLight,
+            indicatorColor: AppColors.lime,
             selectedIndex: _currentIndex,
             onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
             destinations: [
@@ -56,12 +63,12 @@ class _MainShellState extends State<MainShell> {
                 icon: AppSvg.raw(
                   AppSvg.grid,
                   size: 20,
-                  color: AppColors.forest,
+                  color: AppColors.textMuted,
                 ),
                 selectedIcon: AppSvg.raw(
                   AppSvg.grid,
                   size: 20,
-                  color: AppColors.acid,
+                  color: AppColors.ink,
                 ),
                 label: 'Showroom',
               ),
@@ -69,34 +76,48 @@ class _MainShellState extends State<MainShell> {
                 icon: AppSvg.raw(
                   AppSvg.sparkle,
                   size: 20,
-                  color: AppColors.forest,
+                  color: AppColors.textMuted,
                 ),
                 selectedIcon: AppSvg.raw(
                   AppSvg.sparkle,
                   size: 20,
-                  color: AppColors.acid,
+                  color: AppColors.ink,
                 ),
                 label: 'Stylist IA',
               ),
               NavigationDestination(
                 icon: Badge(
                   isLabelVisible: cart.itemCount > 0,
-                  label: Text('${cart.itemCount}'),
-                  backgroundColor: AppColors.forest,
+                  label: Text(
+                    '${cart.itemCount}',
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                    ),
+                  ),
+                  backgroundColor: AppColors.lime,
                   child: AppSvg.raw(
                     AppSvg.bag,
                     size: 20,
-                    color: AppColors.forest,
+                    color: AppColors.textMuted,
                   ),
                 ),
                 selectedIcon: Badge(
                   isLabelVisible: cart.itemCount > 0,
-                  label: Text('${cart.itemCount}'),
-                  backgroundColor: AppColors.ink,
+                  label: Text(
+                    '${cart.itemCount}',
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                    ),
+                  ),
+                  backgroundColor: AppColors.lime,
                   child: AppSvg.raw(
                     AppSvg.bag,
                     size: 20,
-                    color: AppColors.acid,
+                    color: AppColors.ink,
                   ),
                 ),
                 label: 'Perchero',
@@ -105,12 +126,12 @@ class _MainShellState extends State<MainShell> {
                 icon: AppSvg.raw(
                   AppSvg.package,
                   size: 20,
-                  color: AppColors.forest,
+                  color: AppColors.textMuted,
                 ),
                 selectedIcon: AppSvg.raw(
                   AppSvg.package,
                   size: 20,
-                  color: AppColors.acid,
+                  color: AppColors.ink,
                 ),
                 label: 'Compras',
               ),
@@ -118,12 +139,12 @@ class _MainShellState extends State<MainShell> {
                 icon: AppSvg.raw(
                   AppSvg.user,
                   size: 20,
-                  color: AppColors.forest,
+                  color: AppColors.textMuted,
                 ),
                 selectedIcon: AppSvg.raw(
                   AppSvg.user,
                   size: 20,
-                  color: AppColors.acid,
+                  color: AppColors.ink,
                 ),
                 label: 'Perfil',
               ),

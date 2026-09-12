@@ -7,9 +7,14 @@ class ApiConfig {
 
   static String? _customHost;
 
-  /// Cambia manualmente el host o IP si se desea probar en red local (ej. '192.168.100.223:8000')
+  /// Cambia manualmente el host o IP si se desea probar en red local (ej. '192.168.1.50:8000')
   static void setCustomHost(String host) {
-    _customHost = host.trim();
+    final clean = host.trim();
+    if (clean.contains('157.173.102.129')) {
+      _customHost = null;
+      return;
+    }
+    _customHost = clean.isEmpty ? null : clean;
   }
 
   /// Restablece el host al VPS oficial de producción
@@ -17,12 +22,16 @@ class ApiConfig {
     _customHost = null;
   }
 
-  /// Host activo: usa la IP del VPS por defecto o la configurada manualmente
+  /// Host activo: usa la IP del VPS por defecto (167.86.106.105) o la configurada manualmente
   static String get defaultHost {
     if (_customHost != null && _customHost!.isNotEmpty) {
+      if (_customHost!.contains('157.173.102.129')) {
+        _customHost = null;
+        return defaultServerIp;
+      }
       return _customHost!;
     }
-    // Conexión directa por defecto al VPS de producción
+    // Conexión directa por defecto al VPS de producción oficial
     return defaultServerIp;
   }
 
@@ -45,7 +54,7 @@ class ApiConfig {
     return defaultPathPrefix;
   }
 
-  /// Base URL: e.g. http://157.173.102.129/DrapeMind o http://192.168.100.223:8000
+  /// Base URL: e.g. http://167.86.106.105/DrapeMind o http://192.168.1.50:8000
   static String get baseUrl {
     final host = defaultHost;
     if (host.startsWith('http://') || host.startsWith('https://')) {
@@ -55,16 +64,16 @@ class ApiConfig {
     return '$httpScheme://$host$prefix';
   }
 
-  /// API V1 URL: e.g. http://157.173.102.129/DrapeMind/api/v1
+  /// API V1 URL: e.g. http://167.86.106.105/DrapeMind/api/v1
   static String get apiV1Url => '$baseUrl/api/v1';
 
-  /// AI WebSocket URL: e.g. ws://157.173.102.129/DrapeMind/api/v1/ws/ai
+  /// AI WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/ai
   static String get aiWsUrl {
     final base = baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/ai';
   }
 
-  /// Realtime Events WebSocket URL: e.g. ws://157.173.102.129/DrapeMind/api/v1/ws/events
+  /// Realtime Events WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/events
   static String get eventsWsUrl {
     final base = baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/events';

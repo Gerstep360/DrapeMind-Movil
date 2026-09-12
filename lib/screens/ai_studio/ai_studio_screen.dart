@@ -753,61 +753,82 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        titleSpacing: 10,
+        titleSpacing: 16,
         title: InkWell(
           onTap: _showSessionsBottomSheet,
-          borderRadius: BorderRadius.circular(4),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppSvg.raw(AppSvg.sparkle, size: 18, color: AppColors.acid),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'ALTAIR · STYLIST IA',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        ai.currentSession.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+          borderRadius: BorderRadius.circular(999),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: AppColors.ink,
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
+                child: AppSvg.raw(AppSvg.sparkle, size: 14, color: AppColors.lime),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'ALTAIR · STYLIST IA',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    Text(
+                      ai.currentSession.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
           // Historial de Chats (24h)
           IconButton(
-            icon: AppSvg.raw(AppSvg.clock, size: 18, color: AppColors.white),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.paperDark,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: AppSvg.raw(AppSvg.clock, size: 15, color: AppColors.ink),
+            ),
             tooltip: 'Historial 24h',
             onPressed: _showSessionsBottomSheet,
           ),
           // Nueva Conversación (+)
           IconButton(
-            icon: AppSvg.raw(AppSvg.plus, size: 18, color: AppColors.acid),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.lime,
+                shape: BoxShape.circle,
+              ),
+              child: AppSvg.raw(AppSvg.plus, size: 15, color: AppColors.ink),
+            ),
             tooltip: 'Nueva Conversación',
             onPressed: () => ai.createNewSession(),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -817,7 +838,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: const BoxDecoration(
               color: AppColors.white,
-              border: Border(bottom: BorderSide(color: AppColors.lineStrong)),
+              border: Border(bottom: BorderSide(color: AppColors.line)),
             ),
             child: Row(
               children: [

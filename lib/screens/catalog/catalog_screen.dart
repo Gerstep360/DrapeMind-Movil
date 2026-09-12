@@ -127,93 +127,168 @@ class _CatalogScreenState extends State<CatalogScreen> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        title: const Text('DRAPEMIND ATELIER'),
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  'D',
+                  style: TextStyle(
+                    color: AppColors.lime,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'DRAPEMIND',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: AppColors.cyan,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'SHOWROOM',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: AppColors.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: AppSvg.raw(AppSvg.search, size: 18, color: AppColors.white),
+            icon: AppSvg.raw(AppSvg.search, size: 20, color: AppColors.ink),
             onPressed: _loadInitialData,
-            tooltip: 'Actualizar catálogo',
+            tooltip: 'Actualizar showroom',
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
           // SEARCH & FILTER BAR
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.paperLight,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            color: AppColors.paper,
             child: Column(
               children: [
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por prenda, tela, color...',
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: AppSvg.raw(
-                              AppSvg.search,
-                              size: 16,
-                              color: AppColors.forest,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppColors.line),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Buscar prendas, marcas, telas...',
+                            hintStyle: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: AppSvg.raw(
+                                AppSvg.search,
+                                size: 16,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: AppSvg.raw(
+                                      AppSvg.close,
+                                      size: 14,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _filterProducts();
+                                    },
+                                  )
+                                : null,
+                            isDense: true,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
                             ),
                           ),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: AppSvg.raw(
-                                    AppSvg.close,
-                                    size: 14,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _filterProducts();
-                                  },
-                                )
-                              : null,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
+                          onSubmitted: (_) => _filterProducts(),
                         ),
-                        onSubmitted: (_) => _filterProducts(),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.ink,
+                        shape: BoxShape.circle,
                       ),
-                      onPressed: _filterProducts,
-                      child: AppSvg.raw(
-                        AppSvg.filter,
-                        size: 18,
-                        color: AppColors.white,
+                      child: IconButton(
+                        icon: AppSvg.raw(
+                          AppSvg.filter,
+                          size: 18,
+                          color: AppColors.white,
+                        ),
+                        onPressed: _filterProducts,
+                        tooltip: 'Filtrar prendas',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
 
-                // CATEGORIES CHIPS
+                // CATEGORIES CHIPS (DRAPEMIND STYLE: LIME ACTIVE PILL)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
                       FilterChip(
                         selected: _selectedCategoryId == null,
+                        showCheckmark: false,
                         label: const Text('Todos'),
-                        selectedColor: AppColors.forest,
+                        selectedColor: AppColors.lime,
+                        backgroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: BorderSide(
+                            color: _selectedCategoryId == null
+                                ? AppColors.lime
+                                : AppColors.line,
+                          ),
+                        ),
                         labelStyle: TextStyle(
-                          color: _selectedCategoryId == null
-                              ? AppColors.white
-                              : AppColors.textMain,
-                          fontWeight: FontWeight.w700,
+                          color: AppColors.ink,
+                          fontWeight: _selectedCategoryId == null
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           fontSize: 12,
                         ),
                         onSelected: (_) {
@@ -228,13 +303,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
                             selected: isSelected,
+                            showCheckmark: false,
                             label: Text(cat.nombre),
-                            selectedColor: AppColors.forest,
+                            selectedColor: AppColors.lime,
+                            backgroundColor: AppColors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.lime
+                                    : AppColors.line,
+                              ),
+                            ),
                             labelStyle: TextStyle(
-                              color: isSelected
-                                  ? AppColors.white
-                                  : AppColors.textMain,
-                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                               fontSize: 12,
                             ),
                             onSelected: (_) {
@@ -259,7 +344,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.forest),
+                    child: CircularProgressIndicator(color: AppColors.ink),
                   )
                 : _errorMessage != null
                 ? Center(
@@ -292,16 +377,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     ),
                   )
                 : RefreshIndicator(
-                    color: AppColors.forest,
+                    color: AppColors.ink,
                     onRefresh: _filterProducts,
                     child: GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
+                            childAspectRatio: 0.64,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
                           ),
                       itemCount: _products.length,
                       itemBuilder: (context, index) {
@@ -317,7 +402,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Widget _buildProductCard(Product product) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0610110F),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -346,7 +443,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               child: AppSvg.raw(
                                 AppSvg.tshirt,
                                 size: 36,
-                                color: AppColors.forest,
+                                color: AppColors.ink,
                               ),
                             ),
                           )
@@ -354,26 +451,26 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             child: AppSvg.raw(
                               AppSvg.tshirt,
                               size: 36,
-                              color: AppColors.forest,
+                              color: AppColors.ink,
                             ),
                           ),
                   ),
                   Positioned(
-                    top: 6,
-                    left: 6,
+                    top: 8,
+                    left: 8,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: 8,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.ink,
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         'Q${product.calidadNivel}',
                         style: const TextStyle(
-                          color: AppColors.acid,
+                          color: AppColors.lime,
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
                         ),
@@ -386,7 +483,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
             // DETAILS
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -395,9 +492,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textMain,
+                      color: AppColors.ink,
                       height: 1.2,
                     ),
                   ),
@@ -412,30 +509,31 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         color: AppColors.textMuted,
                       ),
                     ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Bs ${product.precio.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.forest,
+                          color: AppColors.ink,
                         ),
                       ),
                       InkWell(
                         onTap: () => _quickAddToCart(product),
+                        borderRadius: BorderRadius.circular(999),
                         child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.forest,
-                            borderRadius: BorderRadius.circular(3),
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.lime,
+                            shape: BoxShape.circle,
                           ),
                           child: AppSvg.raw(
                             AppSvg.bag,
                             size: 15,
-                            color: AppColors.white,
+                            color: AppColors.ink,
                           ),
                         ),
                       ),

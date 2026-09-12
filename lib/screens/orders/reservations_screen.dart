@@ -179,17 +179,33 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
+        titleSpacing: 16,
         title: Row(
           children: [
-            AppSvg.raw(AppSvg.clock, size: 18, color: AppColors.white),
-            const SizedBox(width: 8),
-            const Text('MIS RESERVAS 48H'),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                shape: BoxShape.circle,
+              ),
+              child: AppSvg.raw(AppSvg.clock, size: 14, color: AppColors.lime),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Reservas 48h',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: AppColors.ink,
+              ),
+            ),
           ],
         ),
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.forest),
+              child: CircularProgressIndicator(color: AppColors.ink),
             )
           : _errorMessage != null
           ? Center(child: Text(_errorMessage!))
