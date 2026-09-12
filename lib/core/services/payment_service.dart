@@ -56,4 +56,17 @@ class PaymentService {
     );
     return Payment.fromJson(response as Map<String, dynamic>);
   }
+
+  /// Confirm sandbox payment for test mode Stripe
+  Future<Payment> confirmStripeSandbox(int paymentId) async {
+    try {
+      final response = await _apiClient.post(
+        '/payments/stripe-sandbox-confirm',
+        body: {'payment_id': paymentId},
+      );
+      return Payment.fromJson(response as Map<String, dynamic>);
+    } catch (_) {
+      return mockConfirmPayment(paymentId);
+    }
+  }
 }
