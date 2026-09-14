@@ -9,15 +9,16 @@ Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, 
 La aplicación ya se encuentra compilada y preconfigurada para conectarse directamente al servidor VPS de producción.
 
 ### 📥 Enlaces de Descarga Directa:
-* **[Descargar APK Release v1.0.3 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.3/drapemind-release.apk)** *(24 MB)*
-* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.3/app-release.apk)**
-* **[Ver Release Oficial en GitHub (Tag v1.0.3)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.3)**
+* **[Descargar APK Release v1.0.5 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.5/drapemind-release.apk)** *(62 MB)*
+* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.5/app-release.apk)**
+* **[Ver Release Oficial en GitHub (Tag v1.0.5)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.5)**
 
-### 📋 Novedades v1.0.3 (Onboarding Atelier UI/UX y Reconfiguración de Estilo):
-* **Experiencia Onboarding Móvil Completa:** Flujo guiado de onboarding con la estética oficial de *DrapeMind Atelier UI/UX* (paleta `#F4F5EA`, tarjetas orgánicas con radio de 28px, acentos *Drape Lime* `#DFFF3F` y *Soft Cyan* `#C9EEF0`).
-* **Selección de Showroom / Sucursal:** Selección de tienda física de compra con disponibilidad dinámica vía `BranchService`.
-* **Cuestionario de Estilo & Preferencias:** Expresión de género, universos de estilo, tallas personalizadas (superior, inferior, calzado), siluetas, paletas de color y rangos de presupuesto.
-* **Reconfiguración desde Mi Cuenta (CU-19 / CU-20):** Sección dedicada a ADN de Estilo con resumen de datos y acceso directo para modificar las respuestas en el Onboarding en cualquier momento con precarga de valores.
+### 📋 Novedades v1.0.5 (Modularización, Pasarela Stripe y Vestidor RA):
+* **Arquitectura Modular por Paquetes:** Reestructuración completa a arquitectura basada en paquetes de negocio (`lib/paquetes/`, `lib/compartido/`, `lib/navegacion/`) garantizando escalabilidad y modularidad limpia.
+* **Pasarela de Pago Electrónico Stripe (CU-11):** Integración nativa de cobro con tarjeta de crédito/débito virtual en entorno sandbox, cálculo dinámico de recargos y confirmación de pago atómica.
+* **Probador Virtual por Realidad Aumentada (CU-17):** Estimación de pose corporal on-device, calibración geométrica de prendas textiles y ajuste en tiempo real sobre la cámara.
+* **Sincronización en Tiempo Real de Pedidos y Reservas:** Integración de sockets de eventos para actualización reactiva del estado de preparación y despacho de compras.
+* **Reglas de Compilación R8 / Proguard:** Optimización de compilación con reglas específicas para SDKs nativos y compatibilidad con Android 12+ / 14+.
 
 ---
 

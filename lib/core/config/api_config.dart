@@ -106,15 +106,17 @@ class ApiConfig {
 
   /// AI WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/ai
   static String get aiWsUrl {
-    final base =
-        baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+    final base = baseUrl
+        .replaceFirst('http://', 'ws://')
+        .replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/ai';
   }
 
   /// Realtime Events WebSocket URL: e.g. ws://167.86.106.105/DrapeMind/api/v1/ws/events
   static String get eventsWsUrl {
-    final base =
-        baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+    final base = baseUrl
+        .replaceFirst('http://', 'ws://')
+        .replaceFirst('https://', 'wss://');
     return '$base/api/v1/ws/events';
   }
 

@@ -1,0 +1,77 @@
+import 'package:drapemind_mobile/core/network/api_client.dart';
+import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/payment_models.dart';
+
+class PaymentService {
+  Future<String> provider() async {
+    final response =
+        await _apiClient.get('/payments/config') as Map<String, dynamic>;
+    return response['provider'] as String;
+  }
+
+  Future<Map<String, dynamic>> stripeIntent(int orderId) async {
+    final response = await _apiClient.post(
+      '/payments/stripe-intent',
+      body: {'order_id': orderId},
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  final ApiClient _apiClient;
+
+  PaymentService({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient();
+
+  /// Initiate a payment for an existing order (QR, Tarjeta, Efectivo)
+  Future<Payment> initiatePayment(
+    PaymentCreate request, {
+    String? idempotencyKey,
+  }) async {
+    final response = await _apiClient.post(
+      '/payments',
+      body: request.toJson(),
+      headers: {
+        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+          'Idempotency-Key': idempotencyKey,
+      },
+    );
+    return Payment.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Get payments registered for a specific order
+  Future<Payment> getPayment(int paymentId) async {
+    final response = await _apiClient.get('/payments/$paymentId');
+    return Payment.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<List<Payment>> getOrderPayments(int orderId) async {
+    final response = await _apiClient.get('/payments/order/$orderId');
+    if (response is List) {
+      return response
+          .map((p) => Payment.fromJson(p as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  /// Mock confirm a QR / Card payment (for test environments and demos)
+  Future<Payment> mockConfirmPayment(int paymentId) async {
+    final response = await _apiClient.post(
+      '/payments/$paymentId/mock-confirm',
+      body: {},
+    );
+    return Payment.fromJson(response as Map<String, dynamic>);
+  }
+
+  /// Confirm sandbox payment for test mode Stripe
+  Future<Payment> confirmStripeSandbox(int paymentId) async {
+    try {
+      final response = await _apiClient.post(
+        '/payments/stripe-sandbox-confirm',
+        body: {'payment_id': paymentId},
+      );
+      return Payment.fromJson(response as Map<String, dynamic>);
+    } catch (_) {
+      return mockConfirmPayment(paymentId);
+    }
+  }
+}

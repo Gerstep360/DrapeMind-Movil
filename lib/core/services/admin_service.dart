@@ -1,7 +1,7 @@
 import '../models/admin_metrics_models.dart';
-import '../models/catalog_models.dart';
-import '../models/order_models.dart';
-import '../models/reservation_models.dart';
+import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/order_models.dart';
+import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
+import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/dominio/modelos/reservation_models.dart';
 import '../network/api_client.dart';
 
 class AdminService {

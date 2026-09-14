@@ -6,7 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/api_config.dart';
 import '../models/realtime_models.dart';
-import 'auth_service.dart';
+import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 
 class EventsSocketService extends ChangeNotifier {
   final AuthService _authService;

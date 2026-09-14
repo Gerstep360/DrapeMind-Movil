@@ -51,7 +51,7 @@ void main() {
             'stock_reservado': 2,
             'stock_disponible': 13,
             'activo': true,
-          }
+          },
         ],
       };
       final product = Product.fromJson(json);
@@ -93,7 +93,7 @@ void main() {
             'precio_unitario': 179.0,
             'subtotal': 179.0,
             'stock_disponible': 8,
-          }
+          },
         ],
       };
       final cart = Cart.fromJson(json);
@@ -127,7 +127,10 @@ void main() {
         'codigo_publico': 'RES-123456',
         'estado': 'CONFIRMADA',
         'fecha_reserva': DateTime.now().toUtc().toIso8601String(),
-        'vence_at': DateTime.now().toUtc().add(const Duration(days: 2)).toIso8601String(),
+        'vence_at': DateTime.now()
+            .toUtc()
+            .add(const Duration(days: 2))
+            .toIso8601String(),
       };
       final reservation = Reservation.fromJson(resJson);
       expect(reservation.id, 8);
@@ -167,8 +170,22 @@ void main() {
         'asset_url': '/media/products/5.png',
         'instructions': 'Alinea hombros y torso',
         'size_metrics': {
-          'M': {'chest': 102.0, 'shoulders': 46.0, 'length': 72.0, 'waist': 86.0, 'hip': 102.0, 'foot': 26.5},
-          'L': {'chest': 108.0, 'shoulders': 48.0, 'length': 74.0, 'waist': 92.0, 'hip': 108.0, 'foot': 27.5},
+          'M': {
+            'chest': 102.0,
+            'shoulders': 46.0,
+            'length': 72.0,
+            'waist': 86.0,
+            'hip': 102.0,
+            'foot': 26.5,
+          },
+          'L': {
+            'chest': 108.0,
+            'shoulders': 48.0,
+            'length': 74.0,
+            'waist': 92.0,
+            'hip': 108.0,
+            'foot': 27.5,
+          },
         },
         'fabric_elasticity': 0.08,
         'fit_category': 'regular',

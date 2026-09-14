@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drapemind_mobile/widgets/altair_message_body.dart';
+import 'package:drapemind_mobile/compartido/componentes/altair/altair_message_body.dart';
 
 void main() {
   testWidgets('ASCII retains spaces and tables fit a narrow conversation', (

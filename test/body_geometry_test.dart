@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:drapemind_mobile/screens/ar_fitting/body_geometry.dart';
+import 'package:drapemind_mobile/paquetes/realidad_aumentada/utilizar_vestidor_virtual/dominio/body_geometry.dart';
 
 void main() {
   const body = BodyAnchors(
