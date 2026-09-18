@@ -9,6 +9,8 @@ import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/theme/app_svg.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/registrar_cliente/presentacion/onboarding_screen.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
+import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/gestionar_cuenta/presentacion/addresses_screen.dart';
+import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/gestionar_favoritos/presentacion/favorites_screen.dart';
 import 'package:drapemind_mobile/paquetes/sucursales_inventario_proveedores/datos/servicios/preferred_branch_store.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -1000,7 +1002,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           onPressed: _openOnboarding,
                           icon: const Icon(Icons.tune, size: 16),
                           label: const Text(
-                            'Modificar respuestas en Onboarding ✎',
+                            'Modificar respuestas en Onboarding',
                           ),
                         ),
                       ],
@@ -1008,12 +1010,18 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'ENTREGAS',
-              title: 'Tus direcciones',
+              eyebrow: 'CU-03 · LOGÍSTICA DE ENVÍO',
+              title: 'Direcciones de entrega',
               trailing: TextButton.icon(
-                onPressed: () => _showAddressEditor(),
-                icon: const Icon(Icons.add, size: 17),
-                label: const Text('Añadir'),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddressesScreen()),
+                  );
+                  if (mounted) _loadAccount();
+                },
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Administrar'),
               ),
               child: _loading
                   ? const LinearProgressIndicator()
@@ -1023,69 +1031,103 @@ class _AccountScreenState extends State<AccountScreen> {
                           'Guarda una dirección para agilizar tu próxima compra.',
                     )
                   : Column(
-                      children: _addresses
-                          .map(
-                            (address) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                address.esPrincipal
-                                    ? Icons.home_filled
-                                    : Icons.location_on_outlined,
-                                color: AppColors.forest,
-                              ),
-                              title: Row(
-                                children: [
-                                  Flexible(
+                      children: [
+                        ..._addresses.map(
+                          (address) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              address.esPrincipal
+                                  ? Icons.home_filled
+                                  : Icons.location_on_outlined,
+                              color: AppColors.forest,
+                            ),
+                            title: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    address.alias,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                if (address.esPrincipal)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
                                     child: Text(
-                                      address.alias,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
+                                      'PRINCIPAL',
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.forest,
+                                        letterSpacing: 0.6,
                                       ),
                                     ),
                                   ),
-                                  if (address.esPrincipal)
-                                    const Padding(
-                                      padding: EdgeInsets.only(left: 8),
-                                      child: Text(
-                                        'PRINCIPAL',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: AppColors.forest,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              subtitle: Text(
-                                address.formattedAddress,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (action) => action == 'edit'
-                                    ? _showAddressEditor(address)
-                                    : _deleteAddress(address),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Editar'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Eliminar'),
-                                  ),
-                                ],
+                              ],
+                            ),
+                            subtitle: Text(
+                              address.formattedAddress,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (action) => action == 'edit'
+                                  ? _showAddressEditor(address)
+                                  : _deleteAddress(address),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Editar'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Eliminar'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
                               ),
                             ),
-                          )
-                          .toList(),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AddressesScreen(),
+                                ),
+                              );
+                              if (mounted) _loadAccount();
+                            },
+                            icon: const Icon(Icons.tune, size: 16),
+                            label: const Text('Ver pantalla completa de direcciones (CU-03)'),
+                          ),
+                        ),
+                      ],
                     ),
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'SELECCIÓN PERSONAL',
+              eyebrow: 'CU-08 · SELECCIÓN PERSONAL',
               title: 'Favoritos',
+              trailing: TextButton.icon(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                  );
+                  if (mounted) _loadAccount();
+                },
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: const Text('Ver galería'),
+              ),
               child: _favorites.isEmpty
                   ? const DmEmptyCopy(
                       text:
@@ -1253,7 +1295,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Text(
-                                      'PREFERIDO ✓',
+                                      'PREFERIDO',
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w900,

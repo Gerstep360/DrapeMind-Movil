@@ -34,6 +34,7 @@ class AppColors {
   // Text & accents
   static const Color textMain = Color(0xFF10110F); // --dm-ink
   static const Color textMuted = Color(0xFF7B7F75); // --dm-gray-500
+  static const Color muted = Color(0xFF7B7F75); // alias for textMuted
   static const Color textMutedStrong = Color(0xFF40433D); // --dm-gray-700
 
   // Status indicators

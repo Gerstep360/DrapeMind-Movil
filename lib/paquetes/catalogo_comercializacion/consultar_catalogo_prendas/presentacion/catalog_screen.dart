@@ -7,6 +7,7 @@ import 'package:drapemind_mobile/core/theme/app_svg.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/aplicacion/filtrar_prendas.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/dominio/catalog_filter.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
+import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/gestionar_favoritos/presentacion/favorites_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
   final VoidCallback? onOpenAiStudio;
@@ -316,6 +317,44 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.favorite_border, color: AppColors.ink, size: 22),
+                if (_favoriteIds.isNotEmpty)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: AppColors.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text(
+                        '${_favoriteIds.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: 'Mis Favoritos (CU-08)',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+              );
+              if (mounted) _loadInitialData();
+            },
+          ),
           IconButton(
             icon: AppSvg.raw(AppSvg.refresh, size: 19, color: AppColors.ink),
             onPressed: _loadInitialData,

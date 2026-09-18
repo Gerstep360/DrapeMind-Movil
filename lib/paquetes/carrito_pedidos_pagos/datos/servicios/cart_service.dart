@@ -116,4 +116,24 @@ class CartService extends ChangeNotifier {
     _cart = null;
     notifyListeners();
   }
+
+  /// CU-22: Check style coherence of the current cart
+  Future<Map<String, dynamic>> checkStyle({String? objetivo, int? sesionId}) async {
+    final body = <String, dynamic>{
+      'objetivo': objetivo ?? 'Evaluar coherencia cromática y estilo del perchero',
+      if (sesionId != null) 'sesion_id': sesionId,
+    };
+    final response = await _apiClient.post('/ai/cart/style-check', body: body);
+    return response as Map<String, dynamic>;
+  }
+
+  /// CU-23: Optimize outfit for value, quality and savings
+  Future<Map<String, dynamic>> checkValue({String? objetivo, int? sesionId}) async {
+    final body = <String, dynamic>{
+      'objetivo': objetivo ?? 'Optimizar calidad, precio y balance de ahorro del perchero',
+      if (sesionId != null) 'sesion_id': sesionId,
+    };
+    final response = await _apiClient.post('/ai/cart/value-check', body: body);
+    return response as Map<String, dynamic>;
+  }
 }
