@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "81465683436",
+    "project_id": "drapemind-5bd6e",
+    "storage_bucket": "drapemind-5bd6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81465683436:android:63b6ae7aaf39913c33a4c9",
+        "android_client_info": {
+          "package_name": "com.drapemind.drapemind_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAx9E3JCUs-gBY8cB_cnuMb-4cDkg57Zdk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

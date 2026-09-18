@@ -8,6 +8,8 @@ import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtr
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/dominio/catalog_filter.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/gestionar_favoritos/presentacion/favorites_screen.dart';
+import 'package:drapemind_mobile/core/services/push_notification_service.dart';
+import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
   final VoidCallback? onOpenAiStudio;
@@ -359,6 +361,46 @@ class _CatalogScreenState extends State<CatalogScreen> {
             icon: AppSvg.raw(AppSvg.refresh, size: 19, color: AppColors.ink),
             onPressed: _loadInitialData,
             tooltip: 'Actualizar catálogo',
+          ),
+          Consumer<PushNotificationService>(
+            builder: (context, pushService, _) {
+              final unread = pushService.unreadCount;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined, size: 24, color: AppColors.ink),
+                    tooltip: 'Notificaciones Atelier',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    ),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.gold,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          unread > 9 ? '9+' : '$unread',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 4),
         ],

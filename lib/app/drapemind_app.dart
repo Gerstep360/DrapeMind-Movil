@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/app/auth_gate.dart';
 import 'package:drapemind_mobile/core/services/events_socket_service.dart';
+import 'package:drapemind_mobile/core/services/navigation_service.dart';
+import 'package:drapemind_mobile/core/services/push_notification_service.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';
@@ -48,12 +50,29 @@ class DrapeMindApp extends StatelessWidget {
           return service;
         },
       ),
+      ChangeNotifierProxyProvider2<AuthService, EventsSocketService, PushNotificationService>(
+        create: (context) => PushNotificationService(
+          authService: context.read<AuthService>(),
+          eventsService: context.read<EventsSocketService>(),
+        ),
+        update: (_, auth, events, current) {
+          final service = current ??
+              PushNotificationService(authService: auth, eventsService: events);
+          if (auth.isAuthenticated) {
+            service.registerDeviceWithBackend();
+            service.fetchNotifications();
+          }
+          return service;
+        },
+      ),
     ],
     child: MaterialApp(
       title: 'DrapeMind Atelier',
+      navigatorKey: NavigationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.luxuryTheme,
       home: const AuthGate(),
     ),
   );
 }
+

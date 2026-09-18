@@ -12,6 +12,8 @@ import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_mod
 class MainShell extends StatefulWidget {
   final int initialIndex;
 
+  static void Function(int index)? switchTab;
+
   const MainShell({super.key, this.initialIndex = 0});
 
   @override
@@ -25,9 +27,21 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    MainShell.switchTab = _openTab;
   }
 
-  void _openTab(int index) => setState(() => _currentIndex = index);
+  @override
+  void dispose() {
+    if (MainShell.switchTab == _openTab) {
+      MainShell.switchTab = null;
+    }
+    super.dispose();
+  }
+
+  void _openTab(int index) {
+    if (mounted) setState(() => _currentIndex = index);
+  }
+
 
   @override
   Widget build(BuildContext context) {
