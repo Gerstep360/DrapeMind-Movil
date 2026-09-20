@@ -742,7 +742,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'CU-19 / CU-20 · ADN DE ESTILO',
+              eyebrow: 'ADN DE ESTILO',
               title: 'Preferencias de estilo',
               trailing: TextButton.icon(
                 onPressed: _openOnboarding,
@@ -1010,7 +1010,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'CU-03 · LOGÍSTICA DE ENVÍO',
+              eyebrow: 'LOGÍSTICA DE ENVÍO',
               title: 'Direcciones de entrega',
               trailing: TextButton.icon(
                 onPressed: () async {
@@ -1107,7 +1107,7 @@ class _AccountScreenState extends State<AccountScreen> {
                               if (mounted) _loadAccount();
                             },
                             icon: const Icon(Icons.tune, size: 16),
-                            label: const Text('Ver pantalla completa de direcciones (CU-03)'),
+                            label: const Text('Gestionar todas mis direcciones'),
                           ),
                         ),
                       ],
@@ -1115,7 +1115,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'CU-08 · SELECCIÓN PERSONAL',
+              eyebrow: 'SELECCIÓN PERSONAL',
               title: 'Favoritos',
               trailing: TextButton.icon(
                 onPressed: () async {

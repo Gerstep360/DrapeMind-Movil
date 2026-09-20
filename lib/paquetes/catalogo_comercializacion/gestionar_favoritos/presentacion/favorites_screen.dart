@@ -189,7 +189,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'SELECCIÓN PERSONAL (CU-08)',
+                'SELECCIÓN PERSONAL',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,

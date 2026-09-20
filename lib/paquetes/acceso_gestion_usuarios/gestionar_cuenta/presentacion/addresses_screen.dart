@@ -340,7 +340,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
             onPressed: () => _showAddressForm(),
             icon: const Icon(Icons.add, size: 18),
             label: const Text(
-              'Añadir Nueva Dirección (CU-03)',
+              'Añadir Nueva Dirección',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),

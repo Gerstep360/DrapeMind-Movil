@@ -429,8 +429,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  // CU-36: CUPON O PROMOCION
-                  _buildSectionHeader('CUPÓN O PROMOCIÓN (CU-36)', AppSvg.sparkle),
+                  // CUPON O PROMOCION
+                  _buildSectionHeader('CUPÓN O PROMOCIÓN', AppSvg.sparkle),
                   const SizedBox(height: 8),
                   Card(
                     child: Padding(

@@ -347,7 +347,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
               ],
             ),
-            tooltip: 'Mis Favoritos (CU-08)',
+            tooltip: 'Mis Favoritos',
             onPressed: () async {
               await Navigator.push(
                 context,

@@ -54,7 +54,7 @@ class _CartScreenState extends State<CartScreen> {
       if (mounted) {
         _showAiResultModal(
           title: 'Crítica Estilística de Altair',
-          eyebrow: 'CU-22 · ANÁLISIS DE ESTILO',
+          eyebrow: 'ANÁLISIS DE ESTILO',
           result: res,
         );
       }
@@ -84,7 +84,7 @@ class _CartScreenState extends State<CartScreen> {
       if (mounted) {
         _showAiResultModal(
           title: 'Optimización de Outfit y Ahorro',
-          eyebrow: 'CU-23 · VALOR Y AHORRO',
+          eyebrow: 'VALOR Y AHORRO',
           result: res,
         );
       }
@@ -471,7 +471,7 @@ class _CartScreenState extends State<CartScreen> {
                                     )
                                   : const Icon(Icons.style_outlined, size: 14),
                               label: const Text(
-                                'Estilo (CU-22)',
+                                'Estilo',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800,
@@ -502,7 +502,7 @@ class _CartScreenState extends State<CartScreen> {
                                     )
                                   : const Icon(Icons.monetization_on_outlined, size: 14),
                               label: const Text(
-                                'Ahorro (CU-23)',
+                                'Ahorro',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800,
