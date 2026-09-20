@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,26 +14,57 @@ import 'api_exception.dart';
 class ApiClient {
   static const String _tokenKey = 'drapemind_auth_token';
   final http.Client _httpClient;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   ApiClient({http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
-  /// Retrieve stored JWT access token
+  /// Retrieve stored JWT access token from hardware-backed secure storage
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    try {
+      final secureToken = await _secureStorage.read(key: _tokenKey);
+      if (secureToken != null && secureToken.isNotEmpty) {
+        return secureToken;
+      }
+    } catch (_) {}
+
+    // Fallback y migracion desde SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final legacyToken = prefs.getString(_tokenKey);
+      if (legacyToken != null && legacyToken.isNotEmpty) {
+        try {
+          await _secureStorage.write(key: _tokenKey, value: legacyToken);
+        } catch (_) {}
+        return legacyToken;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
-  /// Save JWT access token
+  /// Save JWT access token permanently in secure storage
   Future<void> setToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    try {
+      await _secureStorage.write(key: _tokenKey, value: token);
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+    } catch (_) {}
   }
 
   /// Remove stored JWT access token
   Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
+    try {
+      await _secureStorage.delete(key: _tokenKey);
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+    } catch (_) {}
   }
 
   /// Construct base headers with optional auth token

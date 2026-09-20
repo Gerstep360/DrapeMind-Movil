@@ -29,7 +29,7 @@ class AuthService extends ChangeNotifier {
   bool get onboardingSkipped => _onboardingSkipped;
   String? get token => _token;
 
-  /// Check token in storage and load user profile
+  /// Check token in storage and load user profile (sesion persistente estilo Facebook)
   Future<bool> tryAutoLogin() async {
     _isLoading = true;
     notifyListeners();
@@ -49,7 +49,7 @@ class AuthService extends ChangeNotifier {
       _token = savedToken;
       _scheduleTokenExpiry(savedToken);
 
-      // 1. Restaurar perfil desde caché local de inmediato (sin esperas de red)
+      // 1. Restaurar perfil desde cache local de inmediato (sin bloqueo de red)
       final cached = await SecurityService().getCachedUserProfile();
       if (cached != null) {
         _currentUser = User.fromJson(cached);
@@ -61,34 +61,26 @@ class AuthService extends ChangeNotifier {
       try {
         final userResponse = await _apiClient.get(
           '/auth/me',
-          timeout: const Duration(seconds: 4),
+          timeout: const Duration(seconds: 5),
         );
         _currentUser = User.fromJson(userResponse);
         await SecurityService().cacheUserProfile(userResponse);
       } on ApiException catch (e) {
-        // Si el servidor indica token expirado o inválido, cerrar sesión de inmediato
+        // Solo cerrar sesion si el servidor rechaza explicitamente el token
         if (e.statusCode == 401 || e.statusCode == 403) {
           await logout();
           return false;
         }
-        if (_currentUser == null) {
-          await logout();
-          return false;
-        }
       } catch (_) {
-        // Si falló la red pero teníamos caché y token, mantenemos la sesión activa
-        if (_currentUser == null) {
-          await logout();
-          return false;
-        }
+        // En caso de estar sin conexion o fallo transitorio,
+        // se conserva la sesion activa del usuario con su token y perfil cacheados
       }
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (_) {
-      await logout();
-      return false;
+      return _currentUser != null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -265,9 +257,15 @@ class AuthService extends ChangeNotifier {
   }
 
   bool _isTokenUsable(String token) {
+    if (token.trim().isEmpty) return false;
     final expiry = _tokenExpiry(token);
-    return expiry != null &&
-        expiry.isAfter(DateTime.now().toUtc().add(const Duration(seconds: 5)));
+    // Si el token tiene fecha de expiracion explicita, verificar que no haya vencido
+    if (expiry != null) {
+      return expiry.isAfter(DateTime.now().toUtc().add(const Duration(seconds: 5)));
+    }
+    // Si no se puede extraer la fecha o el token no tiene exp, se considera valido
+    // hasta que el servidor devuelva 401 Unauthorized
+    return true;
   }
 
   DateTime? _tokenExpiry(String token) {
@@ -290,23 +288,17 @@ class AuthService extends ChangeNotifier {
 
   void _scheduleTokenExpiry(String token) {
     _expiryTimer?.cancel();
-    final expiry = _tokenExpiry(token);
-    if (expiry == null) {
-      unawaited(logout());
-      return;
-    }
-    final delay =
-        expiry.difference(DateTime.now().toUtc()) - const Duration(seconds: 2);
-    if (delay <= Duration.zero) {
-      unawaited(logout());
-      return;
-    }
-    _expiryTimer = Timer(delay, () => unawaited(logout()));
+    _expiryTimer = null;
+    // Sesion ilimitada/permanente estilo Facebook:
+    // No programamos temporizadores de cierre de sesion forzado.
+    // La sesion permanece activa indefinidamente hasta que el usuario pulse 'Cerrar sesion'
+    // o el servidor responda con HTTP 401 Unauthorized.
   }
 
   @override
   void dispose() {
     _expiryTimer?.cancel();
+    _expiryTimer = null;
     super.dispose();
   }
 }

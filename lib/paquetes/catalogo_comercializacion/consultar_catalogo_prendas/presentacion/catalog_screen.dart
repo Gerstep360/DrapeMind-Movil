@@ -8,7 +8,6 @@ import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtr
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/dominio/catalog_filter.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/gestionar_favoritos/presentacion/favorites_screen.dart';
-import 'package:drapemind_mobile/core/services/push_notification_service.dart';
 import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
