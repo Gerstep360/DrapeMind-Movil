@@ -49,4 +49,22 @@ class OrderService {
     );
     return response as Map<String, dynamic>;
   }
+
+  /// Validate a promotional code before checkout (CU-36)
+  Future<Map<String, dynamic>> validatePromotion({
+    required String code,
+    required double subtotal,
+    List<int>? productIds,
+  }) async {
+    final response = await _apiClient.post(
+      '/catalog/promotions/validate',
+      body: {
+        'codigo': code.trim(),
+        'monto_subtotal': subtotal,
+        if (productIds != null && productIds.isNotEmpty)
+          'item_producto_ids': productIds,
+      },
+    );
+    return response as Map<String, dynamic>;
+  }
 }

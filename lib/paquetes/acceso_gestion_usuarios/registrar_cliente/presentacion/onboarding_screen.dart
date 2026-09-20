@@ -30,7 +30,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Flow State
   int _currentStep =
-      0; // 0: Sucursal, 1: Estilo, 2: Medidas, 3: Detalles, 4: Reveal
+      0; // 0: Género, 1: Showroom, 2: Estilo, 3: Medidas, 4: Detalles, 5: Reveal
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
@@ -250,7 +250,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         } else {
           setState(() {
             _isSaving = false;
-            _currentStep = 4; // Reveal step
+            _currentStep = 5; // Reveal step
           });
         }
       }
@@ -306,7 +306,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             : Column(
                 children: [
                   _buildHeader(),
-                  if (_currentStep < 4) _buildStepIndicator(),
+                  if (_currentStep < 5) _buildStepIndicator(),
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 320),
@@ -335,7 +335,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   ),
-                  if (_currentStep < 4) _buildFooterActions(),
+                  if (_currentStep < 5) _buildFooterActions(),
                 ],
               ),
       ),
@@ -406,7 +406,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               onPressed: () => Navigator.of(context).pop(),
               tooltip: 'Cerrar sin guardar',
             )
-          else if (_currentStep < 4)
+          else if (_currentStep < 5)
             TextButton(
               onPressed: _isSaving ? null : _skipOnboarding,
               style: TextButton.styleFrom(
@@ -428,10 +428,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // ---------------------------------------------------------------------------
   Widget _buildStepIndicator() {
     final steps = [
-      {'label': '01 Showroom', 'step': 0},
-      {'label': '02 Estilo', 'step': 1},
-      {'label': '03 Medidas', 'step': 2},
-      {'label': '04 Detalles', 'step': 3},
+      {'label': '01 Género', 'step': 0},
+      {'label': '02 Showroom', 'step': 1},
+      {'label': '03 Estilos', 'step': 2},
+      {'label': '04 Medidas', 'step': 3},
+      {'label': '05 Detalles', 'step': 4},
     ];
 
     return Column(
@@ -443,8 +444,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             borderRadius: BorderRadius.circular(4),
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(
-                begin: 0.25,
-                end: ((_currentStep + 1) / 4.0).clamp(0.0, 1.0),
+                begin: 0.20,
+                end: ((_currentStep + 1) / 5.0).clamp(0.0, 1.0),
               ),
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOutCubic,
@@ -458,61 +459,66 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: steps.map((s) {
-              final stepIndex = s['step'] as int;
-              final isCurrent = _currentStep == stepIndex;
-              final isPast = _currentStep > stepIndex;
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: steps.map((s) {
+                final stepIndex = s['step'] as int;
+                final isCurrent = _currentStep == stepIndex;
+                final isPast = _currentStep > stepIndex;
 
-              return GestureDetector(
-                onTap: () {
-                  if (stepIndex < _currentStep) {
-                    setState(() => _currentStep = stepIndex);
-                  }
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isCurrent
-                        ? dmLime
-                        : (isPast
-                              ? dmCyan.withValues(alpha: 0.35)
-                              : Colors.transparent),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isCurrent
-                          ? Colors.transparent
-                          : (isPast ? dmInk : dmBorder),
-                      width: 1.1,
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: () {
+                      if (stepIndex < _currentStep) {
+                        setState(() => _currentStep = stepIndex);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeInOut,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? dmLime
+                            : (isPast
+                                  ? dmCyan.withValues(alpha: 0.35)
+                                  : Colors.transparent),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isCurrent
+                              ? Colors.transparent
+                              : (isPast ? dmInk : dmBorder),
+                          width: 1.1,
+                        ),
+                        boxShadow: isCurrent
+                            ? [
+                                BoxShadow(
+                                  color: dmLime.withValues(alpha: 0.45),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Text(
+                        s['label'] as String,
+                        style: TextStyle(
+                          color: dmInk,
+                          fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
-                    boxShadow: isCurrent
-                        ? [
-                            BoxShadow(
-                              color: dmLime.withValues(alpha: 0.45),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
                   ),
-                  child: Text(
-                    s['label'] as String,
-                    style: TextStyle(
-                      color: dmInk,
-                      fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
         ),
       ],
@@ -525,14 +531,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildCurrentStepContent() {
     switch (_currentStep) {
       case 0:
-        return _buildStepBranches();
+        return _buildStepGender();
       case 1:
-        return _buildStepStyles();
+        return _buildStepBranches();
       case 2:
-        return _buildStepSizes();
+        return _buildStepStyles();
       case 3:
-        return _buildStepDetails();
+        return _buildStepSizes();
       case 4:
+        return _buildStepDetails();
+      case 5:
         return _buildStepReveal();
       default:
         return const SizedBox.shrink();
@@ -540,11 +548,127 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // STEP 0: GÉNERO (PREGUNTA INICIAL OBLIGATORIA)
+  // ---------------------------------------------------------------------------
+  Widget _buildStepGender() {
+    return _buildCardWrapper(
+      eyebrow: '01 / 05 · IDENTIDAD & CORTE',
+      title: '¿Para quién buscas prendas?',
+      description:
+          'Elige tu género para que Altair filtre catálogo, tallas y siluetas con total coherencia.',
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Selecciona una opción:',
+            style: TextStyle(
+              color: dmInk,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ..._genderOptions.map((opt) {
+            final isSelected = _selectedGender == opt['id'];
+            final isFemenino = opt['id'] == 'femenino';
+            final isMasculino = opt['id'] == 'masculino';
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: InkWell(
+                onTap: () {
+                  setState(() => _selectedGender = opt['id']);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? dmLime : dmSurface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? dmInk : dmBorder,
+                      width: isSelected ? 1.5 : 1.1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: dmLime.withValues(alpha: 0.45),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: isSelected ? dmInk : dmBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isFemenino
+                              ? Icons.female
+                              : (isMasculino
+                                  ? Icons.male
+                                  : Icons.transgender),
+                          color: isSelected ? dmLime : dmInk,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              opt['label']!,
+                              style: const TextStyle(
+                                color: dmInk,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isFemenino
+                                  ? 'Cortes, vestidos, faldas y siluetas para dama'
+                                  : (isMasculino
+                                      ? 'Cortes sastreros, trajes y confección caballero'
+                                      : 'Cortes atemporales universales sin distinción'),
+                              style: TextStyle(
+                                color: isSelected ? dmInk : dmTextMuted,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(Icons.check_circle, color: dmInk, size: 22),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // STEP 1: SUCURSALES (SHOWROOMS)
   // ---------------------------------------------------------------------------
   Widget _buildStepBranches() {
     return _buildCardWrapper(
-      eyebrow: 'CERCA DE TI · SHOWROOMS',
+      eyebrow: '02 / 05 · SHOWROOM ATELIER',
       title: '¿En qué sucursal quieres comprar?',
       description:
           'La disponibilidad y las colecciones varían por sede. Puedes cambiar de showroom en cualquier momento.',
@@ -645,54 +769,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 2: GÉNERO & ESTILOS
+  // STEP 2: ESTILOS & SILUETAS
   // ---------------------------------------------------------------------------
   Widget _buildStepStyles() {
     return _buildCardWrapper(
-      eyebrow: '01 / 03 · ESTILO & CORTE',
+      eyebrow: '03 / 05 · ESTILOS & SILUETAS',
       title: '¿Qué te gusta vestir?',
       description:
           'Elige las estéticas que definen tu carácter. Altair sugerirá piezas alineadas con tu estilo.',
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Busco prendas orientadas a:',
-            style: TextStyle(
-              color: dmInk,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _genderOptions.map((opt) {
-              final isSelected = _selectedGender == opt['id'];
-              return ChoiceChip(
-                label: Text(opt['label']!),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() => _selectedGender = selected ? opt['id'] : null);
-                },
-                backgroundColor: dmSurface,
-                selectedColor: dmLime,
-                side: BorderSide(
-                  color: isSelected ? Colors.transparent : dmBorder,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                labelStyle: TextStyle(
-                  color: dmInk,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 13,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
           const Text(
             'Estilos y universos favoritos (multiselección):',
             style: TextStyle(
@@ -760,11 +847,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 3: MEDIDAS & SILUETA
+  // STEP 3: MEDIDAS & CALCE
   // ---------------------------------------------------------------------------
   Widget _buildStepSizes() {
     return _buildCardWrapper(
-      eyebrow: '02 / 03 · MEDIDAS & CALCE',
+      eyebrow: '04 / 05 · MEDIDAS & CALCE',
       title: 'Un punto de partida para tu talla.',
       description:
           'Estas tallas sirven de guía inicial para el showroom. Puedes cambiarlas o ingresar valores personalizados.',
@@ -914,7 +1001,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               );
             }),
             ChoiceChip(
-              label: Text(isCustom ? 'Personalizada ✓' : 'Otra...'),
+              label: Text(isCustom ? 'Personalizada' : 'Otra...'),
               selected: isCustom,
               onSelected: (_) => onToggleCustom(),
               backgroundColor: dmSurface,
@@ -955,7 +1042,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // ---------------------------------------------------------------------------
   Widget _buildStepDetails() {
     return _buildCardWrapper(
-      eyebrow: '03 / 03 · DETALLES & PRESUPUESTO',
+      eyebrow: '05 / 05 · DETALLES & PRESUPUESTO',
       title: 'Los detalles hacen el look.',
       description:
           'Completa los toques finales. Altair filtrará recomendaciones dentro de tus rangos favoritos.',
@@ -1141,13 +1228,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Text(
-                '✓',
-                style: TextStyle(
-                  color: dmInk,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                ),
+              child: Icon(
+                Icons.check,
+                color: dmInk,
+                size: 32,
               ),
             ),
           ),
@@ -1197,7 +1281,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             child: const Text(
-              'Consultar sugerencias con Altair IA ✨',
+              'Consultar sugerencias con Altair IA',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
           ),
@@ -1242,9 +1326,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           const Spacer(),
-          if (_currentStep < 3)
+          if (_currentStep < 4)
             ElevatedButton(
               onPressed: () {
+                if (_currentStep == 0 && (_selectedGender == null || _selectedGender!.isEmpty)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: dmInk,
+                      duration: Duration(seconds: 2),
+                      content: Text(
+                        'Por favor, selecciona un género para personalizar el catálogo y tus prendas.',
+                        style: TextStyle(color: dmLime, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 setState(() => _currentStep++);
               },
               style: ElevatedButton.styleFrom(
@@ -1290,7 +1387,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     )
                   : Text(
                       widget.isReconfiguring
-                          ? 'Guardar cambios de estilo ✓'
+                          ? 'Guardar cambios de estilo'
                           : 'Guardar preferencias →',
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),

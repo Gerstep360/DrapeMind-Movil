@@ -266,12 +266,14 @@ class CheckoutRequest {
   final int? direccionId;
   final double? costoEnvio;
   final String? observacion;
+  final String? codigoPromocion;
 
   CheckoutRequest({
     required this.tipoEntrega,
     this.direccionId,
     this.costoEnvio,
     this.observacion,
+    this.codigoPromocion,
   });
 
   Map<String, dynamic> toJson() => {
@@ -280,5 +282,7 @@ class CheckoutRequest {
     if (costoEnvio != null) 'costo_envio': costoEnvio,
     if (observacion != null && observacion!.isNotEmpty)
       'observacion': observacion,
+    if (codigoPromocion != null && codigoPromocion!.isNotEmpty)
+      'codigo_promocion': codigoPromocion,
   };
 }

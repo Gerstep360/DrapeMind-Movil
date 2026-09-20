@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 import 'package:drapemind_mobile/compartido/componentes/notificaciones/in_app_notification_banner.dart';
 import 'package:drapemind_mobile/core/config/api_config.dart';
@@ -42,7 +44,6 @@ class PushNotificationService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     var token = prefs.getString('dm_device_push_token');
     if (token == null || token.isEmpty) {
-      // Generar token unico y determinista para esta instalacion fisica
       final rand = Random.secure();
       final bytes = List<int>.generate(24, (_) => rand.nextInt(256));
       final generated = base64Url.encode(bytes);
@@ -51,6 +52,45 @@ class PushNotificationService extends ChangeNotifier {
     }
     _deviceToken = token;
 
+    // Inicialización del SDK de Firebase Messaging en Android/iOS
+    try {
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      final realFcmToken = await messaging.getToken();
+      if (realFcmToken != null && realFcmToken.isNotEmpty) {
+        _deviceToken = realFcmToken;
+        await prefs.setString('dm_device_push_token', realFcmToken);
+      }
+
+      messaging.onTokenRefresh.listen((newToken) {
+        _deviceToken = newToken;
+        prefs.setString('dm_device_push_token', newToken);
+        if (_authService.isAuthenticated) {
+          registerDeviceWithBackend();
+        }
+      });
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        _handleFcmMessage(message);
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _handleNotificationTapFromBackground(message);
+      });
+
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        _handleNotificationTapFromBackground(initialMessage);
+      }
+    } catch (e) {
+      debugPrint('[PushNotificationService] Firebase Messaging activo en canal local: $e');
+    }
+
     if (_authService.isAuthenticated) {
       await registerDeviceWithBackend();
       await fetchNotifications();
@@ -58,6 +98,39 @@ class PushNotificationService extends ChangeNotifier {
 
     _listenRealtimeEvents();
   }
+
+  void _handleFcmMessage(RemoteMessage msg) {
+    final title = msg.notification?.title ?? msg.data['title'] ?? msg.data['titulo'] ?? 'Notificación Atelier';
+    final body = msg.notification?.body ?? msg.data['body'] ?? msg.data['mensaje'] ?? '';
+    final screen = msg.data['screen']?.toString() ?? '/notifications';
+
+    final notifMap = {
+      'id': int.tryParse(msg.data['notification_id']?.toString() ?? '') ?? Random().nextInt(1000000),
+      'titulo': title,
+      'mensaje': body,
+      'tipo': msg.data['type'] ?? msg.data['tipo'] ?? 'GENERAL',
+      'data_payload': msg.data,
+      'leido': false,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    final newNotif = AtelierNotification.fromJson(notifMap);
+    _notifications.insert(0, newNotif);
+    notifyListeners();
+
+    InAppNotificationBanner.show(
+      title: title,
+      message: body,
+      screen: screen,
+      data: msg.data,
+    );
+  }
+
+  void _handleNotificationTapFromBackground(RemoteMessage msg) {
+    final screen = msg.data['screen']?.toString() ?? '/notifications';
+    NavigationService.navigateTo(screen: screen, data: msg.data);
+  }
+
 
   void _listenRealtimeEvents() {
     _eventSubscription?.cancel();
@@ -113,7 +186,7 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty || _deviceToken == null) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/devices/register');
+      final url = Uri.parse('${ApiConfig.apiV1Url}/devices/register');
       await http.post(
         url,
         headers: {
@@ -137,7 +210,7 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty || _deviceToken == null) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/devices/unregister');
+      final url = Uri.parse('${ApiConfig.apiV1Url}/devices/unregister');
       await http.post(
         url,
         headers: {
@@ -159,7 +232,7 @@ class PushNotificationService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/notifications?limit=40');
+      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications?limit=40');
       final res = await http.get(
         url,
         headers: {'Authorization': 'Bearer $token'},
@@ -189,7 +262,7 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/notifications/$notificationId/read?originating_token=${_deviceToken ?? ""}');
+      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications/$notificationId/read?originating_token=${_deviceToken ?? ""}');
       await http.patch(
         url,
         headers: {'Authorization': 'Bearer $token'},
@@ -209,7 +282,7 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/notifications/read-all?originating_token=${_deviceToken ?? ""}');
+      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications/read-all?originating_token=${_deviceToken ?? ""}');
       await http.post(
         url,
         headers: {'Authorization': 'Bearer $token'},

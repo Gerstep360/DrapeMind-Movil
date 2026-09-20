@@ -27,6 +27,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Order? _completedOrder;
   Payment? _activePayment;
 
+  // CU-36: Promociones y Cupones
+  final _couponController = TextEditingController();
+  bool _validatingCoupon = false;
+  String? _appliedCouponCode;
+  double _appliedDiscount = 0.0;
+  String? _couponFeedback;
+  bool _couponValid = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +52,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         .catchError((_) {});
   }
 
+  @override
+  void dispose() {
+    _couponController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadAddresses() async {
     try {
       final list = await _addressService.getMyAddresses();
@@ -57,6 +71,61 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (_) {}
   }
 
+  Future<void> _applyCoupon(double subtotal, List<int> productIds) async {
+    final code = _couponController.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _validatingCoupon = true;
+      _couponFeedback = null;
+    });
+
+    try {
+      final res = await _orderService.validatePromotion(
+        code: code,
+        subtotal: subtotal,
+        productIds: productIds,
+      );
+
+      final isValid = res['valido'] == true;
+      final discount = (res['descuento_calculado'] as num?)?.toDouble() ?? 0.0;
+      final msg = res['mensaje'] as String? ?? (isValid ? 'Cupón aplicado con éxito.' : 'Cupón no aplicable.');
+
+      if (!mounted) return;
+      setState(() {
+        _couponValid = isValid;
+        _couponFeedback = msg;
+        if (isValid) {
+          _appliedCouponCode = res['codigo'] as String? ?? code;
+          _appliedDiscount = discount;
+        } else {
+          _appliedCouponCode = null;
+          _appliedDiscount = 0.0;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _couponValid = false;
+        _couponFeedback = 'No se pudo conectar para validar el cupón.';
+        _appliedCouponCode = null;
+        _appliedDiscount = 0.0;
+      });
+    } finally {
+      if (mounted) setState(() => _validatingCoupon = false);
+    }
+  }
+
+  void _removeCoupon() {
+    setState(() {
+      _couponController.clear();
+      _appliedCouponCode = null;
+      _appliedDiscount = 0.0;
+      _couponFeedback = null;
+      _couponValid = false;
+    });
+  }
+
   Future<void> _processCheckout() async {
     setState(() => _isLoading = true);
 
@@ -68,6 +137,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ? _selectedAddressId
               : null,
           costoEnvio: _deliveryType == DeliveryType.delivery ? 25.0 : 0.0,
+          codigoPromocion: _appliedCouponCode,
         ),
       );
 
@@ -359,6 +429,117 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 18),
 
+                  // CU-36: CUPON O PROMOCION
+                  _buildSectionHeader('CUPÓN O PROMOCIÓN (CU-36)', AppSvg.sparkle),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_appliedCouponCode != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.acid.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.forest, width: 1.2),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.confirmation_num_outlined, color: AppColors.forest, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'CUPÓN: $_appliedCouponCode',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 12.5,
+                                            color: AppColors.forestDark,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Descuento: -Bs ${_appliedDiscount.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.forest,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _removeCoupon,
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      foregroundColor: AppColors.danger,
+                                    ),
+                                    child: const Text('Quitar', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _couponController,
+                                    textCapitalization: TextCapitalization.characters,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Ingresa código (ej. ALTAIR15)',
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: _validatingCoupon
+                                      ? null
+                                      : () {
+                                          final sub = cart?.subtotal ?? 0.0;
+                                          final pIds = cart?.items.map((it) => it.productoId).toList() ?? [];
+                                          _applyCoupon(sub, pIds);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.ink,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  ),
+                                  child: _validatingCoupon
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      : const Text('Aplicar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (_couponFeedback != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              _couponFeedback!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: _couponValid ? AppColors.forest : AppColors.danger,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
                   // SUMMARY
                   _buildSectionHeader('RESUMEN DE PAGO', AppSvg.package),
                   const SizedBox(height: 8),
@@ -402,6 +583,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                             ],
                           ),
+                          if (_appliedDiscount > 0) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Descuento Cupón:',
+                                  style: TextStyle(fontSize: 12.5, color: AppColors.forest, fontWeight: FontWeight.w700),
+                                ),
+                                Text(
+                                  '-Bs ${_appliedDiscount.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    color: AppColors.forest,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const Divider(height: 18),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -414,7 +615,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ),
                               ),
                               Text(
-                                'Bs ${((cart?.subtotal ?? 0) + (_deliveryType == DeliveryType.delivery ? 25.0 : 0.0)).toStringAsFixed(2)}',
+                                'Bs ${(((cart?.subtotal ?? 0) - _appliedDiscount + (_deliveryType == DeliveryType.delivery ? 25.0 : 0.0)).clamp(0.0, double.infinity)).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 17,

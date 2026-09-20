@@ -104,7 +104,7 @@ class AuthService extends ChangeNotifier {
         '/auth/login',
         body: LoginRequest(email: email, password: password).toJson(),
         requiresAuth: false,
-        timeout: const Duration(seconds: 10),
+        timeout: const Duration(seconds: 5),
       );
 
       final tokenData = TokenResponse.fromJson(
