@@ -24,6 +24,8 @@ export '../paquetes/sucursales_inventario_proveedores/dominio/modelos/branch_mod
 // Services
 export 'services/admin_service.dart';
 export 'services/events_socket_service.dart';
+export 'services/navigation_service.dart';
+export 'services/push_notification_service.dart';
 export '../paquetes/acceso_gestion_usuarios/datos/servicios/address_service.dart';
 export '../paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 export '../paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';

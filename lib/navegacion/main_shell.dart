@@ -28,6 +28,9 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     _currentIndex = widget.initialIndex;
     MainShell.switchTab = _openTab;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NavigationService.processPendingNavigation();
+    });
   }
 
   @override

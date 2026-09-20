@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/core/models/notification_model.dart';
+import 'package:drapemind_mobile/core/services/navigation_service.dart';
 import 'package:drapemind_mobile/core/services/push_notification_service.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 
@@ -191,7 +192,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final icon = _iconForType(notif.tipo);
 
     return InkWell(
-      onTap: () => service.onNotificationTapped(notif),
+      onTap: () {
+        service.markAsRead(notif.id);
+        final screen = notif.dataPayload['screen']?.toString() ?? '';
+        final norm = screen.toLowerCase().trim();
+        if (norm.contains('order') ||
+            norm.contains('pedido') ||
+            norm.contains('ai') ||
+            norm.contains('chat') ||
+            norm.contains('cart') ||
+            norm.contains('carrito') ||
+            norm.contains('catalog') ||
+            norm.contains('ropa') ||
+            norm.contains('prenda') ||
+            norm.contains('account') ||
+            norm.contains('cuenta')) {
+          Navigator.of(context).pop();
+          NavigationService.navigateTo(screen: screen, data: notif.dataPayload);
+        }
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
