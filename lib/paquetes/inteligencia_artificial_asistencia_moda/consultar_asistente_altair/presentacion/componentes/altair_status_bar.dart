@@ -13,6 +13,7 @@ class AltairStatusBar extends StatelessWidget {
   final String activeModel;
   final ValueChanged<String> onModelSelected;
   final VoidCallback onOpenPreferences;
+  final VoidCallback? onCancel;
 
   const AltairStatusBar({
     super.key,
@@ -23,6 +24,7 @@ class AltairStatusBar extends StatelessWidget {
     required this.activeModel,
     required this.onModelSelected,
     required this.onOpenPreferences,
+    this.onCancel,
   });
 
   @override
@@ -102,6 +104,28 @@ class AltairStatusBar extends StatelessWidget {
             ],
           ),
         ),
+        if (isBusy && onCancel != null) ...[
+          const SizedBox(width: 7),
+          _CompactAction(
+            onTap: onCancel!,
+            dark: true,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.stop_rounded, size: 14, color: AppColors.acid),
+                SizedBox(width: 4),
+                Text(
+                  'Detener',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     ),
   );

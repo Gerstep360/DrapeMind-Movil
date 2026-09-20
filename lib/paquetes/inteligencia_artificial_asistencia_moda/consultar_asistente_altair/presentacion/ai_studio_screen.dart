@@ -868,6 +868,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             activeModel: ai.activeModel,
             onModelSelected: ai.setActiveModel,
             onOpenPreferences: _showQuestionnaireModal,
+            onCancel: () => ai.cancelGeneration(),
           ),
           // CHAT MESSAGE STREAM
           Expanded(
@@ -909,6 +910,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
             isBusy: ai.isBusy,
             activeModel: ai.activeModel,
             onSend: _sendMessage,
+            onCancel: () => ai.cancelGeneration(),
             onQuestionnaire: _showQuestionnaireModal,
             onModelSelected: ai.setActiveModel,
           ),
@@ -1164,20 +1166,53 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.forestDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  ai.thinkingElapsedFormatted,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.acid,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.forestDark,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      ai.thinkingElapsedFormatted,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.acid,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => ai.cancelGeneration(),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        border: Border.all(color: AppColors.lineStrong),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.stop_rounded, size: 12, color: AppColors.danger),
+                          SizedBox(width: 3),
+                          Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

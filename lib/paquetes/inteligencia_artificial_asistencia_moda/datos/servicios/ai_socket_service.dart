@@ -242,6 +242,53 @@ class AiSocketService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cancela la generacion de respuesta en curso y restablece el estado
+  void cancelGeneration() {
+    if (!isBusy) return;
+
+    _stopThinkingTicker();
+    _queuedMessage = null;
+    _queuedMode = null;
+
+    final duration = _responseStartedAt > 0
+        ? DateTime.now().millisecondsSinceEpoch - _responseStartedAt
+        : 0;
+
+    for (final session in _sessions) {
+      if (session.id == _activeSessionId) {
+        for (final m in session.messages) {
+          if (m.pending) {
+            m.pending = false;
+            m.content = m.content.isNotEmpty
+                ? '${m.content}\n\n*[Respuesta detenida por el usuario]*'
+                : '*Consulta cancelada por el usuario.*';
+            m.durationMs = duration;
+          }
+        }
+      }
+    }
+
+    _toolActivity = [];
+    _liveThoughtSteps.clear();
+    _currentThought = null;
+    _responseStartedAt = 0;
+    _thinkingElapsedMs = 0;
+
+    try {
+      _channel?.sink.close(1000, 'cancelled_by_user');
+    } catch (_) {}
+    _channel = null;
+
+    _saveSessionsToStorage();
+    notifyListeners();
+
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (_status != AiSocketStatus.connected) {
+        connect();
+      }
+    });
+  }
+
   // --- WEBSOCKET CONNECTION ---
   void connect() {
     final token = _authService.token;

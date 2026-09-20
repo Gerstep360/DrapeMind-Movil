@@ -10,6 +10,7 @@ class AltairComposer extends StatelessWidget {
   final bool isBusy;
   final String activeModel;
   final VoidCallback onSend;
+  final VoidCallback? onCancel;
   final VoidCallback onQuestionnaire;
   final ValueChanged<String> onModelSelected;
 
@@ -19,6 +20,7 @@ class AltairComposer extends StatelessWidget {
     required this.isBusy,
     required this.activeModel,
     required this.onSend,
+    this.onCancel,
     required this.onQuestionnaire,
     required this.onModelSelected,
   });
@@ -80,26 +82,24 @@ class AltairComposer extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
               Semantics(
                 button: true,
-                label: isBusy ? 'Altair está respondiendo' : 'Enviar mensaje',
+                label: isBusy ? 'Detener respuesta de Altair' : 'Enviar mensaje',
                 child: Material(
-                  color: isBusy ? AppColors.lineStrong : AppColors.lime,
+                  color: isBusy ? AppColors.ink : AppColors.lime,
                   shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: isBusy ? null : onSend,
+                    onTap: isBusy ? onCancel : onSend,
                     child: SizedBox.square(
                       dimension: 48,
                       child: Center(
                         child: AnimatedSwitcher(
                           duration: AppMotion.fast,
                           child: isBusy
-                              ? const SizedBox.square(
-                                  key: ValueKey('busy'),
-                                  dimension: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.ink,
-                                  ),
+                              ? const Icon(
+                                  Icons.stop_rounded,
+                                  key: ValueKey('stop'),
+                                  size: 22,
+                                  color: AppColors.white,
                                 )
                               : KeyedSubtree(
                                   key: const ValueKey('send'),
