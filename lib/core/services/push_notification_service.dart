@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-import 'package:drapemind_mobile/compartido/componentes/notificaciones/in_app_notification_banner.dart';
 import 'package:drapemind_mobile/core/config/api_config.dart';
 import 'package:drapemind_mobile/core/models/notification_model.dart';
 import 'package:drapemind_mobile/core/models/realtime_models.dart';
@@ -99,13 +98,36 @@ class PushNotificationService extends ChangeNotifier {
     _listenRealtimeEvents();
   }
 
+  final Map<String, int> _recentNotificationTimestamps = {};
+
+  bool _isDuplicateNotification(String key) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _recentNotificationTimestamps.removeWhere((_, time) => now - time > 60000);
+    if (_recentNotificationTimestamps.containsKey(key)) {
+      return true;
+    }
+    _recentNotificationTimestamps[key] = now;
+    return false;
+  }
+
   void _handleFcmMessage(RemoteMessage msg) {
+    final rawId = msg.data['notification_id']?.toString() ?? msg.messageId ?? '';
     final title = msg.notification?.title ?? msg.data['title'] ?? msg.data['titulo'] ?? 'Notificación Atelier';
     final body = msg.notification?.body ?? msg.data['body'] ?? msg.data['mensaje'] ?? '';
-    final screen = msg.data['screen']?.toString() ?? '/notifications';
+    final dedupeKey = rawId.isNotEmpty ? 'id_$rawId' : 'text_${title}_$body';
+
+    if (_isDuplicateNotification(dedupeKey)) {
+      debugPrint('[PushNotificationService] FCM duplicado ignorado: $dedupeKey');
+      return;
+    }
+
+    final intId = int.tryParse(rawId) ?? Random().nextInt(1000000);
+    if (_notifications.any((n) => n.id == intId && intId != 0)) {
+      return;
+    }
 
     final notifMap = {
-      'id': int.tryParse(msg.data['notification_id']?.toString() ?? '') ?? Random().nextInt(1000000),
+      'id': intId,
       'titulo': title,
       'mensaje': body,
       'tipo': msg.data['type'] ?? msg.data['tipo'] ?? 'GENERAL',
@@ -118,17 +140,28 @@ class PushNotificationService extends ChangeNotifier {
     _notifications.insert(0, newNotif);
     notifyListeners();
 
-    InAppNotificationBanner.show(
-      title: title,
-      message: body,
-      screen: screen,
-      data: msg.data,
-    );
+    // No se crea modal superpuesto invasivo dentro de la app para no interrumpir la experiencia
   }
 
   void _handleNotificationTapFromBackground(RemoteMessage msg) {
-    final screen = msg.data['screen']?.toString() ?? '/notifications';
-    NavigationService.navigateTo(screen: screen, data: msg.data);
+    debugPrint('[PushNotificationService] Tap recibido en notificacion de fondo: ${msg.data}');
+    final payload = msg.data;
+    String screen = (payload['screen'] ?? payload['url'] ?? payload['enlace'] ?? '').toString();
+    if (screen.isEmpty) {
+      final tipo = (payload['type'] ?? payload['tipo'] ?? '').toString().toUpperCase();
+      if (tipo.contains('PEDIDO') || tipo.contains('ORDER') || tipo.contains('PAGO')) {
+        screen = '/orders';
+      } else if (tipo.contains('RESERVA')) {
+        screen = '/reservations';
+      } else if (tipo.contains('AI') || tipo.contains('ALTAIR')) {
+        screen = '/chat';
+      } else if (tipo.contains('CATALOG') || tipo.contains('PROMO')) {
+        screen = '/catalog';
+      } else {
+        screen = '/notifications';
+      }
+    }
+    NavigationService.navigateTo(screen: screen, data: payload);
   }
 
 
@@ -142,10 +175,25 @@ class PushNotificationService extends ChangeNotifier {
   void _handleRealtimeEvent(RealtimeEvent event) {
     final payloadMap = event.raw;
     if (event.type == 'notification') {
+      final rawId = payloadMap['id']?.toString() ?? '';
+      final title = payloadMap['title'] ?? payloadMap['titulo'] ?? 'Notificación';
+      final body = payloadMap['body'] ?? payloadMap['mensaje'] ?? '';
+      final dedupeKey = rawId.isNotEmpty ? 'id_$rawId' : 'text_${title}_$body';
+
+      if (_isDuplicateNotification(dedupeKey)) {
+        debugPrint('[PushNotificationService] Evento WebSocket duplicado ignorado: $dedupeKey');
+        return;
+      }
+
+      final intId = int.tryParse(rawId) ?? Random().nextInt(1000000);
+      if (_notifications.any((n) => n.id == intId && intId != 0)) {
+        return;
+      }
+
       final notifMap = {
-        'id': payloadMap['id'] ?? Random().nextInt(1000000),
-        'titulo': payloadMap['title'] ?? payloadMap['titulo'] ?? 'Notificación',
-        'mensaje': payloadMap['body'] ?? payloadMap['mensaje'] ?? '',
+        'id': intId,
+        'titulo': title,
+        'mensaje': body,
         'tipo': payloadMap['notification_type'] ?? payloadMap['tipo'] ?? 'GENERAL',
         'data_payload': payloadMap['data'] ?? payloadMap['payload'] ?? {},
         'leido': false,
@@ -156,14 +204,7 @@ class PushNotificationService extends ChangeNotifier {
       _notifications.insert(0, newNotif);
       notifyListeners();
 
-      // Mostrar banner flotante interactivo en primer plano
-      final screen = newNotif.dataPayload['screen']?.toString() ?? '/notifications';
-      InAppNotificationBanner.show(
-        title: newNotif.titulo,
-        message: newNotif.mensaje,
-        screen: screen,
-        data: newNotif.dataPayload,
-      );
+      // No se crea modal superpuesto invasivo dentro de la app para no interrumpir la experiencia
     } else if (event.type == 'notification_dismissed') {
       // Silenciamiento tras lectura emitido desde un dispositivo hermano
       final rawId = payloadMap['notification_id'];

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drapemind_mobile/navegacion/main_shell.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
 import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
+import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_cancelar_reserva/presentacion/reservations_screen.dart';
 
 class NavigationService {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -23,7 +24,9 @@ class NavigationService {
       final d = _pendingData;
       _pendingScreen = null;
       _pendingData = null;
-      navigateTo(screen: s, data: d);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigateTo(screen: s, data: d);
+      });
     }
   }
 
@@ -73,6 +76,18 @@ class NavigationService {
         nav.popUntil((route) => route.isFirst);
       }
       MainShell.switchTab?.call(4);
+      return;
+    }
+
+    if (normalized.contains('reservation') || normalized.contains('reserva')) {
+      if (nav != null && nav.canPop()) {
+        nav.popUntil((route) => route.isFirst);
+      }
+      if (nav != null) {
+        await nav.push(
+          MaterialPageRoute(builder: (_) => const ReservationsScreen()),
+        );
+      }
       return;
     }
 

@@ -194,21 +194,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return InkWell(
       onTap: () {
         service.markAsRead(notif.id);
-        final screen = notif.dataPayload['screen']?.toString() ?? '';
-        final norm = screen.toLowerCase().trim();
-        if (norm.contains('order') ||
-            norm.contains('pedido') ||
-            norm.contains('ai') ||
-            norm.contains('chat') ||
-            norm.contains('cart') ||
-            norm.contains('carrito') ||
-            norm.contains('catalog') ||
-            norm.contains('ropa') ||
-            norm.contains('prenda') ||
-            norm.contains('account') ||
-            norm.contains('cuenta')) {
+        final payload = notif.dataPayload;
+        String screen = (payload['screen'] ?? payload['enlace'] ?? payload['url'] ?? '').toString();
+        if (screen.isEmpty) {
+          final tipo = notif.tipo.toUpperCase();
+          if (tipo.contains('PEDIDO') || tipo.contains('ORDER') || tipo.contains('PAGO')) {
+            screen = '/orders';
+          } else if (tipo.contains('RESERVA')) {
+            screen = '/reservations';
+          } else if (tipo.contains('AI') || tipo.contains('ALTAIR')) {
+            screen = '/chat';
+          } else if (tipo.contains('CATALOG') || tipo.contains('PROMO')) {
+            screen = '/catalog';
+          }
+        }
+        if (screen.isNotEmpty && screen != '/notifications') {
           Navigator.of(context).pop();
-          NavigationService.navigateTo(screen: screen, data: notif.dataPayload);
+          NavigationService.navigateTo(screen: screen, data: payload);
         }
       },
       borderRadius: BorderRadius.circular(16),
