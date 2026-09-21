@@ -252,7 +252,19 @@ class AuthService extends ChangeNotifier {
     _token = null;
     _onboardingSkipped = false;
     await _apiClient.clearToken();
-    await SecurityService().clearCachedUserProfile();
+    await SecurityService().clearSecurityState();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('drapemind_cached_style_profile');
+      await prefs.remove('ai_quest_occ');
+      await prefs.remove('ai_quest_top_type');
+      await prefs.remove('ai_quest_top_size');
+      await prefs.remove('ai_quest_bot_type');
+      await prefs.remove('ai_quest_bot_size');
+      await prefs.remove('ai_quest_shoe');
+      await prefs.remove('ai_quest_budget');
+      await prefs.remove('dm_device_push_token');
+    } catch (_) {}
     notifyListeners();
   }
 

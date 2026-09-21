@@ -60,6 +60,7 @@ class ApiClient {
   Future<void> clearToken() async {
     try {
       await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.deleteAll();
     } catch (_) {}
     try {
       final prefs = await SharedPreferences.getInstance();

@@ -582,6 +582,58 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
+  Future<void> _confirmLogout(BuildContext context, AuthService auth) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.paper,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Cerrar sesión',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink,
+          ),
+        ),
+        content: const Text(
+          'Se cerrará tu sesión activa y se eliminarán los tokens de acceso del dispositivo. ¿Deseas continuar?',
+          style: TextStyle(fontSize: 14, color: AppColors.textMutedStrong),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.logout_rounded, size: 16),
+            label: const Text(
+              'Cerrar sesión',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await auth.logout();
+    }
+  }
+
   void _showMessage(String message, {bool danger = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -622,12 +674,33 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Cerrar sesión',
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFDE8E8),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFFCA5A5), width: 1),
+              ),
+              child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.danger),
+            ),
+            onPressed: () => _confirmLogout(context, auth),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         color: AppColors.ink,
         onRefresh: _loadAccount,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            120 + MediaQuery.of(context).padding.bottom,
+          ),
           children: [
             Container(
               padding: const EdgeInsets.all(20),
@@ -1360,17 +1433,34 @@ class _AccountScreenState extends State<AccountScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.danger,
-                side: const BorderSide(color: AppColors.danger),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 8, bottom: 24),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFDE8E8),
+                  foregroundColor: AppColors.danger,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                  ),
+                ),
+                onPressed: () => _confirmLogout(context, auth),
+                icon: const Icon(Icons.logout_rounded, size: 20),
+                label: const Text(
+                  'Cerrar sesión',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                  ),
+                ),
               ),
-              onPressed: auth.logout,
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Cerrar sesión'),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
         ),
       ),

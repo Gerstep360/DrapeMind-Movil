@@ -69,115 +69,136 @@ class _PinLockScreenState extends State<PinLockScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0E1311),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-          child: Column(
-            children: [
-              // HEADER DE SEGURIDAD
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.forestDark,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.acid.withAlpha(90),
-                    width: 1.5,
-                  ),
-                ),
-                child: AppSvg.raw(AppSvg.lock, size: 28, color: AppColors.acid),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'DRAPEMIND ATELIER',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  color: AppColors.acid,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Hola, $userName',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Ingresa tu PIN de 4 dígitos para acceder a tu perchero y compras',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                    child: Column(
+                      children: [
+                        // HEADER DE SEGURIDAD
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.forestDark,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.acid.withAlpha(90),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: AppSvg.raw(AppSvg.lock, size: 28, color: AppColors.acid),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'DRAPEMIND ATELIER',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                            color: AppColors.acid,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Hola, $userName',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Ingresa tu PIN de 4 dígitos para acceder a tu perchero y compras',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        ),
+                        const SizedBox(height: 20),
 
-              // INDICADORES DE 4 DÍGITOS
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  final isFilled = index < _enteredPin.length;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: isFilled ? AppColors.acid : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isFilled
-                            ? AppColors.acid
-                            : AppColors.forest.withAlpha(120),
-                        width: 2,
-                      ),
+                        // INDICADORES DE 4 DÍGITOS
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            final isFilled = index < _enteredPin.length;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              margin: const EdgeInsets.symmetric(horizontal: 10),
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: isFilled ? AppColors.acid : Colors.transparent,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isFilled
+                                      ? AppColors.acid
+                                      : AppColors.forest.withAlpha(120),
+                                  width: 2,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // MENSAJE DE ERROR
+                        if (_errorMessage != null)
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        else
+                          const SizedBox(height: 16),
+
+                        const Spacer(),
+
+                        // TECLADO NUMÉRICO DE ALTA COSTURA
+                        _buildNumpad(),
+
+                        const SizedBox(height: 16),
+
+                        // BOTÓN CERRAR SESIÓN / CAMBIAR DE CUENTA
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textMuted,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            onPressed: () async {
+                              await auth.logout();
+                              if (context.mounted) {
+                                context.read<SecurityService>().resetLock();
+                              }
+                            },
+                            icon: const Icon(Icons.logout_rounded, size: 16, color: AppColors.danger),
+                            label: const Text(
+                              'Cerrar sesión o cambiar de cuenta',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMutedStrong,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 12),
-
-              // MENSAJE DE ERROR
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w700,
-                  ),
-                )
-              else
-                const SizedBox(height: 16),
-
-              const Spacer(),
-
-              // TECLADO NUMÉRICO DE ALTA COSTURA
-              _buildNumpad(),
-
-              const SizedBox(height: 16),
-
-              // BOTÓN CERRAR SESIÓN / CAMBIAR DE CUENTA
-              TextButton(
-                onPressed: () async {
-                  await auth.logout();
-                  if (context.mounted) {
-                    context.read<SecurityService>().resetLock();
-                  }
-                },
-                child: const Text(
-                  'Cerrar sesión o cambiar de cuenta',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

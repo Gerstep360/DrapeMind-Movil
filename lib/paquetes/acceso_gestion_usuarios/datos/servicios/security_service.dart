@@ -124,4 +124,20 @@ class SecurityService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCachedUser);
   }
+
+  /// Limpia por completo el estado de seguridad al cerrar sesion
+  Future<void> clearSecurityState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyCachedUser);
+      await prefs.remove(_keyUserPin);
+      await prefs.remove(_keyPinEnabled);
+      await prefs.remove(_keyBiometricEnabled);
+    } catch (_) {}
+    _userPin = null;
+    _isPinEnabled = false;
+    _isBiometricEnabled = false;
+    _isLocked = false;
+    notifyListeners();
+  }
 }
