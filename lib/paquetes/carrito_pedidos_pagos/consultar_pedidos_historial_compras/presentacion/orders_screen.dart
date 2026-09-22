@@ -367,6 +367,13 @@ class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
   Map<String, dynamic>? _receiptData;
   String? _error;
 
+  static num _parseNum(dynamic value, [num fallback = 0.0]) {
+    if (value == null) return fallback;
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -432,11 +439,11 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
     final itemsList = (_receiptData?['items'] as List?) ?? [];
     final paymentsList = (_receiptData?['payments'] as List?) ?? [];
 
-    final total = (orderMap?['total'] ?? widget.initialOrder.total) as num;
+    final total = _parseNum(orderMap?['total'], widget.initialOrder.total);
     final subtotal =
-        (orderMap?['subtotal'] ?? widget.initialOrder.subtotal) as num;
-    final deliveryCost = (orderMap?['costo_envio'] ?? 0.0) as num;
-    final discount = (orderMap?['descuento'] ?? 0.0) as num;
+        _parseNum(orderMap?['subtotal'], widget.initialOrder.subtotal);
+    final deliveryCost = _parseNum(orderMap?['costo_envio'], 0.0);
+    final discount = _parseNum(orderMap?['descuento'], 0.0);
     final statusStr =
         orderMap?['estado']?.toString() ??
         widget.initialOrder.estado.displayName;
@@ -776,10 +783,10 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                           else
                             ...itemsList.map((item) {
                               final name = item['nombre'] ?? 'Prenda Atelier';
-                              final qty = item['cantidad'] ?? 1;
+                              final qty = _parseNum(item['cantidad'], 1).toInt();
                               final unitPrice =
-                                  (item['precio_unitario'] ?? 0.0) as num;
-                              final sub = (item['subtotal'] ?? 0.0) as num;
+                                  _parseNum(item['precio_unitario'], 0.0);
+                              final sub = _parseNum(item['subtotal'], 0.0);
                               final variant =
                                   '${item['color'] ?? ""} ${item['talla'] ?? ""}'
                                       .trim();

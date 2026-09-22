@@ -122,9 +122,40 @@ class ApiConfig {
 
   /// Helper to convert relative asset URLs (e.g. '/static/products/sample.jpg') to full URLs
   static String resolveMediaUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    final cleanPath = path.startsWith('/') ? path : '/$path';
-    return '$baseUrl$cleanPath';
+    if (path == null || path.trim().isEmpty) return '';
+    final trimmed = path.trim();
+    if (trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:') ||
+        trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+
+    String clean = trimmed.replaceAll(r'\', '/');
+    while (clean.startsWith('/')) {
+      clean = clean.substring(1);
+    }
+
+    // Normalizar si ya viene con prefijo drapemind/
+    if (clean.toLowerCase().startsWith('drapemind/')) {
+      clean = clean.substring('drapemind/'.length);
+      while (clean.startsWith('/')) {
+        clean = clean.substring(1);
+      }
+    }
+
+    // Si es solo un nombre de archivo directo (ej. 'f53227296d92475084c3c0b4cbcf51c4.png')
+    if (!clean.contains('/') &&
+        RegExp(r'\.(png|jpe?g|webp|svg|gif)$', caseSensitive: false).hasMatch(clean)) {
+      clean = 'static/products/$clean';
+    } else if (!clean.startsWith('static/') &&
+        RegExp(r'\.(png|jpe?g|webp|svg|gif)$', caseSensitive: false).hasMatch(clean)) {
+      clean = 'static/$clean';
+    }
+
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    return '$base/$clean';
   }
 }

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/theme/app_svg.dart';
@@ -17,11 +19,41 @@ class DmProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.trim().isEmpty) {
+    final trimmed = imageUrl.trim();
+    if (trimmed.isEmpty) {
       return _EditorialFallback(label: semanticLabel);
     }
+
+    // Soporte para data URIs base64
+    if (trimmed.startsWith('data:image')) {
+      try {
+        final commaIdx = trimmed.indexOf(',');
+        if (commaIdx != -1) {
+          final b64 = trimmed.substring(commaIdx + 1);
+          final bytes = base64Decode(b64);
+          return Image.memory(
+            bytes,
+            fit: fit,
+            semanticLabel: semanticLabel,
+            errorBuilder: (_, __, ___) => _EditorialFallback(label: semanticLabel),
+          );
+        }
+      } catch (_) {
+        return _EditorialFallback(label: semanticLabel);
+      }
+    }
+
+    // Soporte para archivos vectoriales SVG
+    if (trimmed.toLowerCase().endsWith('.svg') || trimmed.toLowerCase().contains('.svg?')) {
+      return SvgPicture.network(
+        trimmed,
+        fit: fit,
+        placeholderBuilder: (_) => const _ProductSkeleton(),
+      );
+    }
+
     return Image.network(
-      imageUrl,
+      trimmed,
       fit: fit,
       semanticLabel: semanticLabel,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
