@@ -6,6 +6,7 @@ class AppTheme {
   static ThemeData get luxuryTheme {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Roboto',
       brightness: Brightness.light,
       primaryColor: AppColors.ink,
       scaffoldBackgroundColor: AppColors.paper,
@@ -21,6 +22,7 @@ class AppTheme {
       ),
       textTheme: const TextTheme(
         displaySmall: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 36,
           height: 1.02,
           fontWeight: FontWeight.w700,
@@ -28,6 +30,7 @@ class AppTheme {
           color: AppColors.ink,
         ),
         headlineMedium: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 28,
           height: 1.08,
           fontWeight: FontWeight.w700,
@@ -35,6 +38,7 @@ class AppTheme {
           color: AppColors.ink,
         ),
         titleLarge: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 20,
           height: 1.15,
           fontWeight: FontWeight.w700,
@@ -42,11 +46,13 @@ class AppTheme {
           color: AppColors.ink,
         ),
         bodyLarge: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 16,
           height: 1.5,
           color: AppColors.textMain,
         ),
         bodyMedium: TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 14,
           height: 1.45,
           color: AppColors.textMain,
@@ -59,6 +65,7 @@ class AppTheme {
         centerTitle: false,
         iconTheme: IconThemeData(color: AppColors.ink),
         titleTextStyle: TextStyle(
+          fontFamily: 'Roboto',
           color: AppColors.ink,
           fontSize: 18,
           fontWeight: FontWeight.w800,
@@ -75,6 +82,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(24),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Roboto',
             fontSize: 14,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.2,
@@ -89,7 +97,11 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -111,8 +123,16 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.ink, width: 1.5),
         ),
-        labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+        labelStyle: const TextStyle(
+          fontFamily: 'Roboto',
+          color: AppColors.textMuted,
+          fontSize: 13,
+        ),
+        hintStyle: const TextStyle(
+          fontFamily: 'Roboto',
+          color: AppColors.textMuted,
+          fontSize: 13,
+        ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.paper,
@@ -135,7 +155,10 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.ink,
-        contentTextStyle: const TextStyle(color: AppColors.white),
+        contentTextStyle: const TextStyle(
+          fontFamily: 'Roboto',
+          color: AppColors.white,
+        ),
         insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -154,6 +177,7 @@ class AppTheme {
         backgroundColor: AppColors.paperDark,
         selectedColor: AppColors.lime,
         labelStyle: const TextStyle(
+          fontFamily: 'Roboto',
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: AppColors.ink,

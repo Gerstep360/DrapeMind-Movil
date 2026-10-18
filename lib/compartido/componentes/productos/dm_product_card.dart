@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:drapemind_mobile/compartido/componentes/productos/dm_product_image.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
-import 'package:drapemind_mobile/core/theme/app_design_tokens.dart';
-import 'package:drapemind_mobile/core/theme/app_svg.dart';
 
 class DmProductCard extends StatelessWidget {
   final Product product;
@@ -12,7 +9,6 @@ class DmProductCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
   final VoidCallback onQuickAdd;
-
   const DmProductCard({
     super.key,
     required this.product,
@@ -24,233 +20,144 @@ class DmProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasStock = product.stockDisponible > 0;
-
-    return Material(
-      color: AppColors.white,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.large),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: InkWell(
-        onTap: onOpen,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  DmProductImage(
-                    imageUrl: product.mainImageUrl,
-                    semanticLabel: product.nombre,
+    final available = product.stockDisponible > 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Material(
+                  color: AppColors.paperDark,
+                  child: InkWell(
+                    onTap: onOpen,
+                    child: DmProductImage(
+                      imageUrl: product.mainImageUrl,
+                      semanticLabel: product.nombre,
+                    ),
                   ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: _RoundAction(
-                      tooltip: isFavorite
-                          ? 'Quitar de favoritos'
-                          : 'Guardar en favoritos',
-                      onTap: onFavorite,
-                      child: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        size: 17,
-                        color: isFavorite ? AppColors.danger : AppColors.ink,
+                ),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: _Action(
+                  label: isFavorite
+                      ? 'Quitar de favoritos'
+                      : 'Guardar en favoritos',
+                  onTap: onFavorite,
+                  icon: isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: isFavorite ? AppColors.danger : AppColors.ink,
+                ),
+              ),
+              if (!available || product.stockDisponible <= 3)
+                Positioned(
+                  left: 8,
+                  bottom: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      available ? 'Últimas unidades' : 'Agotado',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: 8,
-                    bottom: 8,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _Badge(
-                          label: 'Q${product.calidadNivel}',
-                          foreground: AppColors.lime,
-                          background: AppColors.ink,
-                        ),
-                        if (product.generoObjetivo.isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          _Badge(label: product.generoObjetivo),
-                        ],
-                      ],
-                    ),
+                ),
+              if (available)
+                Positioned(
+                  bottom: 7,
+                  right: 5,
+                  child: _Action(
+                    label: 'Elegir talla y agregar al carrito',
+                    onTap: onQuickAdd,
+                    icon: Icons.add_rounded,
                   ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 10, 2, 3),
+          child: InkWell(
+            onTap: onOpen,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (product.marca?.isNotEmpty == true) ...[
                   Text(
-                    (product.marca ?? 'DrapeMind Studio').toUpperCase(),
+                    product.marca!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                      color: AppColors.textMuted,
+                      fontSize: 10,
+                      letterSpacing: 0.6,
+                      color: AppColors.textMutedStrong,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    product.nombre,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Bs ${product.precio.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                      ),
-                      _StockPill(
-                        hasStock: hasStock,
-                        count: product.stockDisponible,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 36,
-                          child: FilledButton(
-                            onPressed: onOpen,
-                            child: const Text(
-                              'Ver prenda',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _RoundAction(
-                        tooltip: hasStock
-                            ? 'Añadir al perchero'
-                            : 'Prenda agotada',
-                        background: AppColors.lime,
-                        onTap: hasStock ? onQuickAdd : null,
-                        child: AppSvg.raw(
-                          AppSvg.bag,
-                          size: 15,
-                          color: hasStock ? AppColors.ink : AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 4),
                 ],
-              ),
+                Text(
+                  product.nombre,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Bs ${product.precio.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _RoundAction extends StatelessWidget {
-  final String tooltip;
-  final Widget child;
-  final VoidCallback? onTap;
-  final Color background;
-
-  const _RoundAction({
-    required this.tooltip,
-    required this.child,
-    required this.onTap,
-    this.background = AppColors.white,
-  });
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: Material(
-      color: background.withValues(alpha: onTap == null ? 0.55 : 0.94),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox.square(dimension: 36, child: Center(child: child)),
-      ),
-    ),
-  );
-}
-
-class _Badge extends StatelessWidget {
+class _Action extends StatelessWidget {
   final String label;
-  final Color foreground;
-  final Color background;
-
-  const _Badge({
+  final VoidCallback onTap;
+  final IconData icon;
+  final Color color;
+  const _Action({
     required this.label,
-    this.foreground = AppColors.ink,
-    this.background = AppColors.white,
+    required this.onTap,
+    required this.icon,
+    this.color = AppColors.ink,
   });
-
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-    decoration: BoxDecoration(
-      color: background.withValues(alpha: 0.94),
-      borderRadius: BorderRadius.circular(AppRadii.pill),
-      border: background == AppColors.white
-          ? Border.all(color: AppColors.line)
-          : null,
+  Widget build(BuildContext context) => IconButton(
+    tooltip: label,
+    onPressed: onTap,
+    style: IconButton.styleFrom(
+      backgroundColor: AppColors.white,
+      foregroundColor: color,
+      minimumSize: const Size(44, 44),
+      maximumSize: const Size(44, 44),
     ),
-    child: Text(
-      label,
-      style: TextStyle(
-        color: foreground,
-        fontSize: 9,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-}
-
-class _StockPill extends StatelessWidget {
-  final bool hasStock;
-  final int count;
-
-  const _StockPill({required this.hasStock, required this.count});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-    decoration: BoxDecoration(
-      color: hasStock ? AppColors.successBg : AppColors.dangerBg,
-      borderRadius: BorderRadius.circular(AppRadii.pill),
-    ),
-    child: Text(
-      hasStock ? '$count en stock' : 'Agotado',
-      style: TextStyle(
-        fontSize: 9,
-        fontWeight: FontWeight.w800,
-        color: hasStock ? AppColors.success : AppColors.danger,
-      ),
-    ),
+    icon: Icon(icon, size: 21),
   );
 }

@@ -29,6 +29,8 @@ class CatalogService {
     String? genero,
     int limit = 50,
     int offset = 0,
+    double? maxPrice,
+    String? talla,
   }) async {
     final queryParams = <String, dynamic>{
       if (categoriaId != null) 'categoria_id': categoriaId,
@@ -37,6 +39,8 @@ class CatalogService {
       if (genero != null && genero.trim().isNotEmpty) 'genero': genero.trim(),
       'limit': limit,
       'offset': offset,
+      if (maxPrice != null) 'precio_max': maxPrice,
+      if (talla != null && talla.isNotEmpty) 'talla': talla,
     };
 
     final response = await _apiClient.get(

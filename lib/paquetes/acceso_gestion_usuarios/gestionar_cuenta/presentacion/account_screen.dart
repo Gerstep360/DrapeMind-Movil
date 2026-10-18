@@ -1,3 +1,4 @@
+import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -94,7 +95,7 @@ class _AccountScreenState extends State<AccountScreen> {
     try {
       await _preferredBranchStore.save(branch.id);
       if (mounted) {
-        _showMessage('Showroom preferido: ${branch.nombre}');
+        _showMessage('Tienda preferida: ${branch.nombre}');
       }
     } catch (_) {}
   }
@@ -381,6 +382,20 @@ class _AccountScreenState extends State<AccountScreen> {
         title: const Text('Eliminar dirección'),
         content: Text('¿Quieres eliminar “${address.alias}”?'),
         actions: [
+          IconButton(
+            tooltip: 'Plan de empresa',
+            icon: const Icon(Icons.business_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Plan de empresa',
+            icon: const Icon(Icons.business_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+            ),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Conservar'),
@@ -605,7 +620,10 @@ class _AccountScreenState extends State<AccountScreen> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text(
               'Cancelar',
-              style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           ElevatedButton.icon(
@@ -684,7 +702,11 @@ class _AccountScreenState extends State<AccountScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFFCA5A5), width: 1),
               ),
-              child: const Icon(Icons.logout_rounded, size: 16, color: AppColors.danger),
+              child: const Icon(
+                Icons.logout_rounded,
+                size: 16,
+                color: AppColors.danger,
+              ),
             ),
             onPressed: () => _confirmLogout(context, auth),
           ),
@@ -815,7 +837,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 14),
             DmSection(
-              eyebrow: 'ADN DE ESTILO',
+              eyebrow: 'TUS PREFERENCIAS',
               title: 'Preferencias de estilo',
               trailing: TextButton.icon(
                 onPressed: _openOnboarding,
@@ -1180,7 +1202,9 @@ class _AccountScreenState extends State<AccountScreen> {
                               if (mounted) _loadAccount();
                             },
                             icon: const Icon(Icons.tune, size: 16),
-                            label: const Text('Gestionar todas mis direcciones'),
+                            label: const Text(
+                              'Gestionar todas mis direcciones',
+                            ),
                           ),
                         ),
                       ],
@@ -1442,10 +1466,16 @@ class _AccountScreenState extends State<AccountScreen> {
                   backgroundColor: const Color(0xFFFDE8E8),
                   foregroundColor: AppColors.danger,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                    side: const BorderSide(
+                      color: Color(0xFFFCA5A5),
+                      width: 1.2,
+                    ),
                   ),
                 ),
                 onPressed: () => _confirmLogout(context, auth),

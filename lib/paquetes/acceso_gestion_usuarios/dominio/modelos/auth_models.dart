@@ -37,6 +37,8 @@ enum UserRole {
 }
 
 class User {
+  final int? tenantId;
+  final bool isPlatformAdmin;
   final int id;
   final String nombre;
   final String email;
@@ -47,6 +49,8 @@ class User {
   final bool hasStyleProfile;
 
   User({
+    this.tenantId,
+    this.isPlatformAdmin = false,
     required this.id,
     required this.nombre,
     required this.email,
@@ -59,6 +63,8 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
+      tenantId: json['tenant_id'] as int?,
+      isPlatformAdmin: json['is_platform_admin'] == true,
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       nombre: json['nombre'] ?? '',
       email: json['email'] ?? '',
@@ -83,6 +89,8 @@ class User {
     bool? hasStyleProfile,
   }) {
     return User(
+      tenantId: tenantId,
+      isPlatformAdmin: isPlatformAdmin,
       id: id ?? this.id,
       nombre: nombre ?? this.nombre,
       email: email ?? this.email,
@@ -95,6 +103,8 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
+    'tenant_id': tenantId,
+    'is_platform_admin': isPlatformAdmin,
     'id': id,
     'nombre': nombre,
     'email': email,

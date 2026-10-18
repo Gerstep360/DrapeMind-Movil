@@ -2,6 +2,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Global configuration for DrapeMind Backend API & WebSockets.
 class ApiConfig {
+  static const String localBaseUrl = String.fromEnvironment(
+    'DRAPEMIND_API_URL',
+  );
+
   /// IP pública del servidor VPS oficial de producción
   static const String defaultServerIp = '167.86.106.105';
   static const int defaultServerPort = 80;
@@ -93,6 +97,9 @@ class ApiConfig {
 
   /// Base URL: e.g. http://167.86.106.105/DrapeMind o http://127.0.0.1:8000
   static String get baseUrl {
+    if (localBaseUrl.isNotEmpty) {
+      return localBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+    }
     final host = defaultHost;
     if (host.startsWith('http://') || host.startsWith('https://')) {
       return host.endsWith('/') ? host.substring(0, host.length - 1) : host;
@@ -146,10 +153,16 @@ class ApiConfig {
 
     // Si es solo un nombre de archivo directo (ej. 'f53227296d92475084c3c0b4cbcf51c4.png')
     if (!clean.contains('/') &&
-        RegExp(r'\.(png|jpe?g|webp|svg|gif)$', caseSensitive: false).hasMatch(clean)) {
+        RegExp(
+          r'\.(png|jpe?g|webp|svg|gif)$',
+          caseSensitive: false,
+        ).hasMatch(clean)) {
       clean = 'static/products/$clean';
     } else if (!clean.startsWith('static/') &&
-        RegExp(r'\.(png|jpe?g|webp|svg|gif)$', caseSensitive: false).hasMatch(clean)) {
+        RegExp(
+          r'\.(png|jpe?g|webp|svg|gif)$',
+          caseSensitive: false,
+        ).hasMatch(clean)) {
       clean = 'static/$clean';
     }
 

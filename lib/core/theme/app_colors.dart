@@ -20,10 +20,10 @@ class AppColors {
   static const Color gold = Color(0xFFE4B84D); // --dm-warning / gold
 
   // Background & paper tones (Soft Futurism / Warm Minimalism)
-  static const Color paper = Color(0xFFF4F5EA); // --dm-bg
+  static const Color paper = Color(0xFFFAF9F6); // Fondo cálido de la tienda
   static const Color paperLight = Color(0xFFFFFFFF); // --dm-surface
   static const Color paperDark = Color(
-    0xFFF0F1EB,
+    0xFFF2F0EC,
   ); // --dm-gray-100 / surface-soft
   static const Color white = Color(0xFFFFFFFF);
 
@@ -33,8 +33,8 @@ class AppColors {
 
   // Text & accents
   static const Color textMain = Color(0xFF10110F); // --dm-ink
-  static const Color textMuted = Color(0xFF7B7F75); // --dm-gray-500
-  static const Color muted = Color(0xFF7B7F75); // alias for textMuted
+  static const Color textMuted = Color(0xFF6B6E65);
+  static const Color muted = Color(0xFF6B6E65);
   static const Color textMutedStrong = Color(0xFF40433D); // --dm-gray-700
 
   // Status indicators

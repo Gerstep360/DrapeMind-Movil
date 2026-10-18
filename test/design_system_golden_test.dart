@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/golden_assets.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/navegacion/dm_mobile_navigation.dart';
 import 'package:drapemind_mobile/compartido/componentes/productos/dm_product_card.dart';
@@ -9,6 +10,8 @@ import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/mode
 import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/consultar_asistente_altair/presentacion/componentes/altair_welcome_state.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(loadGoldenFonts);
   testWidgets('DrapeMind mobile shell visual regression', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -31,8 +34,7 @@ void main() {
         theme: AppTheme.luxuryTheme,
         home: Scaffold(
           backgroundColor: AppColors.paper,
-          extendBody: true,
-          appBar: AppBar(title: const Text('Showroom')),
+          appBar: AppBar(title: const Text('Tienda')),
           body: Padding(
             padding: const EdgeInsets.all(16),
             child: Align(
@@ -75,7 +77,7 @@ void main() {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.luxuryTheme,
         home: Scaffold(
-          appBar: AppBar(title: const Text('Altair · Stylist IA')),
+          appBar: AppBar(title: const Text('Altair · Tu asistente de estilo')),
           body: AltairWelcomeState(onPrompt: (_) {}, onOpenPreferences: () {}),
         ),
       ),

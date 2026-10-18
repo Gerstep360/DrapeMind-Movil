@@ -83,7 +83,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           SnackBar(
             backgroundColor: AppColors.forest,
             content: Text(
-              '${_product!.nombre} (${_selectedVariant!.color}, ${_selectedVariant!.talla}) añadida al perchero',
+              '${_product!.nombre} (${_selectedVariant!.color}, ${_selectedVariant!.talla}) agregada al carrito',
             ),
           ),
         );
@@ -366,28 +366,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   );
                                 },
                               ),
-                              Positioned(
-                                top: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.ink,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                  child: Text(
-                                    'Calidad Q${_product!.calidadNivel}',
-                                    style: const TextStyle(
-                                      color: AppColors.acid,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ),
                               if (_product!.allImageUrls.length > 1)
                                 Positioned(
                                   bottom: 10,
@@ -427,7 +405,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               Text(
                                 _product!.nombre,
                                 style: const TextStyle(
-                                  fontFamily: 'serif',
+                                  fontFamily: 'Roboto',
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
                                   color: AppColors.forestDark,
@@ -448,7 +426,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                               // VARIANTS SELECTOR
                               const Text(
-                                'SELECCIONA VARIANTE (COLOR Y TALLA)',
+                                'Elige tu talla y color',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
@@ -467,7 +445,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   return ChoiceChip(
                                     selected: isSelected,
                                     label: Text(
-                                      '${v.color} · ${v.talla} (${v.stockDisponible} en stock)',
+                                      '${v.talla} · ${v.color}${hasStock ? '' : ' · Agotado'}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,

@@ -37,7 +37,7 @@ enum PaymentMethod {
       case PaymentMethod.tarjeta:
         return 'Tarjeta de Débito / Crédito';
       case PaymentMethod.efectivo:
-        return 'Efectivo en Showroom';
+        return 'Efectivo en tienda';
       case PaymentMethod.transferencia:
         return 'Transferencia Bancaria';
     }

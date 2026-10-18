@@ -284,7 +284,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           value: DeliveryType.recojo,
                           groupValue: _deliveryType,
                           title: const Text(
-                            'Recojo en Showroom Atelier',
+                            'Recoger en tienda',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
@@ -414,7 +414,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                               const SizedBox(width: 6),
                               const Text(
-                                'Efectivo en Showroom',
+                                'Efectivo en tienda',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,

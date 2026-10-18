@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/core.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/theme/app_svg.dart';
+import 'package:drapemind_mobile/core/services/company_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +17,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
+  final _companyController = TextEditingController(text: 'drapemind');
+
+  @override
+  void initState() {
+    super.initState();
+    CompanyService.selected().then((slug) {
+      if (mounted) _companyController.text = slug;
+    });
+  }
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -25,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _companyController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _phoneController.dispose();
@@ -39,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final security = context.read<SecurityService>();
 
     try {
+      await CompanyService.select(_companyController.text);
       if (_isRegister) {
         await auth.register(
           nombre: _nameController.text.trim(),
@@ -687,6 +700,24 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 14),
                           ],
 
+                          TextFormField(
+                            controller: _companyController,
+                            autocorrect: false,
+                            decoration: const InputDecoration(
+                              labelText: 'Empresa',
+                              hintText: 'mi-empresa',
+                              helperText:
+                                  'Identificador entregado por tu empresa',
+                              prefixIcon: Icon(Icons.storefront_outlined),
+                            ),
+                            validator: (value) =>
+                                RegExp(
+                                  r'^[a-z0-9]+(?:-[a-z0-9]+)*$',
+                                ).hasMatch(value?.trim().toLowerCase() ?? '')
+                                ? null
+                                : 'Escribe el identificador de empresa',
+                          ),
+                          const SizedBox(height: 14),
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,

@@ -1,6 +1,18 @@
 # 📱 DrapeMind Mobile App (Flutter)
 
-Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, desarrollada con **Flutter** y **Riverpod**.
+Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, desarrollada con **Flutter** y **Provider**.
+
+## Backend local y nueva arquitectura Altair
+
+Abrir el panel con `python iniciar_backend.py` desde la raíz del proyecto. En emulador Android:
+
+```powershell
+flutter run --dart-define=DRAPEMIND_API_URL=http://10.0.2.2:8000
+```
+
+En teléfono físico, activar acceso LAN en el panel y usar la IP del PC. Para ADB Reverse, usar `http://127.0.0.1:8000`. La URL definida por compilación tiene prioridad; sin ella se conserva la configuración de servidor de la app.
+
+Altair usa el proveedor del backend, sin claves ni selección de múltiples modelos en la app. El chat admite respuestas simultáneas identificadas por mensaje y descarta resultados cancelados. El onboarding guarda las preferencias y muestra una inferencia breve de estilo, con reintento si el proveedor falla. Detalles: [guía del backend](../backend/README.md).
 
 ---
 

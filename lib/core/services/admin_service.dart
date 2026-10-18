@@ -121,16 +121,4 @@ class AdminService {
     final response = await _apiClient.get('/admin/ai/runtime');
     return AiRuntimeStatus.fromJson(response as Map<String, dynamic>);
   }
-
-  /// Start AI Engine manually
-  Future<AiRuntimeStatus> startAi() async {
-    final response = await _apiClient.post('/admin/ai/runtime/start', body: {});
-    return AiRuntimeStatus.fromJson(response as Map<String, dynamic>);
-  }
-
-  /// Stop AI Engine manually
-  Future<AiRuntimeStatus> stopAi() async {
-    final response = await _apiClient.post('/admin/ai/runtime/stop', body: {});
-    return AiRuntimeStatus.fromJson(response as Map<String, dynamic>);
-  }
 }

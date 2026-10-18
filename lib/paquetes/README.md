@@ -36,7 +36,7 @@ infraestructura transversal (configuración, HTTP/WebSocket, tema y métricas);
 
 ## Inteligencia artificial y asistencia de moda
 
-- `consultar_asistente_altair/`: chat, sesiones, selector Mini/Dinámico/Gemma.
+- `consultar_asistente_altair/`: chat, sesiones, selector Mini/Dinámico/NVIDIA.
 - `aplicar_recomendacion_carrito/`: traduce acciones verificadas de Altair a
   operaciones reales de carrito.
 - Búsqueda natural, generación y ampliación de outfit usan el mismo canal

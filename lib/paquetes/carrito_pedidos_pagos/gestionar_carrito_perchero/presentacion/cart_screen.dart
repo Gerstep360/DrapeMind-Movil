@@ -10,8 +10,9 @@ import 'componentes/cart_item_card.dart';
 
 class CartScreen extends StatefulWidget {
   final VoidCallback? onOpenAiStudio;
+  final VoidCallback? onOpenCatalog;
 
-  const CartScreen({super.key, this.onOpenAiStudio});
+  const CartScreen({super.key, this.onOpenAiStudio, this.onOpenCatalog});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -49,7 +50,8 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _isAnalyzingStyle = true);
     try {
       final res = await cartService.checkStyle(
-        objetivo: 'Evaluar coherencia cromática, balance y formalidad del perchero',
+        objetivo:
+            'Evaluar coherencia cromática, balance y formalidad del perchero',
       );
       if (mounted) {
         _showAiResultModal(
@@ -79,7 +81,8 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _isOptimizingValue = true);
     try {
       final res = await cartService.checkValue(
-        objetivo: 'Optimizar calidad de materiales, precio y ahorro del perchero',
+        objetivo:
+            'Optimizar calidad de materiales, precio y ahorro del perchero',
       );
       if (mounted) {
         _showAiResultModal(
@@ -114,7 +117,10 @@ class _CartScreenState extends State<CartScreen> {
       spans.add(
         TextSpan(
           text: match.group(1),
-          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink,
+          ),
         ),
       );
       lastMatchEnd = match.end;
@@ -138,7 +144,9 @@ class _CartScreenState extends State<CartScreen> {
 
     final auditedItems = allProducts.where((p) {
       if (p is Map) {
-        return p['en_carrito'] == true || p['accion'] == 'QUITAR' || (!p.containsKey('en_carrito') && !p.containsKey('accion'));
+        return p['en_carrito'] == true ||
+            p['accion'] == 'QUITAR' ||
+            (!p.containsKey('en_carrito') && !p.containsKey('accion'));
       }
       return false;
     }).toList();
@@ -147,7 +155,9 @@ class _CartScreenState extends State<CartScreen> {
     suggestedItems.addAll(allRecs);
     for (final p in allProducts) {
       if (p is Map && (p['accion'] == 'AGREGAR' || p['en_carrito'] == false)) {
-        if (!suggestedItems.any((item) => item is Map && item['variante_id'] == p['variante_id'])) {
+        if (!suggestedItems.any(
+          (item) => item is Map && item['variante_id'] == p['variante_id'],
+        )) {
           suggestedItems.add(p);
         }
       }
@@ -247,14 +257,21 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(height: 10),
                 ...auditedItems.map((p) {
-                  final name = (p is Map) ? (p['nombre'] ?? 'Prenda') : 'Prenda';
-                  final price = (p is Map) ? (p['precio'] ?? p['precio_base']) : null;
+                  final name = (p is Map)
+                      ? (p['nombre'] ?? 'Prenda')
+                      : 'Prenda';
+                  final price = (p is Map)
+                      ? (p['precio'] ?? p['precio_base'])
+                      : null;
                   final color = (p is Map) ? p['color'] : null;
                   final talla = (p is Map) ? p['talla'] : null;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
@@ -280,14 +297,20 @@ class _CartScreenState extends State<CartScreen> {
                                   if (color != null) ...[
                                     Text(
                                       '$color',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.muted,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
                                   if (talla != null) ...[
                                     Text(
                                       'Talla $talla',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.muted,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
@@ -307,13 +330,16 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.paperDark,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
-                            'En Perchero',
+                            'En tu carrito',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -346,15 +372,24 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(height: 10),
                 ...suggestedItems.map((p) {
-                  final name = (p is Map) ? (p['nombre'] ?? 'Prenda') : 'Prenda';
-                  final price = (p is Map) ? (p['precio'] ?? p['precio_base']) : null;
+                  final name = (p is Map)
+                      ? (p['nombre'] ?? 'Prenda')
+                      : 'Prenda';
+                  final price = (p is Map)
+                      ? (p['precio'] ?? p['precio_base'])
+                      : null;
                   final color = (p is Map) ? p['color'] : null;
                   final talla = (p is Map) ? p['talla'] : null;
-                  final rawVarId = (p is Map) ? (p['variante_id'] ?? p['id']) : null;
+                  final rawVarId = (p is Map)
+                      ? (p['variante_id'] ?? p['id'])
+                      : null;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
@@ -380,14 +415,20 @@ class _CartScreenState extends State<CartScreen> {
                                   if (color != null) ...[
                                     Text(
                                       '$color',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.muted,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
                                   if (talla != null) ...[
                                     Text(
                                       'Talla $talla',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.muted,
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
@@ -410,17 +451,27 @@ class _CartScreenState extends State<CartScreen> {
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.ink,
                             foregroundColor: AppColors.lime,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
                           onPressed: () {
                             if (rawVarId != null) {
-                              final int? varId = (rawVarId is int) ? rawVarId : int.tryParse(rawVarId.toString());
+                              final int? varId = (rawVarId is int)
+                                  ? rawVarId
+                                  : int.tryParse(rawVarId.toString());
                               if (varId != null) {
-                                context.read<CartService>().addItem(varId, cantidad: 1);
+                                context.read<CartService>().addItem(
+                                  varId,
+                                  cantidad: 1,
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('"$name" añadida al perchero.'),
+                                    content: Text(
+                                      '"$name" añadida al perchero.',
+                                    ),
                                     backgroundColor: AppColors.forest,
                                     duration: const Duration(seconds: 2),
                                   ),
@@ -449,7 +500,11 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.auto_awesome, color: AppColors.lime, size: 18),
+                        Icon(
+                          Icons.auto_awesome,
+                          color: AppColors.lime,
+                          size: 18,
+                        ),
                         SizedBox(width: 6),
                         Text(
                           '¿DESEAS ARMAR UN OUTFIT COMPLETO?',
@@ -465,7 +520,11 @@ class _CartScreenState extends State<CartScreen> {
                     const SizedBox(height: 6),
                     const Text(
                       'Altair AI puede combinar las prendas de tu perchero con calzado y accesorios coordinados en tus tallas.',
-                      style: TextStyle(fontSize: 12, height: 1.4, color: AppColors.paperLight),
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: AppColors.paperLight,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
@@ -474,20 +533,27 @@ class _CartScreenState extends State<CartScreen> {
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.lime,
                           foregroundColor: AppColors.ink,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
                           final ai = context.read<AiSocketService>();
-                          ai.sendMessage('Arma un outfit completo y coordinado con las prendas de mi perchero actual');
+                          ai.sendMessage(
+                            'Arma un outfit completo y coordinado con las prendas de mi perchero actual',
+                          );
                           if (widget.onOpenAiStudio != null) {
                             widget.onOpenAiStudio!();
                           }
                         },
                         child: const Text(
                           'Diseñar Outfit Completo →',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -579,7 +645,7 @@ class _CartScreenState extends State<CartScreen> {
             ),
             const SizedBox(width: 10),
             const Text(
-              'Mi Perchero',
+              'Mi carrito',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -600,7 +666,7 @@ class _CartScreenState extends State<CartScreen> {
               child: AppSvg.raw(AppSvg.sparkle, size: 14, color: AppColors.ink),
             ),
             onPressed: _consultAiStylist,
-            tooltip: 'Calificar con IA',
+            tooltip: 'Preguntar a Altair',
           ),
           const SizedBox(width: 8),
         ],
@@ -629,7 +695,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Tu perchero está vacío',
+                    'Tu carrito está vacío',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
@@ -638,135 +704,21 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Explora el showroom o pide un outfit a tu estilista IA.',
+                    'Encuentra tu próxima prenda favorita en la tienda.',
                     style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                   ),
+                  if (widget.onOpenCatalog != null) ...[
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: widget.onOpenCatalog,
+                      child: const Text('Explorar prendas'),
+                    ),
+                  ],
                 ],
               ),
             )
           : Column(
               children: [
-                // AI ASISTENCIA DIRECTA (CU-22 & CU-23)
-                Container(
-                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.cyanSoft,
-                    border: Border.all(color: AppColors.cyan),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: AppColors.lime,
-                              shape: BoxShape.circle,
-                            ),
-                            child: AppSvg.raw(
-                              AppSvg.sparkle,
-                              size: 16,
-                              color: AppColors.ink,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Inteligencia Sastrera Altair',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.ink,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Audita coherencia de estilo y optimiza balance calidad/ahorro.',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.textMutedStrong,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.ink,
-                                foregroundColor: AppColors.lime,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                              onPressed: _isAnalyzingStyle ? null : _analyzeStyle,
-                              icon: _isAnalyzingStyle
-                                  ? const SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        color: AppColors.lime,
-                                      ),
-                                    )
-                                  : const Icon(Icons.style_outlined, size: 14),
-                              label: const Text(
-                                'Estilo',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.ink,
-                                side: const BorderSide(color: AppColors.ink),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                              onPressed: _isOptimizingValue ? null : _optimizeValue,
-                              icon: _isOptimizingValue
-                                  ? const SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        color: AppColors.ink,
-                                      ),
-                                    )
-                                  : const Icon(Icons.monetization_on_outlined, size: 14),
-                              label: const Text(
-                                'Ahorro',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -779,6 +731,38 @@ class _CartScreenState extends State<CartScreen> {
                         onIncrease: () => _updateQuantity(item, 1),
                       );
                     },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton.icon(
+                          onPressed: _isAnalyzingStyle ? null : _analyzeStyle,
+                          icon: const Icon(
+                            Icons.auto_awesome_outlined,
+                            size: 16,
+                          ),
+                          label: Text(
+                            _isAnalyzingStyle
+                                ? 'Buscando ideas…'
+                                : 'Ideas para combinar',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: TextButton.icon(
+                          onPressed: _isOptimizingValue ? null : _optimizeValue,
+                          icon: const Icon(Icons.savings_outlined, size: 16),
+                          label: Text(
+                            _isOptimizingValue ? 'Buscando…' : 'Buscar ahorro',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 CartCheckoutBar(

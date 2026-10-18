@@ -45,20 +45,22 @@ class _MainShellState extends State<MainShell> {
     if (mounted) setState(() => _currentIndex = index);
   }
 
-
   @override
   Widget build(BuildContext context) {
     final cartCount = context.watch<CartService>().itemCount;
     final screens = [
       CatalogScreen(onOpenAiStudio: () => _openTab(1)),
       const AiStudioScreen(),
-      CartScreen(onOpenAiStudio: () => _openTab(1)),
+      CartScreen(
+        onOpenAiStudio: () => _openTab(1),
+        onOpenCatalog: () => _openTab(0),
+      ),
       const OrdersScreen(),
       const AccountScreen(),
     ];
 
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: DmMobileNavigation(
         selectedIndex: _currentIndex,

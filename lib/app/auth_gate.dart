@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/paquetes/saas/company_access_gate.dart';
 
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/navegacion/main_shell.dart';
@@ -26,9 +27,15 @@ class AuthGate extends StatelessWidget {
     if (!auth.isAuthenticated) return const LoginScreen();
     if (security.isLocked) return PinLockScreen(onUnlocked: () {});
     final user = auth.currentUser;
-    if (user != null && !user.hasStyleProfile && !auth.onboardingSkipped) {
-      return const OnboardingScreen();
+    if (user != null &&
+        user.rol.toServerString() == 'CLIENTE' &&
+        !user.hasStyleProfile &&
+        !auth.onboardingSkipped) {
+      return CompanyAccessGate(
+        key: ValueKey(user.id),
+        child: const OnboardingScreen(),
+      );
     }
-    return const MainShell();
+    return CompanyAccessGate(key: ValueKey(user?.id), child: const MainShell());
   }
 }

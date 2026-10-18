@@ -7,6 +7,7 @@ import 'package:drapemind_mobile/core/network/api_exception.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/dominio/modelos/auth_models.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/dominio/modelos/style_profile_models.dart';
 import 'security_service.dart';
+import 'package:drapemind_mobile/core/services/company_service.dart';
 
 class AuthService extends ChangeNotifier {
   final ApiClient _apiClient;
@@ -51,7 +52,10 @@ class AuthService extends ChangeNotifier {
 
       // 1. Restaurar perfil desde cache local de inmediato (sin bloqueo de red)
       final cached = await SecurityService().getCachedUserProfile();
-      if (cached != null) {
+      if (cached != null &&
+          cached['tenant_id'] == CompanyService.claims(savedToken)?['tid'] &&
+          cached['id'].toString() ==
+              CompanyService.claims(savedToken)?['sub']) {
         _currentUser = User.fromJson(cached);
         _isLoading = false;
         notifyListeners();
@@ -89,6 +93,7 @@ class AuthService extends ChangeNotifier {
 
   /// Login with email and password
   Future<User> login(String email, String password) async {
+    await logout();
     _isLoading = true;
     notifyListeners();
     try {
@@ -230,7 +235,8 @@ class AuthService extends ChangeNotifier {
   Future<StyleProfile> saveStyleProfile(StyleProfile profile) async {
     final response = await _apiClient.post(
       '/users/me/style-profile',
-      body: profile.toJson(inferOutfit: false),
+      body: profile.toJson(inferOutfit: false, inferStyle: true),
+      timeout: const Duration(seconds: 60),
     );
     final saved = StyleProfile.fromJson(response as Map<String, dynamic>);
     try {
@@ -270,10 +276,16 @@ class AuthService extends ChangeNotifier {
 
   bool _isTokenUsable(String token) {
     if (token.trim().isEmpty) return false;
+    final claims = CompanyService.claims(token);
+    if (claims == null || (claims['tid'] is! int && claims['platform'] != true)) {
+      return false;
+    }
     final expiry = _tokenExpiry(token);
     // Si el token tiene fecha de expiracion explicita, verificar que no haya vencido
     if (expiry != null) {
-      return expiry.isAfter(DateTime.now().toUtc().add(const Duration(seconds: 5)));
+      return expiry.isAfter(
+        DateTime.now().toUtc().add(const Duration(seconds: 5)),
+      );
     }
     // Si no se puede extraer la fecha o el token no tiene exp, se considera valido
     // hasta que el servidor devuelva 401 Unauthorized

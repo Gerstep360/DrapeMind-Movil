@@ -82,7 +82,7 @@ class CartCheckoutBar extends StatelessWidget {
                       )
                     : AppSvg.raw(AppSvg.store, size: 17, color: AppColors.ink),
                 label: Text(
-                  isReserving ? 'Reservando…' : 'Reservar en mi showroom',
+                  isReserving ? 'Reservando…' : 'Reservar en tienda',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),

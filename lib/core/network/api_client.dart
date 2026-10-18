@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
 import 'api_exception.dart';
+import '../services/company_service.dart';
+import '../services/offline_catalog.dart';
 
 /// Core HTTP Client for DrapeMind Mobile with automatic Bearer token injection,
 /// custom headers, timeout management, and standardized error parsing.
@@ -76,6 +78,7 @@ class ApiClient {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'X-Tenant': await CompanyService.selected(),
     };
 
     if (requiresAuth) {
@@ -130,6 +133,8 @@ class ApiClient {
         errorMessage = detail;
       } else if (detail is List) {
         errorMessage = detail.map((e) => e['msg'] ?? e.toString()).join(', ');
+      } else if (detail is Map && detail['message'] is String) {
+        errorMessage = detail['message'];
       } else {
         errorMessage = detail.toString();
       }
@@ -152,7 +157,48 @@ class ApiClient {
     }
   }
 
+  Future<void> _validateScope(Map<String, String> headers) async {
+    if (headers['X-Tenant'] != await CompanyService.selected()) {
+      throw AuthException('La empresa seleccionada ha cambiado.');
+    }
+    final before = CompanyService.claims(
+      headers['Authorization']?.replaceFirst('Bearer ', ''),
+    );
+    final after = CompanyService.claims(await getToken());
+    if (before != null &&
+        (before['tid'] != after?['tid'] || before['sub'] != after?['sub'])) {
+      throw AuthException('La cuenta ha cambiado.');
+    }
+  }
+
   Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    Map<String, String>? headers,
+    bool requiresAuth = true,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final owner = OfflineCatalog.owner(await getToken());
+    final resource = _buildUri(path, queryParams).toString();
+    try {
+      final value = await _getNetwork(
+        path,
+        queryParams: queryParams,
+        headers: headers,
+        requiresAuth: requiresAuth,
+        timeout: timeout,
+      );
+      await OfflineCatalog.save(owner, path, resource, value);
+      return value;
+    } on NetworkException {
+      if (owner != OfflineCatalog.owner(await getToken())) rethrow;
+      final cached = await OfflineCatalog.read(owner, path, resource);
+      if (cached != null) return cached;
+      rethrow;
+    }
+  }
+
+  Future<dynamic> _getNetwork(
     String path, {
     Map<String, dynamic>? queryParams,
     Map<String, String>? headers,
@@ -168,6 +214,7 @@ class ApiClient {
       final response = await _httpClient
           .get(uri, headers: finalHeaders)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(
@@ -204,6 +251,7 @@ class ApiClient {
       final response = await _httpClient
           .get(uri, headers: finalHeaders)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response.bodyBytes;
       }
@@ -245,6 +293,7 @@ class ApiClient {
       final response = await _httpClient
           .post(uri, headers: finalHeaders, body: payload)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(
@@ -282,6 +331,7 @@ class ApiClient {
       final response = await _httpClient
           .put(uri, headers: finalHeaders, body: payload)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(
@@ -319,6 +369,7 @@ class ApiClient {
       final response = await _httpClient
           .patch(uri, headers: finalHeaders, body: payload)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(
@@ -356,6 +407,7 @@ class ApiClient {
       final response = await _httpClient
           .delete(uri, headers: finalHeaders, body: payload)
           .timeout(timeout);
+      await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(

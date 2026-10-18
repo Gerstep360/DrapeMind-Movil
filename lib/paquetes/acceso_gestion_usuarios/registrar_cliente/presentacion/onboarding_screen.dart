@@ -34,6 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
+  StyleProfile? _resultProfile;
 
   // Options & Catalogs
   List<Branch> _branches = [];
@@ -233,33 +234,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     try {
-      await auth.saveStyleProfile(profile);
+      final saved = await auth.saveStyleProfile(profile);
 
       if (mounted) {
-        if (widget.isReconfiguring) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: dmInk,
-              content: Text(
-                'Preferencias actualizadas en el Atelier.',
-                style: TextStyle(color: dmLime, fontWeight: FontWeight.w700),
-              ),
-            ),
-          );
-          Navigator.of(context).pop(true);
-        } else {
-          setState(() {
-            _isSaving = false;
-            _currentStep = 5; // Reveal step
-          });
-        }
+        setState(() {
+          _resultProfile = saved;
+          _isSaving = false;
+          _currentStep = 5;
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isSaving = false;
           _errorMessage =
-              'No se pudieron sincronizar tus preferencias con el servidor. Se guardaron localmente.';
+              'No se pudo confirmar el guardado. Conservamos tus respuestas en este formulario para reintentar.';
         });
       }
     }
@@ -429,7 +418,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildStepIndicator() {
     final steps = [
       {'label': '01 Género', 'step': 0},
-      {'label': '02 Showroom', 'step': 1},
+      {'label': '02 Tu tienda', 'step': 1},
       {'label': '03 Estilos', 'step': 2},
       {'label': '04 Medidas', 'step': 3},
       {'label': '05 Detalles', 'step': 4},
@@ -510,7 +499,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         s['label'] as String,
                         style: TextStyle(
                           color: dmInk,
-                          fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
+                          fontWeight: isCurrent
+                              ? FontWeight.w900
+                              : FontWeight.w600,
                           fontSize: 11,
                         ),
                       ),
@@ -615,9 +606,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: Icon(
                           isFemenino
                               ? Icons.female
-                              : (isMasculino
-                                  ? Icons.male
-                                  : Icons.transgender),
+                              : (isMasculino ? Icons.male : Icons.transgender),
                           color: isSelected ? dmLime : dmInk,
                           size: 22,
                         ),
@@ -640,8 +629,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               isFemenino
                                   ? 'Cortes, vestidos, faldas y siluetas para dama'
                                   : (isMasculino
-                                      ? 'Cortes sastreros, trajes y confección caballero'
-                                      : 'Cortes atemporales universales sin distinción'),
+                                        ? 'Cortes sastreros, trajes y confección caballero'
+                                        : 'Cortes atemporales universales sin distinción'),
                               style: TextStyle(
                                 color: isSelected ? dmInk : dmTextMuted,
                                 fontSize: 11.5,
@@ -1228,11 +1217,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Icon(
-                Icons.check,
-                color: dmInk,
-                size: 32,
-              ),
+              child: Icon(Icons.check, color: dmInk, size: 32),
             ),
           ),
           const SizedBox(height: 20),
@@ -1253,6 +1238,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(color: dmTextMuted, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 32),
+          if (_resultProfile?.adnEstiloIa case final String analysis) ...[
+            const Text(
+              'Tu primera sugerencia de Altair',
+              style: TextStyle(color: dmInk, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            Text(analysis, style: const TextStyle(color: dmInk, height: 1.6)),
+            const SizedBox(height: 24),
+          ],
+          if (_resultProfile?.inferenciaError case final String error) ...[
+            Text(
+              error,
+              style: const TextStyle(color: dmTextMuted, height: 1.5),
+            ),
+            TextButton(
+              onPressed: _isSaving ? null : _savePreferences,
+              child: Text(
+                _isSaving ? 'Altair está analizando…' : 'Reintentar análisis',
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           ElevatedButton(
             onPressed: _finishAndGoStore,
             style: ElevatedButton.styleFrom(
@@ -1329,14 +1336,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (_currentStep < 4)
             ElevatedButton(
               onPressed: () {
-                if (_currentStep == 0 && (_selectedGender == null || _selectedGender!.isEmpty)) {
+                if (_currentStep == 0 &&
+                    (_selectedGender == null || _selectedGender!.isEmpty)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: dmInk,
                       duration: Duration(seconds: 2),
                       content: Text(
                         'Por favor, selecciona un género para personalizar el catálogo y tus prendas.',
-                        style: TextStyle(color: dmLime, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: dmLime,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   );
@@ -1388,7 +1399,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   : Text(
                       widget.isReconfiguring
                           ? 'Guardar cambios de estilo'
-                          : 'Guardar preferencias →',
+                          : 'Guardar y analizar mi estilo →',
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
             ),

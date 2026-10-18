@@ -39,7 +39,6 @@ enum AiSocketStatus {
 
 class AiSocketService extends ChangeNotifier {
   static const String _storageKey = 'drapemind_ai_sessions_v2';
-  static const String _modelStorageKey = 'drapemind_altair_model';
   final AuthService _authService;
   final ApiClient _contextApi = ApiClient();
   bool _contextBusy = false;
@@ -52,11 +51,11 @@ class AiSocketService extends ChangeNotifier {
 
   int _reconnectAttempt = 0;
   String? _queuedMessage;
-  String? _queuedMode;
   int _responseStartedAt = 0;
   int _thinkingElapsedMs = 0;
   bool _authRejected = false;
   bool _manualDisconnect = false;
+  bool _concurrent = false;
 
   String? _currentThought;
   final List<String> _liveThoughtSteps = [];
@@ -65,12 +64,10 @@ class AiSocketService extends ChangeNotifier {
   List<ChatSession> _sessions = [];
   String? _activeSessionId;
   List<AgentTraceStep> _toolActivity = [];
-  String _activeModel = 'dynamic';
 
   AiSocketService({required AuthService authService})
     : _authService = authService {
     _loadSessionsFromStorage();
-    _loadStoredModel();
   }
 
   // --- GETTERS ---
@@ -81,29 +78,6 @@ class AiSocketService extends ChangeNotifier {
   double get thinkingElapsedSeconds => _thinkingElapsedMs / 1000.0;
   String get thinkingElapsedFormatted =>
       '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
-  String get activeModel => _activeModel;
-
-  Future<void> _loadStoredModel() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_modelStorageKey);
-      if (saved == 'mini' || saved == 'dynamic' || saved == 'gemma') {
-        _activeModel = saved!;
-        notifyListeners();
-      }
-    } catch (_) {}
-  }
-
-  Future<void> setActiveModel(String model) async {
-    if (model != 'mini' && model != 'dynamic' && model != 'gemma') return;
-    _activeModel = model;
-    notifyListeners();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_modelStorageKey, model);
-    } catch (_) {}
-  }
-
   /// Reconectar explícitamente con la configuración actual (útil tras cambio de host/IP)
   void reconnectWithCurrentConfig() {
     disconnect();
@@ -128,6 +102,15 @@ class AiSocketService extends ChangeNotifier {
 
   List<ChatMessage> get messages => currentSession.messages;
   List<AgentTraceStep> get toolActivity => List.unmodifiable(_toolActivity);
+  bool get canSend =>
+      !isBusy ||
+      (_concurrent &&
+          currentSession.messages.where((message) => message.pending).length <
+              3 &&
+          (_status == AiSocketStatus.connected ||
+              _status == AiSocketStatus.ready ||
+              _status == AiSocketStatus.loading));
+
   bool get isBusy => currentSession.messages.any((m) => m.pending);
   int? get sessionId => currentSession.backendSessionId;
 
@@ -248,7 +231,6 @@ class AiSocketService extends ChangeNotifier {
 
     _stopThinkingTicker();
     _queuedMessage = null;
-    _queuedMode = null;
 
     final duration = _responseStartedAt > 0
         ? DateTime.now().millisecondsSinceEpoch - _responseStartedAt
@@ -323,6 +305,7 @@ class AiSocketService extends ChangeNotifier {
           }
         },
         onError: (error) {
+          _interruptPending();
           debugPrint('[AiSocketService] WebSocket error: $error');
           _status = AiSocketStatus.error;
           _stopThinkingTicker();
@@ -343,6 +326,8 @@ class AiSocketService extends ChangeNotifier {
           notifyListeners();
         },
         onDone: () {
+          _concurrent = false;
+          _interruptPending();
           debugPrint('[AiSocketService] WebSocket cerrado.');
           _cleanupSocket();
           _stopThinkingTicker();
@@ -436,13 +421,12 @@ class AiSocketService extends ChangeNotifier {
     }
   }
 
-  void sendMessage(String content, {String? mode}) {
+  void sendMessage(String content) {
     final clean = content;
-    if (clean.trim().isEmpty || isBusy) return;
+    if (clean.trim().isEmpty || !canSend) return;
 
-    final effectiveMode = mode ?? _activeModel;
-    final userMsgId = 'user-${DateTime.now().millisecondsSinceEpoch}';
-    final assistantMsgId = 'assistant-${DateTime.now().millisecondsSinceEpoch}';
+    final userMsgId = 'user-${DateTime.now().microsecondsSinceEpoch}';
+    final assistantMsgId = 'assistant-${DateTime.now().microsecondsSinceEpoch}';
 
     // Auto nombrar el título de la sesión si es la primera pregunta
     if (currentSession.messages.length <= 1) {
@@ -477,11 +461,11 @@ class AiSocketService extends ChangeNotifier {
     notifyListeners();
 
     if (_status == AiSocketStatus.connected ||
-        _status == AiSocketStatus.ready) {
-      _sendChat(clean, effectiveMode);
+        _status == AiSocketStatus.ready ||
+        _status == AiSocketStatus.loading) {
+      _sendChat(clean);
     } else {
       _queuedMessage = clean;
-      _queuedMode = effectiveMode;
       connect();
     }
   }
@@ -504,14 +488,14 @@ class AiSocketService extends ChangeNotifier {
     _thinkingTickerTimer = null;
   }
 
-  void _sendChat(String content, [String? mode]) {
+  void _sendChat(String content) {
     if (_channel != null) {
       _channel!.sink.add(
         jsonEncode({
           'type': 'chat',
+          'request_id': currentSession.messages.last.id,
           'message': content,
           'session_id': currentSession.backendSessionId,
-          'mode': mode ?? _activeModel,
         }),
       );
     }
@@ -520,17 +504,51 @@ class AiSocketService extends ChangeNotifier {
   // --- EVENT HANDLER ---
   void _handleEvent(Map<String, dynamic> event) {
     final type = event['type']?.toString();
+    final requestId = event['request_id']?.toString();
+    var eventSession = currentSession;
+    ChatMessage? target;
+    if (requestId != null) {
+      for (final session in _sessions) {
+        for (final message in session.messages) {
+          if (message.id == requestId) {
+            eventSession = session;
+            target = message;
+          }
+        }
+      }
+      if (target == null) return;
+      _toolActivity = target.trace.map((step) => step.copyWith()).toList();
+    } else if (eventSession.messages.isNotEmpty) {
+      target = eventSession.messages.last;
+    }
+    if (type == 'task_started') {
+      eventSession.backendSessionId = int.tryParse(
+        event['session_id'].toString(),
+      );
+      notifyListeners();
+      return;
+    }
+    if (type == 'task_cancelled') {
+      if (target != null) {
+        target.pending = false;
+        target.actionItems = [];
+        target.content =
+            'Consulta cancelada. Continuamos con tus nuevos requisitos.';
+      }
+      _saveSessionsToStorage();
+      notifyListeners();
+      return;
+    }
 
     if (type == 'connected') {
+      _concurrent = event['concurrent'] == true;
       _reconnectAttempt = 0;
       _status = AiSocketStatus.connected;
       notifyListeners();
       if (_queuedMessage != null) {
         final msg = _queuedMessage!;
-        final qm = _queuedMode ?? _activeModel;
         _queuedMessage = null;
-        _queuedMode = null;
-        _sendChat(msg, qm);
+        _sendChat(msg);
       }
       return;
     }
@@ -552,7 +570,7 @@ class AiSocketService extends ChangeNotifier {
           ? AiSocketStatus.loading
           : AiSocketStatus.ready;
       if (event['session_id'] != null) {
-        currentSession.backendSessionId = int.tryParse(
+        eventSession.backendSessionId = int.tryParse(
           event['session_id'].toString(),
         );
       }
@@ -568,6 +586,9 @@ class AiSocketService extends ChangeNotifier {
       final formatted = event['label']?.toString() ?? _formatToolName(name);
       _currentThought = formatted;
       _startTrace(formatted);
+      if (target != null) {
+        target.trace = _toolActivity.map((step) => step.copyWith()).toList();
+      }
       notifyListeners();
       return;
     }
@@ -582,17 +603,16 @@ class AiSocketService extends ChangeNotifier {
             : _resultSummary(event['result']),
         failed: failed,
       );
+      if (target != null) {
+        target.trace = _toolActivity.map((step) => step.copyWith()).toList();
+      }
       notifyListeners();
       return;
     }
 
     if (type == 'results') {
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant') {
-        currentSession
-            .messages
-            .last
-            .actionItems = (event['action_items'] as List? ?? [])
+      if (target != null && target.role == 'assistant') {
+        target.actionItems = (event['action_items'] as List? ?? [])
             .map((item) => AiActionItem.fromJson(item as Map<String, dynamic>))
             .toList();
         notifyListeners();
@@ -601,9 +621,8 @@ class AiSocketService extends ChangeNotifier {
     }
 
     if (type == 'presentation') {
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant') {
-        final last = currentSession.messages.last;
+      if (target != null && target.role == 'assistant') {
+        final last = target;
         last.presentationMode = AiPresentationMode.fromString(
           event['mode']?.toString(),
         );
@@ -632,10 +651,8 @@ class AiSocketService extends ChangeNotifier {
     }
 
     if (type == 'answer_snapshot') {
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant') {
-        currentSession.messages.last.content =
-            event['content']?.toString() ?? '';
+      if (target != null && target.role == 'assistant') {
+        target.content = event['content']?.toString() ?? '';
         notifyListeners();
       }
       return;
@@ -644,9 +661,8 @@ class AiSocketService extends ChangeNotifier {
     if (type == 'token') {
       final content = event['content']?.toString() ?? '';
       // Tokens are generated content, not a tool action.
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant') {
-        currentSession.messages.last.content += content;
+      if (target != null && target.role == 'assistant') {
+        target.content += content;
         notifyListeners();
       }
       return;
@@ -656,16 +672,15 @@ class AiSocketService extends ChangeNotifier {
       _stopThinkingTicker();
       // Keep only executed tools in the action history.
       if (event['session_id'] != null) {
-        currentSession.backendSessionId = int.tryParse(
+        eventSession.backendSessionId = int.tryParse(
           event['session_id'].toString(),
         );
       }
       _status = AiSocketStatus.ready;
       _currentThought = null;
 
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant') {
-        final last = currentSession.messages.last;
+      if (target != null && target.role == 'assistant') {
+        final last = target;
         last.pending = false;
 
         if (event['tools'] is List) {
@@ -711,7 +726,7 @@ class AiSocketService extends ChangeNotifier {
             ? event['duration_ms']
             : (DateTime.now().millisecondsSinceEpoch - _responseStartedAt);
 
-        currentSession.updatedAt = DateTime.now();
+        eventSession.updatedAt = DateTime.now();
         _saveSessionsToStorage();
         notifyListeners();
       }
@@ -744,10 +759,8 @@ class AiSocketService extends ChangeNotifier {
           _finishTrace(step.name, 'Proceso interrumpido', failed: true);
         }
       }
-      if (currentSession.messages.isNotEmpty &&
-          currentSession.messages.last.role == 'assistant' &&
-          currentSession.messages.last.pending) {
-        final last = currentSession.messages.last;
+      if (target != null && target.role == 'assistant' && target.pending) {
+        final last = target;
         last.content = msg;
         last.pending = false;
         last.error = true;
@@ -755,10 +768,26 @@ class AiSocketService extends ChangeNotifier {
         last.durationMs =
             DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
       }
-      currentSession.updatedAt = DateTime.now();
+      eventSession.updatedAt = DateTime.now();
       _saveSessionsToStorage();
       notifyListeners();
     }
+  }
+
+  void _interruptPending() {
+    for (final session in _sessions) {
+      for (final message in session.messages) {
+        if (message.pending) {
+          message.pending = false;
+          message.error = true;
+          if (message.content.isEmpty) {
+            message.content =
+                'Se interrumpió la conexión con Altair. Puedes reintentar.';
+          }
+        }
+      }
+    }
+    _saveSessionsToStorage();
   }
 
   String _formatToolName(String raw) {

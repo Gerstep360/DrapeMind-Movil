@@ -1,1927 +1,456 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-
+import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/compartido/componentes/altair/altair_message_body.dart';
+import 'package:drapemind_mobile/compartido/componentes/productos/dm_product_image.dart';
 import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/datos/servicios/cart_service.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/datos/servicios/catalog_service.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
+import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
+import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/consultar_pedidos_historial_compras/presentacion/orders_screen.dart';
+import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_cancelar_reserva/presentacion/reservations_screen.dart';
 import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/datos/servicios/ai_socket_service.dart';
 import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/dominio/modelos/ai_models.dart';
 import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/aplicar_recomendacion_carrito/aplicacion/aplicar_recomendacion_carrito.dart';
-import 'package:drapemind_mobile/core/theme/app_colors.dart';
-import 'package:drapemind_mobile/core/theme/app_svg.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
-import 'package:drapemind_mobile/paquetes/realidad_aumentada/utilizar_vestidor_virtual/presentacion/ar_fitting_screen.dart';
 import 'componentes/altair_composer.dart';
-import 'componentes/altair_status_bar.dart';
 import 'componentes/altair_welcome_state.dart';
 
 class AiStudioScreen extends StatefulWidget {
   const AiStudioScreen({super.key});
-
   @override
   State<AiStudioScreen> createState() => _AiStudioScreenState();
 }
 
 class _AiStudioScreenState extends State<AiStudioScreen> {
-  final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  // Variables para el cuestionario de medidas modal (persistidas)
-  String _selectedOccasion = 'cena';
-  String _selectedTopType = 'polera';
-  String _selectedTopSize = 'M';
-  String _selectedBottomType = 'pantalon';
-  String _selectedBottomSize = '32';
-  String _selectedShoeSize = '42';
-  double _budget = 700.0;
-
+  final _input = TextEditingController();
+  final _scroll = ScrollController();
+  final Set<String> _actions = {};
   @override
   void initState() {
     super.initState();
-    _loadSavedQuestionnaire();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AiSocketService>().connect();
+      if (mounted) context.read<AiSocketService>().connect();
     });
-  }
-
-  Future<void> _loadSavedQuestionnaire() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final occ = prefs.getString('ai_quest_occ');
-      final topT = prefs.getString('ai_quest_top_type');
-      final topS = prefs.getString('ai_quest_top_size');
-      final botT = prefs.getString('ai_quest_bot_type');
-      final botS = prefs.getString('ai_quest_bot_size');
-      final shoe = prefs.getString('ai_quest_shoe');
-      final bgt = prefs.getDouble('ai_quest_budget');
-
-      if (mounted) {
-        setState(() {
-          if (occ != null) _selectedOccasion = occ;
-          if (topT != null) _selectedTopType = topT;
-          if (topS != null) _selectedTopSize = topS;
-          if (botT != null) _selectedBottomType = botT;
-          if (botS != null) _selectedBottomSize = botS;
-          if (shoe != null) _selectedShoeSize = shoe;
-          if (bgt != null) _budget = bgt;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveQuestionnairePrefs() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ai_quest_occ', _selectedOccasion);
-      await prefs.setString('ai_quest_top_type', _selectedTopType);
-      await prefs.setString('ai_quest_top_size', _selectedTopSize);
-      await prefs.setString('ai_quest_bot_type', _selectedBottomType);
-      await prefs.setString('ai_quest_bot_size', _selectedBottomSize);
-      await prefs.setString('ai_quest_shoe', _selectedShoeSize);
-      await prefs.setDouble('ai_quest_budget', _budget);
-    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _inputController.dispose();
-    _scrollController.dispose();
+    _input.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _send([String? prompt]) {
+    final text = (prompt ?? _input.text).trim();
+    final service = context.read<AiSocketService>();
+    if (text.isEmpty || !service.canSend) return;
+    service.sendMessage(text);
+    _input.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
         );
       }
     });
   }
 
-  void _sendMessage([String? text]) {
-    final query = text ?? _inputController.text;
-    if (query.trim().isEmpty) return;
-
-    final ai = context.read<AiSocketService>();
-    if (ai.isBusy) return;
-
-    ai.sendMessage(query);
-    if (text == null) {
-      _inputController.clear();
-    }
-    _scrollToBottom();
-  }
-
-  void _handleAction(AiActionItem item) async {
-    final result = await AplicarRecomendacionCarrito(
-      context.read<CartService>(),
-    ).execute(item);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: result.change == RecommendationCartChange.removed
-            ? AppColors.danger
-            : AppColors.ink,
-        content: Text(result.message),
-      ),
-    );
-  }
-
-  void _replaceAllWithOutfit(List<AiActionItem> items) async {
+  Future<void> _apply(AiActionItem item) async {
+    final key = '${item.accion}-${item.id}';
+    if (_actions.contains(key)) return;
+    setState(() => _actions.add(key));
     try {
       final result = await AplicarRecomendacionCarrito(
         context.read<CartService>(),
-      ).replaceOutfit(items);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(backgroundColor: AppColors.ink, content: Text(result.message)),
-      );
-    } catch (_) {}
-  }
-
-  // --- MODAL DE SESIONES / MULTI-CHAT ---
-  void _showSessionsBottomSheet() {
-    final ai = context.read<AiSocketService>();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.paper,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final sessions = ai.sessions;
-
-            return Container(
-              padding: const EdgeInsets.all(20),
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // HEADER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          AppSvg.raw(
-                            AppSvg.clock,
-                            size: 18,
-                            color: AppColors.forest,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'HISTORIAL DE CHATS (24H)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                              color: AppColors.forest,
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: AppSvg.raw(
-                          AppSvg.close,
-                          size: 18,
-                          color: AppColors.textMuted,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // BOTÓN NUEVA CONVERSACIÓN
-                  InkWell(
-                    onTap: () {
-                      ai.createNewSession();
-                      Navigator.pop(context);
-                    },
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.forest,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AppSvg.raw(
-                            AppSvg.plus,
-                            size: 16,
-                            color: AppColors.acid,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Iniciar Nueva Conversación',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  // LISTA DE SESIONES ACTIVAS
-                  Expanded(
-                    child: sessions.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No hay conversaciones registradas',
-                              style: TextStyle(color: AppColors.textMuted),
-                            ),
-                          )
-                        : ListView.separated(
-                            itemCount: sessions.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, idx) {
-                              final session = sessions[idx];
-                              final isCurrent =
-                                  session.id == ai.currentSession.id;
-
-                              final timeAgo = DateTime.now().difference(
-                                session.updatedAt,
-                              );
-                              final timeStr = timeAgo.inMinutes < 60
-                                  ? 'Hace ${timeAgo.inMinutes} min'
-                                  : 'Hace ${timeAgo.inHours} h';
-
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: isCurrent
-                                      ? AppColors.white
-                                      : AppColors.paperLight,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isCurrent
-                                        ? AppColors.forest
-                                        : AppColors.lineStrong,
-                                    width: isCurrent ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 4,
-                                  ),
-                                  title: Text(
-                                    session.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: isCurrent
-                                          ? FontWeight.w900
-                                          : FontWeight.w600,
-                                      color: isCurrent
-                                          ? AppColors.forest
-                                          : AppColors.textMain,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${session.messages.length} mensajes · $timeStr',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  trailing: IconButton(
-                                    icon: AppSvg.raw(
-                                      AppSvg.trash,
-                                      size: 16,
-                                      color: AppColors.danger,
-                                    ),
-                                    onPressed: () {
-                                      ai.deleteSession(session.id);
-                                      setModalState(() {});
-                                      if (sessions.length <= 1) {
-                                        Navigator.pop(context);
-                                      }
-                                    },
-                                  ),
-                                  onTap: () {
-                                    ai.switchSession(session.id);
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
+      ).execute(item);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No pudimos actualizar el carrito. Revisa la disponibilidad e intenta de nuevo.',
+            ),
+          ),
         );
-      },
-    );
+      }
+    } finally {
+      if (mounted) setState(() => _actions.remove(key));
+    }
   }
 
-  // --- MODAL DE CUESTIONARIO DE MEDIDAS ---
-  void _showQuestionnaireModal() {
-    showModalBottomSheet(
+  void _history() {
+    final service = context.read<AiSocketService>();
+    showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                top: 20,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheet) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Tus conversaciones',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // HEADER
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              AppSvg.raw(
-                                AppSvg.sparkle,
-                                size: 18,
-                                color: AppColors.forest,
-                              ),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'CUESTIONARIO DE MEDIDAS & OUTFIT',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.8,
-                                    color: AppColors.forest,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: AppSvg.raw(
-                            AppSvg.close,
-                            size: 18,
-                            color: AppColors.textMuted,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Configura tus preferencias para que Altair diseñe un look exacto.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // OCASIÓN
-                    const Text(
-                      'OCASIÓN',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      children: ['cena', 'fiesta', 'casual', 'trabajo', 'boda']
-                          .map((occ) {
-                            final isSel = _selectedOccasion == occ;
-                            return ChoiceChip(
-                              label: Text(
-                                occ.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: isSel
-                                      ? AppColors.white
-                                      : AppColors.forest,
-                                ),
-                              ),
-                              selected: isSel,
-                              selectedColor: AppColors.forest,
-                              backgroundColor: AppColors.white,
-                              side: const BorderSide(
-                                color: AppColors.lineStrong,
-                              ),
-                              onSelected: (val) {
-                                if (val) {
-                                  setModalState(() => _selectedOccasion = occ);
-                                }
-                              },
-                            );
-                          })
-                          .toList(),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // PARTE SUPERIOR (TIPO Y TALLA)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'PRENDA SUPERIOR',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedTopType,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                items: ['polera', 'camisa', 'blusa', 'polo']
-                                    .map(
-                                      (t) => DropdownMenuItem(
-                                        value: t,
-                                        child: Text(
-                                          t.toUpperCase(),
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) =>
-                                    setModalState(() => _selectedTopType = v!),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'TALLA SUPERIOR',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedTopSize,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                items: ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-                                    .map(
-                                      (s) => DropdownMenuItem(
-                                        value: s,
-                                        child: Text(
-                                          s,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) =>
-                                    setModalState(() => _selectedTopSize = v!),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // PARTE INFERIOR (TIPO Y TALLA)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'PRENDA INFERIOR',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedBottomType,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                items: ['pantalon', 'jean', 'falda']
-                                    .map(
-                                      (b) => DropdownMenuItem(
-                                        value: b,
-                                        child: Text(
-                                          b.toUpperCase(),
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) => setModalState(
-                                  () => _selectedBottomType = v!,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'TALLA INFERIOR',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedBottomSize,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                items:
-                                    [
-                                          '28',
-                                          '30',
-                                          '32',
-                                          '34',
-                                          '36',
-                                          '38',
-                                          'S',
-                                          'M',
-                                          'L',
-                                        ]
-                                        .map(
-                                          (sz) => DropdownMenuItem(
-                                            value: sz,
-                                            child: Text(
-                                              sz,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                onChanged: (v) => setModalState(
-                                  () => _selectedBottomSize = v!,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // CALZADO
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'TALLA CALZADO',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        DropdownButtonFormField<String>(
-                          value: _selectedShoeSize,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                          ),
-                          items:
-                              ['38', '39', '40', '41', '42', '43', '44', '45']
-                                  .map(
-                                    (sz) => DropdownMenuItem(
-                                      value: sz,
-                                      child: Text(
-                                        sz,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (v) =>
-                              setModalState(() => _selectedShoeSize = v!),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // PRESUPUESTO
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'PRESUPUESTO MÁXIMO',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        Text(
-                          'Bs ${_budget.toInt()}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.forest,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Slider(
-                      value: _budget,
-                      min: 300,
-                      max: 2500,
-                      divisions: 44,
-                      activeColor: AppColors.forest,
-                      onChanged: (val) => setModalState(() => _budget = val),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // BOTÓN GENERAR
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.forest,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        onPressed: () {
-                          _saveQuestionnairePrefs();
-                          Navigator.pop(context);
-                          final prompt =
-                              'Arma un outfit para ocasión $_selectedOccasion, '
-                              'busco $_selectedTopType en talla $_selectedTopSize, '
-                              '$_selectedBottomType en talla $_selectedBottomSize, '
-                              'calzado talla $_selectedShoeSize y presupuesto de Bs ${_budget.toInt()}';
-                          _sendMessage(prompt);
+            ),
+            for (final session in service.sessions)
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline_rounded),
+                title: Text(
+                  session.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                selected: session.id == service.currentSession.id,
+                onTap: service.isBusy
+                    ? null
+                    : () {
+                        service.switchSession(session.id);
+                        Navigator.pop(sheet);
+                      },
+                trailing: IconButton(
+                  tooltip: 'Eliminar conversación',
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  onPressed: service.isBusy
+                      ? null
+                      : () async {
+                          await service.deleteSession(session.id);
+                          if (sheet.mounted) Navigator.pop(sheet);
                         },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            AppSvg.raw(
-                              AppSvg.sparkle,
-                              size: 16,
-                              color: AppColors.acid,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'DISEÑAR OUTFIT A MEDIDA',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1,
-                                color: AppColors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final ai = context.watch<AiSocketService>();
-    final messages = ai.messages;
-
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        titleSpacing: 16,
-        title: InkWell(
-          onTap: _showSessionsBottomSheet,
-          borderRadius: BorderRadius.circular(999),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: AppColors.ink,
-                  shape: BoxShape.circle,
-                ),
-                child: AppSvg.raw(
-                  AppSvg.sparkle,
-                  size: 14,
-                  color: AppColors.lime,
-                ),
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Altair',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
               ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'ALTAIR · STYLIST IA',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                    Text(
-                      ai.currentSession.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'Tu asistente de estilo',
+              style: TextStyle(fontSize: 11, color: AppColors.textMutedStrong),
+            ),
+          ],
         ),
         actions: [
-          // Historial de Chats (24h)
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.paperDark,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.line),
-              ),
-              child: AppSvg.raw(AppSvg.clock, size: 15, color: AppColors.ink),
-            ),
-            tooltip: 'Historial 24h',
-            onPressed: _showSessionsBottomSheet,
+            tooltip: 'Tus conversaciones',
+            onPressed: _history,
+            icon: const Icon(Icons.history_rounded),
           ),
-          // Nueva Conversación (+)
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: AppColors.lime,
-                shape: BoxShape.circle,
-              ),
-              child: AppSvg.raw(AppSvg.plus, size: 15, color: AppColors.ink),
-            ),
-            tooltip: 'Nueva Conversación',
-            onPressed: () => ai.createNewSession(),
+            tooltip: 'Nueva conversación',
+            onPressed: ai.isBusy ? null : () => ai.createNewSession(),
+            icon: const Icon(Icons.add_rounded),
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          AltairStatusBar(
-            isBusy: ai.isBusy,
-            isReady:
-                ai.status == AiSocketStatus.ready ||
-                ai.status == AiSocketStatus.connected,
-            statusLabel: ai.status.displayName,
-            elapsed: ai.thinkingElapsedFormatted,
-            activeModel: ai.activeModel,
-            onModelSelected: ai.setActiveModel,
-            onOpenPreferences: _showQuestionnaireModal,
-            onCancel: () => ai.cancelGeneration(),
-          ),
-          // CHAT MESSAGE STREAM
           Expanded(
-            child: messages.isEmpty
+            child: ai.messages.isEmpty
                 ? AltairWelcomeState(
-                    onPrompt: _sendMessage,
-                    onOpenPreferences: _showQuestionnaireModal,
+                    onPrompt: _send,
+                    onOpenPreferences: () =>
+                        _send('Ayúdame a descubrir mi estilo.'),
                   )
                 : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      return TweenAnimationBuilder<double>(
-                        key: ValueKey(message.id),
-                        tween: Tween(begin: 0, end: 1),
-                        duration: MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 280),
-                        builder: (context, value, child) => Opacity(
-                          opacity: value,
-                          child: Transform.translate(
-                            offset: Offset(0, 10 * (1 - value)),
-                            child: child,
-                          ),
-                        ),
-                        child: _buildMessageBubble(message, ai),
-                      );
-                    },
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+                    itemCount: ai.messages.length,
+                    itemBuilder: (context, index) =>
+                        _message(ai.messages[index]),
                   ),
           ),
-
-          AltairComposer(
-            controller: _inputController,
-            isBusy: ai.isBusy,
-            activeModel: ai.activeModel,
-            onSend: _sendMessage,
-            onCancel: () => ai.cancelGeneration(),
-            onQuestionnaire: _showQuestionnaireModal,
-            onModelSelected: ai.setActiveModel,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(ChatMessage msg, AiSocketService ai) {
-    final isUser = msg.isUser;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: isUser
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          // SENDER BADGE
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppSvg.raw(
-                isUser ? AppSvg.user : AppSvg.sparkle,
-                size: 13,
-                color: isUser ? AppColors.textMuted : AppColors.ink,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                isUser ? 'TÚ' : 'ALTAIR · STYLIST IA',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                  color: isUser ? AppColors.textMuted : AppColors.forest,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-
-          // LIVE THINKING CARD DURANTE RAZONAMIENTO (SI PENDING)
-          if (msg.pending) _buildLiveThinkingCard(ai),
-          if (!msg.pending ||
-              msg.content.isNotEmpty ||
-              msg.actionItems.isNotEmpty)
-            // BUBBLE CONTENT COMPLETED
-            Container(
-              padding: const EdgeInsets.all(14),
-              constraints: const BoxConstraints(maxWidth: 580),
-              decoration: BoxDecoration(
-                color: isUser ? AppColors.forest : Colors.transparent,
-                border: Border.all(
-                  color: isUser ? AppColors.forest : Colors.transparent,
-                ),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: isUser
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(8),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : [],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          if (ai.isBusy)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Row(
                 children: [
-                  // TEXT CONTENT
-                  if (msg.content.isNotEmpty)
-                    AltairMessageBody(
-                      text: msg.content,
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5),
+                  ),
+                  const SizedBox(width: 9),
+                  const Expanded(
+                    child: Text(
+                      'Altair está preparando tu respuesta…',
                       style: TextStyle(
-                        fontSize: 13.5,
-                        height: 1.45,
-                        color: isUser ? AppColors.white : AppColors.textMain,
-                      ),
-                    ),
-
-                  // NOTICES
-                  if (msg.notices.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ...msg.notices.map((n) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.paperLight,
-                          border: Border.all(
-                            color: AppColors.forest.withAlpha(50),
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '${n.title}: ${n.message}',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.forest,
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-
-                  // OUTFIT RECEIPT SUMMARY
-                  if (msg.responseMeta != null &&
-                      msg.responseMeta?.kind == 'outfit') ...[
-                    const SizedBox(height: 12),
-                    _buildOutfitReceipt(msg),
-                  ],
-
-                  // ACTION CARDS (PRODUCTS / ORDERS / RESERVATIONS)
-                  if (msg.responseMeta?.productPicker.isNotEmpty == true)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final option in msg.responseMeta!.productPicker)
-                          OutlinedButton(
-                            onPressed: () => context
-                                .read<AiSocketService>()
-                                .selectProduct(option['id'] as int),
-                            child: Text(option['label'] as String),
-                          ),
-                      ],
-                    ),
-                  if (msg.actionItems.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    Text(
-                      msg.responseTitle ?? 'Prendas Sugeridas del Atelier',
-                      style: const TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
                         color: AppColors.textMutedStrong,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    ...msg.actionItems.map((item) => _buildActionCard(item)),
-                  ],
-
-                  // AUDIT TRACE SUMMARY
-                  if (msg.trace.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _buildAuditTrace(msg.trace, msg.durationMs),
-                  ],
-
-                  // DYNAMIC SUGGESTED ACTION CHIPS (GENERADOS POR ALTAIR SIN EMOJIS)
-                  if (msg.suggestedActions.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    const Divider(),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: msg.suggestedActions.map((s) {
-                        return InkWell(
-                          onTap: () => _sendMessage(s.prompt),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.paperLight,
-                              border: Border.all(
-                                color: AppColors.forest.withAlpha(80),
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                AppSvg.raw(
-                                  AppSvg.sparkle,
-                                  size: 12,
-                                  color: AppColors.forest,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  s.label,
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.forest,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                  ),
+                  TextButton(
+                    onPressed: ai.cancelGeneration,
+                    child: const Text('Detener'),
+                  ),
                 ],
               ),
             ),
+          AltairComposer(
+            controller: _input,
+            isBusy: !ai.canSend,
+            onSend: _send,
+            onCancel: ai.cancelGeneration,
+            onQuestionnaire: () => _send('Ayúdame a armar un look.'),
+          ),
         ],
       ),
     );
   }
 
-  // --- LIVE THINKING CARD CON TIMELINE Y CRONÓMETRO ---
-  Widget _buildLiveThinkingCard(AiSocketService ai) {
-    final steps = ai.liveThoughtSteps;
-
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 580),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.forest.withAlpha(20)),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.forest.withAlpha(12),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+  Widget _message(ChatMessage message) {
+    final user = message.isUser;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: user
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
-          // Header con Cronómetro en vivo
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.forest,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Pensando',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.forest,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
+          if (!user)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Altair',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.forestDark,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      ai.thinkingElapsedFormatted,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.acid,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => ai.cancelGeneration(),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        border: Border.all(color: AppColors.lineStrong),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.stop_rounded, size: 12, color: AppColors.danger),
-                          SizedBox(width: 3),
-                          Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.danger,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(),
-          const SizedBox(height: 8),
-
-          // Timeline de pasos en tiempo real
-          ...steps.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final stepText = entry.value;
-            final isLast = idx == steps.length - 1;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: isLast
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.forest,
-                            ),
-                          )
-                        : AppSvg.raw(
-                            AppSvg.check,
-                            size: 14,
-                            color: AppColors.forest,
-                          ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      stepText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isLast ? FontWeight.w800 : FontWeight.w500,
-                        color: isLast
-                            ? AppColors.textMain
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOutfitReceipt(ChatMessage msg) {
-    final meta = msg.responseMeta;
-    final total = meta?.totalBob ?? 0.0;
-    final budget = meta?.budgetBob;
-    final available = meta?.budgetRemainingBob;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.forestDark,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'SELECCIÓN ${meta?.occasion?.toUpperCase() ?? "ATELIER"}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Bs ${total.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: AppColors.acid,
+            ),
+          if (message.content.isNotEmpty)
+            Container(
+              constraints: const BoxConstraints(maxWidth: 580),
+              padding: user
+                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 13)
+                  : EdgeInsets.zero,
+              decoration: user
+                  ? BoxDecoration(
+                      color: AppColors.ink,
+                      borderRadius: BorderRadius.circular(18),
+                    )
+                  : null,
+              child: AltairMessageBody(
+                text: message.content,
+                style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${meta?.itemCount ?? 0} piezas con stock y talla verificados',
-            style: const TextStyle(color: AppColors.paper, fontSize: 11),
-          ),
-          if (budget != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Presupuesto: Bs ${budget.toStringAsFixed(0)}',
-                  style: const TextStyle(color: AppColors.paper, fontSize: 11),
-                ),
-                if (available != null)
-                  Text(
-                    'Disponible: Bs ${available.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: AppColors.acid,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          if (meta?.canAddAll == true && msg.actionItems.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.acid,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                onPressed: () => _replaceAllWithOutfit(msg.actionItems),
-                child: const Text(
-                  'Usar esta selección en mi perchero',
-                  style: TextStyle(
-                    color: AppColors.forest,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
-                  ),
+                  height: 1.6,
+                  color: user
+                      ? AppColors.white
+                      : message.error
+                      ? AppColors.danger
+                      : AppColors.ink,
                 ),
               ),
             ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showGarmentDetailModal(AiActionItem item) async {
-    final catalogService = CatalogService();
-    Product? fullProduct;
-    try {
-      fullProduct = await catalogService.getProductDetail(item.id);
-    } catch (_) {}
-
-    final productToUse =
-        fullProduct ??
-        Product(
-          id: item.id,
-          categoriaId: 1,
-          nombre: item.nombre,
-          descripcion: item.motivo ?? 'Prenda curada por Altair Stylist IA.',
-          precio: item.precio,
-          material: 'Tejido Atelier',
-          calidadNivel: 5,
-          activo: true,
-          createdAt: DateTime.now(),
-          imagenes: item.imagen != null ? [item.imagen!] : [],
-          variantes: [
-            ProductVariant(
-              id: item.varianteId ?? 1,
-              productoId: item.id,
-              sku: item.sku ?? 'DRP-${item.id}',
-              color: item.color ?? 'Tono Único',
-              talla: item.talla ?? 'M',
-              stockTotal: 10,
-              stockReservado: 0,
-              stockDisponible: 10,
-              activo: true,
-              imagen: item.imagen,
-            ),
-          ],
-        );
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.paper,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        final isRemove = item.accion == AiActionType.quitar;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.lineStrong,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+          for (final notice in message.notices)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                notice.message,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMutedStrong,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+          for (final item in message.actionItems)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _product(item),
+            ),
+          if (message.responseMeta?.productPicker.isNotEmpty == true)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                spacing: 8,
                 children: [
-                  // Imagen de la prenda
-                  Container(
-                    width: 90,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.lineStrong),
-                    ),
-                    child: item.imagen != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              item.fullImageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Center(
-                                child: AppSvg.raw(
-                                  AppSvg.tshirt,
-                                  size: 28,
-                                  color: AppColors.forest,
-                                ),
-                              ),
-                            ),
-                          )
-                        : Center(
-                            child: AppSvg.raw(
-                              AppSvg.tshirt,
-                              size: 28,
-                              color: AppColors.forest,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.forestDark,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: const Text(
-                            'ATELIER CURATED',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                              color: AppColors.acid,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.nombre,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.forestDark,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Bs ${item.precio.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.forest,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            if (item.talla != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.paperLight,
-                                  border: Border.all(
-                                    color: AppColors.lineStrong,
-                                  ),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  'Talla: ${item.talla}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            if (item.color != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.paperLight,
-                                  border: Border.all(
-                                    color: AppColors.lineStrong,
-                                  ),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  item.color!,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (item.motivo != null) ...[
-                const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.paperLight,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.forest.withAlpha(40)),
-                  ),
-                  child: Row(
-                    children: [
-                      AppSvg.raw(
-                        AppSvg.sparkle,
-                        size: 14,
-                        color: AppColors.forest,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          item.motivo!,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.forest,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              // BOTONES DE ACCIÓN RICA (AR / PERCHERO / CATÁLOGO)
-              Column(
-                children: [
-                  // Botón Probador AR
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.forestDark,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                  for (final option in message.responseMeta!.productPicker)
+                    ActionChip(
+                      label: Text(
+                        '${option['label'] ?? option['nombre'] ?? 'Ver opción'}',
                       ),
                       onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ArFittingScreen(product: productToUse),
-                          ),
+                        final id = int.tryParse(
+                          '${option['id'] ?? option['product_id']}',
                         );
+                        if (id != null) {
+                          context.read<AiSocketService>().selectProduct(id);
+                        }
                       },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AppSvg.raw(
-                            AppSvg.sparkle,
-                            size: 16,
-                            color: AppColors.acid,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'PROBAR EN ESPEJO VIRTUAL AR',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.8,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      // Botón Agregar / Quitar Carrito
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isRemove
-                                ? AppColors.danger
-                                : AppColors.forest,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _handleAction(item);
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AppSvg.raw(
-                                isRemove ? AppSvg.trash : AppSvg.plus,
-                                size: 14,
-                                color: AppColors.white,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                isRemove
-                                    ? 'Quitar del Perchero'
-                                    : 'Añadir al Perchero',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Botón Ver Ficha Catálogo
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 14,
-                          ),
-                          side: const BorderSide(color: AppColors.lineStrong),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProductDetailScreen(
-                                productId: productToUse.id,
-                              ),
-                            ),
-                          );
-                        },
-                        child: AppSvg.raw(
-                          AppSvg.store,
-                          size: 16,
-                          color: AppColors.forest,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          if (message.suggestedActions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final suggestion in message.suggestedActions)
+                    ActionChip(
+                      label: Text(suggestion.label),
+                      onPressed: () => _send(suggestion.prompt),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _buildActionCard(AiActionItem item) {
-    final isRemove = item.accion == AiActionType.quitar;
-
-    return InkWell(
-      onTap: () => _showGarmentDetailModal(item),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isRemove ? AppColors.danger.withAlpha(12) : AppColors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isRemove
-                ? AppColors.danger.withAlpha(60)
-                : AppColors.lineStrong,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(6),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+  Widget _product(AiActionItem item) {
+    final isProduct =
+        item.accion == AiActionType.agregar ||
+        item.accion == AiActionType.quitar ||
+        item.accion == AiActionType.reemplazar;
+    return Material(
+      color: AppColors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // THUMBNAIL
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: AppColors.paperLight,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.line),
+            if (isProduct)
+              SizedBox(
+                width: 78,
+                height: 102,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: DmProductImage(
+                    imageUrl: item.fullImageUrl,
+                    semanticLabel: item.nombre,
+                  ),
+                ),
               ),
-              child: item.imagen != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        item.fullImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
-                          child: AppSvg.raw(
-                            AppSvg.tshirt,
-                            size: 22,
-                            color: AppColors.forest,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: AppSvg.raw(
-                        AppSvg.tshirt,
-                        size: 22,
-                        color: AppColors.forest,
-                      ),
-                    ),
-            ),
-            const SizedBox(width: 10),
-
-            // INFO
+            if (isProduct) const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Semantics(
-                    button: true,
-                    label: 'Ver detalles de ${item.nombre}',
-                    child: InkWell(
-                      onTap: () => _showGarmentDetailModal(item),
-                      borderRadius: BorderRadius.circular(3),
-                      child: Text(
-                        item.nombre,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
-                          color: AppColors.forest,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.acid,
-                          decorationThickness: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
                   Text(
-                    'Bs ${item.precio.toStringAsFixed(2)} · ${item.talla ?? "M"} · ${item.color ?? "Tono Único"}',
+                    item.nombre,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.forest,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      height: 1.4,
                     ),
                   ),
-                  if (item.motivo != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      item.motivo!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isRemove
-                            ? AppColors.danger
-                            : AppColors.textMutedStrong,
-                        fontWeight: FontWeight.w600,
+                  const SizedBox(height: 5),
+                  Text(
+                    'Bs ${item.precio.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (item.talla != null || item.color != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(
+                        [
+                          item.talla,
+                          item.color,
+                        ].whereType<String>().join(' · '),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMutedStrong,
+                        ),
                       ),
                     ),
-                  ],
+                  const SizedBox(height: 7),
+                  if (isProduct)
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ProductDetailScreen(productId: item.id),
+                            ),
+                          ),
+                          child: const Text('Ver prenda'),
+                        ),
+                        if (item.accion == AiActionType.agregar &&
+                                item.varianteId != null ||
+                            item.accion == AiActionType.quitar &&
+                                item.itemId != null)
+                          FilledButton(
+                            onPressed:
+                                _actions.contains('${item.accion}-${item.id}')
+                                ? null
+                                : () => _apply(item),
+                            child: Text(
+                              item.accion == AiActionType.quitar
+                                  ? 'Quitar'
+                                  : 'Agregar',
+                            ),
+                          ),
+                      ],
+                    ),
+                  if (item.accion == AiActionType.verPedido ||
+                      item.accion == AiActionType.verReserva)
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => item.accion == AiActionType.verPedido
+                              ? const OrdersScreen()
+                              : const ReservationsScreen(),
+                        ),
+                      ),
+                      child: Text(
+                        item.accion == AiActionType.verPedido
+                            ? 'Ver mis pedidos'
+                            : 'Ver mis reservas',
+                      ),
+                    ),
                 ],
-              ),
-            ),
-
-            // BOTÓN RÁPIDO PROBAR EN AR
-            IconButton(
-              icon: AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.acid),
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.forestDark,
-                padding: const EdgeInsets.all(6),
-                minimumSize: const Size(32, 32),
-              ),
-              tooltip: 'Probar en AR',
-              onPressed: () => _showGarmentDetailModal(item),
-            ),
-            const SizedBox(width: 4),
-
-            // BOTÓN AGREGAR/QUITAR
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                backgroundColor: isRemove ? AppColors.danger : AppColors.forest,
-                minimumSize: const Size(40, 32),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              onPressed: () => _handleAction(item),
-              child: AppSvg.raw(
-                isRemove ? AppSvg.trash : AppSvg.plus,
-                size: 13,
-                color: AppColors.white,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAuditTrace(List<AgentTraceStep> trace, int? durationMs) {
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: const EdgeInsets.only(bottom: 6),
-      title: Row(
-        children: [
-          AppSvg.raw(AppSvg.shield, size: 13, color: AppColors.forest),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              'Acciones: ${trace.length} consultas${durationMs != null ? ' (${(durationMs / 1000).toStringAsFixed(1)}s)' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textMutedStrong,
-              ),
-            ),
-          ),
-        ],
-      ),
-      children: trace.map((step) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Row(
-            children: [
-              if (step.state == 'done')
-                AppSvg.raw(AppSvg.check, size: 12, color: AppColors.forest)
-              else
-                const Icon(Icons.error_outline, size: 12),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${step.name}: ${step.summary ?? "Completado"}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMain,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
 }

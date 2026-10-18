@@ -97,7 +97,7 @@ enum DeliveryType {
       case DeliveryType.delivery:
         return 'Envío a Domicilio';
       case DeliveryType.recojo:
-        return 'Recojo en Showroom';
+        return 'Recoger en tienda';
       case DeliveryType.tienda:
         return 'Compra en Tienda';
     }

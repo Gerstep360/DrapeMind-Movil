@@ -11,6 +11,7 @@ class StyleProfile {
   final double? presupuestoHabitual;
   final String? siluetaPreferida;
   final String? adnEstiloIa;
+  final String? inferenciaError;
   final Map<String, dynamic>? primerOutfitIa;
   final bool completado;
 
@@ -27,6 +28,7 @@ class StyleProfile {
     this.presupuestoHabitual,
     this.siluetaPreferida,
     this.adnEstiloIa,
+    this.inferenciaError,
     this.primerOutfitIa,
     this.completado = false,
   });
@@ -65,6 +67,7 @@ class StyleProfile {
           : null,
       siluetaPreferida: json['silueta_preferida'] as String?,
       adnEstiloIa: json['adn_estilo_ia'] as String?,
+      inferenciaError: json['inferencia_error'] as String?,
       primerOutfitIa: json['primer_outfit_ia'] is Map<String, dynamic>
           ? json['primer_outfit_ia'] as Map<String, dynamic>
           : null,
@@ -72,7 +75,10 @@ class StyleProfile {
     );
   }
 
-  Map<String, dynamic> toJson({bool inferOutfit = false}) => {
+  Map<String, dynamic> toJson({
+    bool inferOutfit = false,
+    bool inferStyle = false,
+  }) => {
     if (genero != null && genero!.isNotEmpty) 'genero': genero,
     'estilos_preferidos': estilosPreferidos,
     if (tallaSuperior != null && tallaSuperior!.isNotEmpty)
@@ -88,6 +94,7 @@ class StyleProfile {
     if (siluetaPreferida != null && siluetaPreferida!.isNotEmpty)
       'silueta_preferida': siluetaPreferida,
     'infer_outfit': inferOutfit,
+    'infer_style': inferStyle,
   };
 
   StyleProfile copyWith({
@@ -119,6 +126,7 @@ class StyleProfile {
       presupuestoHabitual: presupuestoHabitual ?? this.presupuestoHabitual,
       siluetaPreferida: siluetaPreferida ?? this.siluetaPreferida,
       adnEstiloIa: adnEstiloIa ?? this.adnEstiloIa,
+      inferenciaError: inferenciaError,
       primerOutfitIa: primerOutfitIa ?? this.primerOutfitIa,
       completado: completado ?? this.completado,
     );

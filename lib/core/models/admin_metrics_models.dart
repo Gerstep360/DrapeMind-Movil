@@ -63,52 +63,21 @@ class SalesInventoryMetrics {
 }
 
 class AiRuntimeStatus {
+  final String provider;
+  final bool configured;
   final bool healthy;
-  final bool managed;
-  final bool running;
-  final int activeRequests;
-  final int? idleSeconds;
-  final int idleTimeoutSeconds;
   final String model;
-  final bool modelExists;
-  final bool mmprojExists;
-  final String? executable;
-  final String platform;
-
   AiRuntimeStatus({
+    required this.provider,
+    required this.configured,
     required this.healthy,
-    required this.managed,
-    required this.running,
-    required this.activeRequests,
-    this.idleSeconds,
-    required this.idleTimeoutSeconds,
     required this.model,
-    required this.modelExists,
-    required this.mmprojExists,
-    this.executable,
-    required this.platform,
   });
-
-  factory AiRuntimeStatus.fromJson(Map<String, dynamic> json) {
-    return AiRuntimeStatus(
-      healthy: json['healthy'] ?? false,
-      managed: json['managed'] ?? false,
-      running: json['running'] ?? false,
-      activeRequests: json['active_requests'] is int
-          ? json['active_requests']
-          : int.tryParse(json['active_requests']?.toString() ?? '0') ?? 0,
-      idleSeconds: json['idle_seconds'] is int
-          ? json['idle_seconds']
-          : int.tryParse(json['idle_seconds']?.toString() ?? ''),
-      idleTimeoutSeconds: json['idle_timeout_seconds'] is int
-          ? json['idle_timeout_seconds']
-          : int.tryParse(json['idle_timeout_seconds']?.toString() ?? '600') ??
-                600,
-      model: json['model']?.toString() ?? '',
-      modelExists: json['model_exists'] ?? false,
-      mmprojExists: json['mmproj_exists'] ?? false,
-      executable: json['executable']?.toString(),
-      platform: json['platform']?.toString() ?? 'windows',
-    );
-  }
+  factory AiRuntimeStatus.fromJson(Map<String, dynamic> json) =>
+      AiRuntimeStatus(
+        provider: json['provider']?.toString() ?? 'nvidia',
+        configured: json['configured'] == true,
+        healthy: json['healthy'] == true,
+        model: json['model']?.toString() ?? '',
+      );
 }

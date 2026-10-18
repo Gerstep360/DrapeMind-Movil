@@ -1,157 +1,76 @@
 import 'package:flutter/material.dart';
-
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
-import 'package:drapemind_mobile/core/theme/app_design_tokens.dart';
-import 'package:drapemind_mobile/core/theme/app_svg.dart';
-import 'altair_model_selector.dart';
 
 class AltairComposer extends StatelessWidget {
   final TextEditingController controller;
   final bool isBusy;
-  final String activeModel;
   final VoidCallback onSend;
   final VoidCallback? onCancel;
   final VoidCallback onQuestionnaire;
-  final ValueChanged<String> onModelSelected;
-
   const AltairComposer({
     super.key,
     required this.controller,
     required this.isBusy,
-    required this.activeModel,
     required this.onSend,
     this.onCancel,
     required this.onQuestionnaire,
-    required this.onModelSelected,
   });
-
-  void _selectModel(BuildContext context) => showAltairModelSelector(
-    context,
-    activeModel: activeModel,
-    onSelected: onModelSelected,
-  );
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(12, 7, 12, 10),
-    decoration: const BoxDecoration(
-      color: AppColors.paper,
-      border: Border(top: BorderSide(color: AppColors.line)),
-    ),
-    child: SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              _ModelButton(
-                model: activeModel,
-                onTap: () => _selectModel(context),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: onQuestionnaire,
-                icon: AppSvg.raw(
-                  AppSvg.settings,
-                  size: 14,
-                  color: AppColors.ink,
-                ),
-                label: const Text('Preferencias del look'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  maxLines: 4,
-                  minLines: 1,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Pregunta por prendas, tallas o un outfit…',
-                  ),
-                  onSubmitted: (_) {
-                    if (!isBusy) onSend();
-                  },
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Semantics(
-                button: true,
-                label: isBusy ? 'Detener respuesta de Altair' : 'Enviar mensaje',
-                child: Material(
-                  color: isBusy ? AppColors.ink : AppColors.lime,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: isBusy ? onCancel : onSend,
-                    child: SizedBox.square(
-                      dimension: 48,
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: AppMotion.fast,
-                          child: isBusy
-                              ? const Icon(
-                                  Icons.stop_rounded,
-                                  key: ValueKey('stop'),
-                                  size: 22,
-                                  color: AppColors.white,
-                                )
-                              : KeyedSubtree(
-                                  key: const ValueKey('send'),
-                                  child: AppSvg.raw(
-                                    AppSvg.send,
-                                    size: 18,
-                                    color: AppColors.ink,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _ModelButton extends StatelessWidget {
-  final String model;
-  final VoidCallback onTap;
-
-  const _ModelButton({required this.model, required this.onTap});
 
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadii.pill),
-      side: const BorderSide(color: AppColors.lineStrong),
-    ),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadii.pill),
+    child: SafeArea(
+      top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            AltairModelPresentation.icon(model),
-            const SizedBox(width: 6),
-            Text(
-              AltairModelPresentation.fullLabel(model),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                minLines: 1,
+                maxLines: 4,
+                maxLength: 2000,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) {
+                  if (!isBusy) onSend();
+                },
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: '¿Qué te gustaría encontrar?',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.paper,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(color: AppColors.line),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(color: AppColors.line),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 3),
-            const Icon(Icons.keyboard_arrow_down, size: 15),
+            const SizedBox(width: 10),
+            IconButton.filled(
+              tooltip: isBusy ? 'Detener respuesta' : 'Enviar mensaje',
+              onPressed: isBusy ? onCancel : onSend,
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.ink,
+                foregroundColor: AppColors.white,
+                minimumSize: const Size(48, 48),
+              ),
+              icon: Icon(
+                isBusy ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+                size: 22,
+              ),
+            ),
           ],
         ),
       ),
