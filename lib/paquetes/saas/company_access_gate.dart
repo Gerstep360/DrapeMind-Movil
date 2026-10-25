@@ -10,23 +10,38 @@ import 'subscription_screen.dart';
 
 class CompanyAccessGate extends StatefulWidget {
   final Widget child;
-  const CompanyAccessGate({super.key, required this.child});
+  final ApiClient? apiClient;
+  const CompanyAccessGate({super.key, required this.child, this.apiClient});
   @override
   State<CompanyAccessGate> createState() => _CompanyAccessGateState();
 }
 
-class _CompanyAccessGateState extends State<CompanyAccessGate> {
+class _CompanyAccessGateState extends State<CompanyAccessGate>
+    with WidgetsBindingObserver {
+  late final ApiClient _api = widget.apiClient ?? ApiClient();
   bool? _allowed;
   String? _error;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {
     try {
-      final state = await ApiClient().get('/saas/me');
+      final state = await _api.get('/saas/me');
       if (mounted) setState(() => _allowed = state['access_active'] == true);
     } on NetworkException {
       if (!mounted) return;
@@ -49,6 +64,13 @@ class _CompanyAccessGateState extends State<CompanyAccessGate> {
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'No pudimos comprobar el acceso de tu empresa. Intenta nuevamente.',
+        );
+      }
     }
   }
 
@@ -82,6 +104,7 @@ class _CompanyAccessGateState extends State<CompanyAccessGate> {
     }
     if (_allowed == false) {
       return SubscriptionScreen(
+        apiClient: _api,
         onActivated: () => setState(() => _allowed = true),
       );
     }

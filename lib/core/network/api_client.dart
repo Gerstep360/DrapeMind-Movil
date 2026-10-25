@@ -39,8 +39,11 @@ class ApiClient {
       if (legacyToken != null && legacyToken.isNotEmpty) {
         try {
           await _secureStorage.write(key: _tokenKey, value: legacyToken);
-        } catch (_) {}
-        return legacyToken;
+          await prefs.remove(_tokenKey);
+          return legacyToken;
+        } catch (_) {
+          return null;
+        }
       }
     } catch (_) {}
 
@@ -51,10 +54,14 @@ class ApiClient {
   Future<void> setToken(String token) async {
     try {
       await _secureStorage.write(key: _tokenKey, value: token);
-    } catch (_) {}
+    } catch (_) {
+      throw ApiException(
+        'No se pudo guardar la sesión de forma segura. Intenta nuevamente.',
+      );
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, token);
+      await prefs.remove(_tokenKey);
     } catch (_) {}
   }
 
