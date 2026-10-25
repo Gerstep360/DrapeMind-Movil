@@ -8,7 +8,7 @@ class ApiConfig {
 
   /// IP pública del servidor VPS oficial de producción
   static const String defaultServerIp = '167.86.106.105';
-  static const int defaultServerPort = 80;
+  static const int defaultServerPort = 443;
   static const String defaultPathPrefix = '/DrapeMind';
 
   /// Hosts predefinidos de fácil conmutación
@@ -73,7 +73,9 @@ class ApiConfig {
     return defaultServerIp;
   }
 
-  static bool get isSecure => false;
+  static bool get isSecure => localBaseUrl.isNotEmpty
+      ? localBaseUrl.startsWith('https://')
+      : defaultHost.startsWith('https://') || defaultHost == defaultServerIp;
 
   static String get httpScheme => isSecure ? 'https' : 'http';
   static String get wsScheme => isSecure ? 'wss' : 'ws';

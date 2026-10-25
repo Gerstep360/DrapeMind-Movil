@@ -28,6 +28,7 @@ class EventsSocketService extends ChangeNotifier {
     : _authService = authService;
 
   void connect() {
+    if (_authService.isPlatformAdmin) return;
     final token = _authService.token;
     if (token == null || token.isEmpty || !_authService.hasValidToken) {
       unawaited(_authService.logout());

@@ -13,8 +13,10 @@ class AuthService extends ChangeNotifier {
   final ApiClient _apiClient;
   User? _currentUser;
   bool _isLoading = false;
+  bool _isRestoring = false;
   bool _onboardingSkipped = false;
   String? _token;
+  String? _destination;
   Timer? _expiryTimer;
 
   AuthService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
@@ -22,16 +24,20 @@ class AuthService extends ChangeNotifier {
   User? get currentUser => _currentUser;
   bool get hasValidToken => _token != null && _isTokenUsable(_token!);
   bool get isAuthenticated => _currentUser != null && hasValidToken;
-  bool get isAdmin => _currentUser?.rol == UserRole.admin;
+  bool get isAdmin => !isPlatformAdmin && _currentUser?.rol == UserRole.admin;
+  bool get isPlatformAdmin => _currentUser?.isPlatformAdmin == true;
+  String? get destination => _destination;
   bool get isVendedor => _currentUser?.rol == UserRole.vendedor;
   bool get isEncargado => _currentUser?.rol == UserRole.encargado;
   bool get isCajero => _currentUser?.rol == UserRole.cajero;
   bool get isLoading => _isLoading;
+  bool get isRestoring => _isRestoring;
   bool get onboardingSkipped => _onboardingSkipped;
   String? get token => _token;
 
   /// Check token in storage and load user profile (sesion persistente estilo Facebook)
   Future<bool> tryAutoLogin() async {
+    _isRestoring = true;
     _isLoading = true;
     notifyListeners();
     try {
@@ -52,6 +58,11 @@ class AuthService extends ChangeNotifier {
 
       // 1. Restaurar perfil desde cache local de inmediato (sin bloqueo de red)
       final cached = await SecurityService().getCachedUserProfile();
+      if (CompanyService.entrySlug != null &&
+          cached?['tenant_slug'] != CompanyService.entrySlug) {
+        await logout();
+        return false;
+      }
       if (cached != null &&
           cached['tenant_id'] == CompanyService.claims(savedToken)?['tid'] &&
           cached['id'].toString() ==
@@ -68,6 +79,7 @@ class AuthService extends ChangeNotifier {
           timeout: const Duration(seconds: 5),
         );
         _currentUser = User.fromJson(userResponse);
+        await CompanyService.useAccount(_currentUser!.tenantSlug);
         await SecurityService().cacheUserProfile(userResponse);
       } on ApiException catch (e) {
         // Solo cerrar sesion si el servidor rechaza explicitamente el token
@@ -86,6 +98,7 @@ class AuthService extends ChangeNotifier {
     } catch (_) {
       return _currentUser != null;
     } finally {
+      _isRestoring = false;
       _isLoading = false;
       notifyListeners();
     }
@@ -99,9 +112,16 @@ class AuthService extends ChangeNotifier {
     try {
       final response = await _apiClient.post(
         '/auth/login',
-        body: LoginRequest(email: email, password: password).toJson(),
+        body: {
+          ...LoginRequest(
+            email: email.trim().toLowerCase(),
+            password: password,
+          ).toJson(),
+          if (CompanyService.entrySlug != null)
+            'tenant_slug': CompanyService.entrySlug,
+        },
         requiresAuth: false,
-        timeout: const Duration(seconds: 5),
+        timeout: const Duration(seconds: 20),
       );
 
       final tokenData = TokenResponse.fromJson(
@@ -115,13 +135,19 @@ class AuthService extends ChangeNotifier {
       _scheduleTokenExpiry(_token!);
 
       // Fetch and cache user profile
-      final userResponse = await _apiClient.get(
-        '/auth/me',
-        timeout: const Duration(seconds: 8),
-      );
+      final userResponse =
+          response['user'] ??
+          await _apiClient.get('/auth/me', timeout: const Duration(seconds: 8));
       _currentUser = User.fromJson(userResponse);
+      await CompanyService.useAccount(
+        _currentUser!.tenantSlug ?? response['tenant']?['slug'],
+      );
+      _destination = response['redirect_path'] as String?;
       await SecurityService().cacheUserProfile(userResponse);
       return _currentUser!;
+    } catch (_) {
+      await logout();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -256,6 +282,7 @@ class AuthService extends ChangeNotifier {
     _expiryTimer = null;
     _currentUser = null;
     _token = null;
+    _destination = null;
     _onboardingSkipped = false;
     await _apiClient.clearToken();
     await SecurityService().clearSecurityState();
@@ -277,7 +304,8 @@ class AuthService extends ChangeNotifier {
   bool _isTokenUsable(String token) {
     if (token.trim().isEmpty) return false;
     final claims = CompanyService.claims(token);
-    if (claims == null || (claims['tid'] is! int && claims['platform'] != true)) {
+    if (claims == null ||
+        (claims['tid'] is! int && claims['platform'] != true)) {
       return false;
     }
     final expiry = _tokenExpiry(token);

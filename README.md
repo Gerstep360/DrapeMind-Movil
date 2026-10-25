@@ -2,6 +2,12 @@
 
 Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, desarrollada con **Flutter** y **Provider**.
 
+## Acceso automático · v1.0.9
+
+El formulario solicita correo y contraseña. El backend identifica la empresa y el rol guardados; no hay selectores de administración ni campos de empresa. Las cuentas SaaS abren un resumen de empresas y las cuentas empresariales conservan su contexto. Los enlaces `drapemind://tienda/<slug>` permiten entrar directamente a una tienda.
+
+La compilación de producción usa `https://167.86.106.105/DrapeMind`. Las credenciales y los permisos se validan en el servidor. Los accesos genéricos de demostración no aparecen como botones en el formulario. Detalles del contrato de acceso: [documentación del backend](../backend/docs/ACCESO_UNIFICADO.md).
+
 ## Backend local y nueva arquitectura Altair
 
 Abrir el panel con `python iniciar_backend.py` desde la raíz del proyecto. En emulador Android:

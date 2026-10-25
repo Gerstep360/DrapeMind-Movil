@@ -92,6 +92,9 @@ class ApiClient {
       final token = await getToken();
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
+        if (CompanyService.claims(token)?['platform'] == true) {
+          headers.remove('X-Tenant');
+        }
       }
     }
 
@@ -165,7 +168,8 @@ class ApiClient {
   }
 
   Future<void> _validateScope(Map<String, String> headers) async {
-    if (headers['X-Tenant'] != await CompanyService.selected()) {
+    if (headers.containsKey('X-Tenant') &&
+        headers['X-Tenant'] != await CompanyService.selected()) {
       throw AuthException('La empresa seleccionada ha cambiado.');
     }
     final before = CompanyService.claims(
@@ -173,7 +177,9 @@ class ApiClient {
     );
     final after = CompanyService.claims(await getToken());
     if (before != null &&
-        (before['tid'] != after?['tid'] || before['sub'] != after?['sub'])) {
+        (before['tid'] != after?['tid'] ||
+            before['sub'] != after?['sub'] ||
+            before['platform'] != after?['platform'])) {
       throw AuthException('La cuenta ha cambiado.');
     }
   }
@@ -296,11 +302,15 @@ class ApiClient {
         extraHeaders: headers,
         requiresAuth: requiresAuth,
       );
+      if (path == '/auth/login') {
+        finalHeaders.remove('X-Tenant');
+        finalHeaders.remove('Authorization');
+      }
       final payload = body != null ? jsonEncode(body) : null;
       final response = await _httpClient
           .post(uri, headers: finalHeaders, body: payload)
           .timeout(timeout);
-      await _validateScope(finalHeaders);
+      if (path != '/auth/login') await _validateScope(finalHeaders);
       return _processResponse(response);
     } on SocketException catch (e) {
       throw NetworkException(

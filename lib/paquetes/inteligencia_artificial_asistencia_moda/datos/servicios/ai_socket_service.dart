@@ -273,6 +273,7 @@ class AiSocketService extends ChangeNotifier {
 
   // --- WEBSOCKET CONNECTION ---
   void connect() {
+    if (_authService.isPlatformAdmin) return;
     final token = _authService.token;
     if (token == null || token.isEmpty || !_authService.hasValidToken) {
       _status = AiSocketStatus.offline;

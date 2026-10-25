@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:drapemind_mobile/app/drapemind_app.dart';
 import 'package:drapemind_mobile/core/config/api_config.dart';
+import 'package:drapemind_mobile/core/services/company_service.dart';
 
 export 'package:drapemind_mobile/app/drapemind_app.dart';
 
@@ -17,14 +18,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.init();
+  await CompanyService.acceptStoreLink(
+    WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+  );
 
   try {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
-    debugPrint('[Firebase] Inicializacion completada o en modo alternativo: $e');
+    debugPrint(
+      '[Firebase] Inicializacion completada o en modo alternativo: $e',
+    );
   }
 
   runApp(const DrapeMindApp());
 }
-

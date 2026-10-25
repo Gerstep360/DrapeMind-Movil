@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/app/auth_gate.dart';
 import 'package:drapemind_mobile/core/services/events_socket_service.dart';
+import 'package:drapemind_mobile/core/services/company_service.dart';
 import 'package:drapemind_mobile/core/services/navigation_service.dart';
 import 'package:drapemind_mobile/core/services/push_notification_service.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
@@ -23,7 +24,7 @@ class DrapeMindApp extends StatelessWidget {
         create: (_) => CartService(),
         update: (_, auth, cart) {
           final service = cart ?? CartService();
-          if (auth.isAuthenticated) {
+          if (auth.isAuthenticated && !auth.isPlatformAdmin) {
             service.getCart();
           } else {
             service.clearLocal();
@@ -42,7 +43,7 @@ class DrapeMindApp extends StatelessWidget {
             EventsSocketService(authService: context.read<AuthService>()),
         update: (_, auth, current) {
           final service = current ?? EventsSocketService(authService: auth);
-          if (auth.isAuthenticated) {
+          if (auth.isAuthenticated && !auth.isPlatformAdmin) {
             service.connect();
           } else {
             service.disconnect();
@@ -50,15 +51,20 @@ class DrapeMindApp extends StatelessWidget {
           return service;
         },
       ),
-      ChangeNotifierProxyProvider2<AuthService, EventsSocketService, PushNotificationService>(
+      ChangeNotifierProxyProvider2<
+        AuthService,
+        EventsSocketService,
+        PushNotificationService
+      >(
         create: (context) => PushNotificationService(
           authService: context.read<AuthService>(),
           eventsService: context.read<EventsSocketService>(),
         ),
         update: (_, auth, events, current) {
-          final service = current ??
+          final service =
+              current ??
               PushNotificationService(authService: auth, eventsService: events);
-          if (auth.isAuthenticated) {
+          if (auth.isAuthenticated && !auth.isPlatformAdmin) {
             service.registerDeviceWithBackend();
             service.fetchNotifications();
           }
@@ -71,8 +77,20 @@ class DrapeMindApp extends StatelessWidget {
       navigatorKey: NavigationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.luxuryTheme,
-      home: const AuthGate(),
+      onGenerateInitialRoutes: (name) => [
+        MaterialPageRoute(
+          builder: (_) => CompanyService.slugFromLink(name) == null
+              ? const AuthGate()
+              : StoreEntryGate(link: name),
+        ),
+      ],
+      onGenerateRoute: (settings) =>
+          CompanyService.slugFromLink(settings.name ?? '') == null
+          ? null
+          : MaterialPageRoute(
+              settings: settings,
+              builder: (_) => StoreEntryGate(link: settings.name!),
+            ),
     ),
   );
 }
-
