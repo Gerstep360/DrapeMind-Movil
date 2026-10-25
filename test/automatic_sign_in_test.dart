@@ -16,6 +16,9 @@ import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicio
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/iniciar_sesion/presentacion/login_screen.dart';
 import 'package:drapemind_mobile/paquetes/saas/platform_screen.dart';
+import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
+import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/order_models.dart';
+import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/datos/servicios/ai_socket_service.dart';
 import 'support/golden_assets.dart';
 
 String jwt(bool platform) =>
@@ -134,6 +137,58 @@ void main() {
   );
   for (final width in [320.0, 390.0]) {
     testWidgets(
+      'store selection at $width identifies the current company without overflow',
+      (tester) async {
+        tester.view.physicalSize = Size(width, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final auth = AuthService();
+        addTearDown(auth.dispose);
+        final boundary = GlobalKey();
+        final api = ApiClient(
+          httpClient: MockClient(
+            (request) async => http.Response(
+              jsonEncode([
+                {'slug': 'moda-oriente', 'name': 'Moda Oriente'},
+                {'slug': 'urban-fit', 'name': 'Urban Fit'},
+              ]),
+              200,
+            ),
+          ),
+        );
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: auth,
+            child: MaterialApp(
+              theme: AppTheme.luxuryTheme,
+              home: RepaintBoundary(
+                key: boundary,
+                child: StoresScreen(apiClient: api),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Moda Oriente'), findsOneWidget);
+        expect(find.text('Urban Fit'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.runAsync(() async {
+          final image =
+              await (boundary.currentContext!.findRenderObject()
+                      as RenderRepaintBoundary)
+                  .toImage();
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          final output = File(
+            '.dart_tool/ui-review/stores-${width.toInt()}.png',
+          );
+          await output.parent.create(recursive: true);
+          await output.writeAsBytes(bytes!.buffer.asUint8List());
+          image.dispose();
+        });
+      },
+    );
+    testWidgets(
       'login at $width has no company/role picker or demo credentials',
       (tester) async {
         tester.view.physicalSize = Size(width, 844);
@@ -178,6 +233,141 @@ void main() {
       },
     );
   }
+  test('pickup request includes the branch and mobile channel', () {
+    final data = CheckoutRequest(
+      tipoEntrega: DeliveryType.recojo,
+      sucursalId: 12,
+    ).toJson();
+    expect(data['sucursal_id'], 12);
+    expect(data['canal'], 'MOBILE');
+  });
+  for (final available in [true, false]) {
+    test(
+      'restores a universal customer store link; available=$available',
+      () async {
+        var calls = 0;
+        final oldUser = {...profile(false), 'is_universal_customer': true};
+        final nextUser = {
+          ...oldUser,
+          'id': 55,
+          'tenant_id': 3,
+          'tenant_slug': 'store-c',
+          'tenant_name': 'Tienda C',
+        };
+        final nextToken =
+            'header.${base64Url.encode(utf8.encode(jsonEncode({'sub': '55', 'tid': 3, 'platform': false, 'exp': DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000})))}.signature';
+        final api = ApiClient(
+          httpClient: MockClient((request) async {
+            calls++;
+            if (request.url.path.endsWith('/auth/me')) {
+              return http.Response(jsonEncode(oldUser), 200);
+            }
+            final switching = request.url.path.endsWith('/auth/store');
+            if (switching && !available) {
+              return http.Response(
+                jsonEncode({'detail': 'Esta tienda no está disponible'}),
+                403,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            }
+            return http.Response(
+              jsonEncode({
+                'access_token': switching ? nextToken : jwt(false),
+                'expires_in': 3600,
+                'user': switching ? nextUser : oldUser,
+                'tenant': {
+                  'id': switching ? 3 : 2,
+                  'slug': switching ? 'store-c' : 'store-b',
+                  'name': switching ? 'Tienda C' : 'Tienda B',
+                },
+                'redirect_path': '/catalog',
+              }),
+              200,
+            );
+          }),
+        );
+        final initial = AuthService(apiClient: api);
+        await initial.login('account@example.com', 'Password123!');
+        initial.dispose();
+        await CompanyService.acceptStoreLink('drapemind://tienda/store-c');
+        final restored = AuthService(apiClient: api);
+        addTearDown(restored.dispose);
+        expect(await restored.tryAutoLogin(), true);
+        expect(calls, 3);
+        expect(restored.isAuthenticated, true);
+        expect(
+          restored.currentUser!.tenantSlug,
+          available ? 'store-c' : 'store-b',
+        );
+        expect(
+          restored.storeEntryError,
+          available ? isNull : contains('no está disponible'),
+        );
+      },
+    );
+  }
+  test(
+    'universal customer changes store and chat history stays with its owner',
+    () async {
+      var calls = 0;
+      final api = ApiClient(
+        httpClient: MockClient((request) async {
+          calls++;
+          final switched = request.url.path.endsWith('/auth/store');
+          if (switched) {
+            expect(jsonDecode(request.body), {'slug': 'store-c'});
+            expect(request.headers.containsKey('Authorization'), true);
+          }
+          final data = {
+            ...profile(false),
+            'is_universal_customer': true,
+            if (switched) ...{
+              'id': 55,
+              'tenant_id': 3,
+              'tenant_slug': 'store-c',
+              'tenant_name': 'Tienda C',
+            },
+          };
+          final token = switched
+              ? 'header.${base64Url.encode(utf8.encode(jsonEncode({'sub': '55', 'tid': 3, 'platform': false, 'exp': DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000})))}.signature'
+              : jwt(false);
+          return http.Response(
+            jsonEncode({
+              'access_token': token,
+              'expires_in': 3600,
+              'user': data,
+              'tenant': {
+                'id': switched ? 3 : 2,
+                'slug': switched ? 'store-c' : 'store-b',
+                'name': switched ? 'Tienda C' : 'Tienda B',
+              },
+              'redirect_path': '/catalog',
+            }),
+            200,
+          );
+        }),
+      );
+      final auth = AuthService(apiClient: api);
+      addTearDown(auth.dispose);
+      await auth.login('account@example.com', 'Password123!');
+      final ai = AiSocketService(authService: auth);
+      addTearDown(ai.dispose);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      ai.createNewSession(title: 'Conversación privada de tienda B');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await auth.enterStore('store-c');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(auth.currentUser!.isUniversalCustomer, true);
+      expect(auth.currentUser!.tenantSlug, 'store-c');
+      expect(calls, 2);
+      expect(
+        ai.sessions.any(
+          (session) => session.title == 'Conversación privada de tienda B',
+        ),
+        false,
+      );
+    },
+  );
   testWidgets(
     'platform account sees companies without a company subscription gate',
     (tester) async {

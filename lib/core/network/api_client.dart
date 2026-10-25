@@ -92,9 +92,9 @@ class ApiClient {
       final token = await getToken();
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
-        if (CompanyService.claims(token)?['platform'] == true) {
-          headers.remove('X-Tenant');
-        }
+        headers.remove(
+          'X-Tenant',
+        ); // Authenticated company comes exclusively from JWT.
       }
     }
 

@@ -7,6 +7,7 @@ import 'package:drapemind_mobile/core/network/api_exception.dart';
 import 'package:drapemind_mobile/core/services/offline_catalog.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 import 'subscription_screen.dart';
+import 'stores_screen.dart';
 
 class CompanyAccessGate extends StatefulWidget {
   final Widget child;
@@ -103,6 +104,10 @@ class _CompanyAccessGateState extends State<CompanyAccessGate>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_allowed == false) {
+      if (context.read<AuthService>().currentUser?.rol.toServerString() ==
+          'CLIENTE') {
+        return const StoresScreen(unavailable: true);
+      }
       return SubscriptionScreen(
         apiClient: _api,
         onActivated: () => setState(() => _allowed = true),

@@ -6,6 +6,13 @@ class CartService extends ChangeNotifier {
   final ApiClient _apiClient;
   Cart? _cart;
   bool _isLoading = false;
+  String? _owner;
+  void bindOwner(String? owner) {
+    if (owner != _owner) {
+      _owner = owner;
+      _cart = null;
+    }
+  }
 
   CartService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
 
@@ -118,9 +125,13 @@ class CartService extends ChangeNotifier {
   }
 
   /// CU-22: Check style coherence of the current cart
-  Future<Map<String, dynamic>> checkStyle({String? objetivo, int? sesionId}) async {
+  Future<Map<String, dynamic>> checkStyle({
+    String? objetivo,
+    int? sesionId,
+  }) async {
     final body = <String, dynamic>{
-      'objetivo': objetivo ?? 'Evaluar coherencia cromática y estilo del perchero',
+      'objetivo':
+          objetivo ?? 'Evaluar coherencia cromática y estilo del perchero',
       if (sesionId != null) 'sesion_id': sesionId,
     };
     final response = await _apiClient.post('/ai/cart/style-check', body: body);
@@ -128,9 +139,14 @@ class CartService extends ChangeNotifier {
   }
 
   /// CU-23: Optimize outfit for value, quality and savings
-  Future<Map<String, dynamic>> checkValue({String? objetivo, int? sesionId}) async {
+  Future<Map<String, dynamic>> checkValue({
+    String? objetivo,
+    int? sesionId,
+  }) async {
     final body = <String, dynamic>{
-      'objetivo': objetivo ?? 'Optimizar calidad, precio y balance de ahorro del perchero',
+      'objetivo':
+          objetivo ??
+          'Optimizar calidad, precio y balance de ahorro del perchero',
       if (sesionId != null) 'sesion_id': sesionId,
     };
     final response = await _apiClient.post('/ai/cart/value-check', body: body);

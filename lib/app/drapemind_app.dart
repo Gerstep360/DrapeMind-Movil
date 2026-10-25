@@ -24,6 +24,11 @@ class DrapeMindApp extends StatelessWidget {
         create: (_) => CartService(),
         update: (_, auth, cart) {
           final service = cart ?? CartService();
+          service.bindOwner(
+            auth.currentUser == null
+                ? null
+                : '${auth.currentUser!.tenantId}_${auth.currentUser!.id}',
+          );
           if (auth.isAuthenticated && !auth.isPlatformAdmin) {
             service.getCart();
           } else {

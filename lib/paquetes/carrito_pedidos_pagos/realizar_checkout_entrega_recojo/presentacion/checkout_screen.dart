@@ -21,6 +21,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   PaymentMethod _paymentMethod = PaymentMethod.qr;
 
   List<Address> _addresses = [];
+  List<Branch> _branches = [];
+  int? _selectedBranchId;
+  String? _branchError;
   int? _selectedAddressId;
   bool _isLoading = false;
   bool _stripeEnabled = false;
@@ -39,6 +42,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _loadAddresses();
+    _loadBranches();
     _paymentService
         .provider()
         .then((value) {
@@ -71,6 +75,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (_) {}
   }
 
+  Future<void> _loadBranches() async {
+    try {
+      final list = await BranchService().getBranches();
+      if (mounted) setState(() => _branches = list);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _branchError =
+              'No pudimos cargar las sucursales. Intenta nuevamente.',
+        );
+      }
+    }
+  }
+
   Future<void> _applyCoupon(double subtotal, List<int> productIds) async {
     final code = _couponController.text.trim().toUpperCase();
     if (code.isEmpty) return;
@@ -89,7 +107,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       final isValid = res['valido'] == true;
       final discount = (res['descuento_calculado'] as num?)?.toDouble() ?? 0.0;
-      final msg = res['mensaje'] as String? ?? (isValid ? 'Cupón aplicado con éxito.' : 'Cupón no aplicable.');
+      final msg =
+          res['mensaje'] as String? ??
+          (isValid ? 'Cupón aplicado con éxito.' : 'Cupón no aplicable.');
 
       if (!mounted) return;
       setState(() {
@@ -127,12 +147,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _processCheckout() async {
+    if (_deliveryType == DeliveryType.recojo && _selectedBranchId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Elige la sucursal donde recogerás tu compra.'),
+        ),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
       final order = await _orderService.checkout(
         CheckoutRequest(
           tipoEntrega: _deliveryType,
+          sucursalId: _deliveryType == DeliveryType.recojo
+              ? _selectedBranchId
+              : null,
           direccionId: _deliveryType == DeliveryType.delivery
               ? _selectedAddressId
               : null,
@@ -275,6 +306,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // DELIVERY TYPE
+                  Text(
+                    'Comprando en ${context.read<AuthService>().currentUser?.tenantName ?? 'tu tienda'}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 16),
                   _buildSectionHeader('TIPO DE ENTREGA', AppSvg.truck),
                   const SizedBox(height: 8),
                   Card(
@@ -313,6 +349,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           onChanged: (v) => setState(() => _deliveryType = v!),
                         ),
+                        if (_deliveryType == DeliveryType.recojo)
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                DropdownButtonFormField<int>(
+                                  value: _selectedBranchId,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Sucursal de recojo',
+                                  ),
+                                  hint: const Text('Elige dónde recoger'),
+                                  items: _branches
+                                      .map(
+                                        (branch) => DropdownMenuItem(
+                                          value: branch.id,
+                                          child: Text(
+                                            '${branch.nombre} · ${branch.direccion}',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (id) =>
+                                      setState(() => _selectedBranchId = id),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _branchError ??
+                                      'Validaremos todas las cantidades en esta sucursal antes de confirmar.',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                if (_branchError != null)
+                                  TextButton(
+                                    onPressed: _loadBranches,
+                                    child: const Text('Reintentar'),
+                                  ),
+                              ],
+                            ),
+                          ),
                         if (_deliveryType == DeliveryType.delivery &&
                             _addresses.isNotEmpty) ...[
                           Padding(
@@ -440,19 +517,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           if (_appliedCouponCode != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.acid.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.forest, width: 1.2),
+                                border: Border.all(
+                                  color: AppColors.forest,
+                                  width: 1.2,
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.confirmation_num_outlined, color: AppColors.forest, size: 18),
+                                  const Icon(
+                                    Icons.confirmation_num_outlined,
+                                    color: AppColors.forest,
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'CUPÓN: $_appliedCouponCode',
@@ -479,7 +567,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       visualDensity: VisualDensity.compact,
                                       foregroundColor: AppColors.danger,
                                     ),
-                                    child: const Text('Quitar', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+                                    child: const Text(
+                                      'Quitar',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -490,11 +584,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: _couponController,
-                                    textCapitalization: TextCapitalization.characters,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
                                     decoration: const InputDecoration(
                                       hintText: 'Ingresa código (ej. ALTAIR15)',
                                       isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 10,
+                                      ),
                                       border: OutlineInputBorder(),
                                     ),
                                   ),
@@ -505,20 +603,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ? null
                                       : () {
                                           final sub = cart?.subtotal ?? 0.0;
-                                          final pIds = cart?.items.map((it) => it.productoId).toList() ?? [];
+                                          final pIds =
+                                              cart?.items
+                                                  .map((it) => it.productoId)
+                                                  .toList() ??
+                                              [];
                                           _applyCoupon(sub, pIds);
                                         },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.ink,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
                                   ),
                                   child: _validatingCoupon
                                       ? const SizedBox(
                                           width: 14,
                                           height: 14,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
                                         )
-                                      : const Text('Aplicar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                      : const Text(
+                                          'Aplicar',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
                                 ),
                               ],
                             ),
@@ -530,7 +644,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: _couponValid ? AppColors.forest : AppColors.danger,
+                                color: _couponValid
+                                    ? AppColors.forest
+                                    : AppColors.danger,
                               ),
                             ),
                           ],
@@ -590,7 +706,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               children: [
                                 const Text(
                                   'Descuento Cupón:',
-                                  style: TextStyle(fontSize: 12.5, color: AppColors.forest, fontWeight: FontWeight.w700),
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.forest,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 Text(
                                   '-Bs ${_appliedDiscount.toStringAsFixed(2)}',
@@ -724,6 +844,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               const SizedBox(height: 18),
+              Text(
+                '${context.read<AuthService>().currentUser?.tenantName ?? 'Tienda'} · ${_branches.where((branch) => branch.id == _completedOrder?.sucursalId).map((branch) => branch.nombre).firstOrNull ?? 'Sucursal asignada por la tienda'}',
+                textAlign: TextAlign.center,
+              ),
 
               // QR MOCK / PAYMENT BOX
               if (!isPaid && _paymentMethod == PaymentMethod.qr) ...[

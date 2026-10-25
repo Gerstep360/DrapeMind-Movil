@@ -38,7 +38,9 @@ enum AiSocketStatus {
 }
 
 class AiSocketService extends ChangeNotifier {
-  static const String _storageKey = 'drapemind_ai_sessions_v2';
+  String? _owner;
+  String get _storageKey =>
+      'drapemind_ai_sessions_v3_${_owner ?? 'signed-out'}';
   final AuthService _authService;
   final ApiClient _contextApi = ApiClient();
   bool _contextBusy = false;
@@ -67,7 +69,19 @@ class AiSocketService extends ChangeNotifier {
 
   AiSocketService({required AuthService authService})
     : _authService = authService {
-    _loadSessionsFromStorage();
+    _authService.addListener(_accountChanged);
+    _accountChanged();
+  }
+
+  void _accountChanged() {
+    final user = _authService.currentUser;
+    final owner = user == null ? null : '${user.tenantId}_${user.id}';
+    if (owner == _owner) return;
+    disconnect();
+    _owner = owner;
+    _sessions = [];
+    _activeSessionId = null;
+    if (owner != null) _loadSessionsFromStorage();
   }
 
   // --- GETTERS ---
@@ -78,6 +92,7 @@ class AiSocketService extends ChangeNotifier {
   double get thinkingElapsedSeconds => _thinkingElapsedMs / 1000.0;
   String get thinkingElapsedFormatted =>
       '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
+
   /// Reconectar explícitamente con la configuración actual (útil tras cambio de host/IP)
   void reconnectWithCurrentConfig() {
     disconnect();
@@ -116,9 +131,12 @@ class AiSocketService extends ChangeNotifier {
 
   // --- MULTI-CHAT & 24H STORAGE ---
   Future<void> _loadSessionsFromStorage() async {
+    final owner = _owner;
+    final key = _storageKey;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
+      if (owner != _owner) return;
+      final raw = prefs.getString(key);
       if (raw != null && raw.isNotEmpty) {
         final List list = jsonDecode(raw);
         final loaded = list
@@ -139,6 +157,7 @@ class AiSocketService extends ChangeNotifier {
       );
     }
 
+    if (owner != _owner) return;
     // Inicializar sesión por defecto
     final initial = ChatSession.create(title: 'Asesoría Atelier');
     _sessions = [initial];
@@ -147,12 +166,16 @@ class AiSocketService extends ChangeNotifier {
   }
 
   Future<void> _saveSessionsToStorage() async {
+    final key = _storageKey;
+    final owner = _owner;
+    if (owner == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (owner != _owner) return;
       // Filtrar expirados de más de 24 horas antes de persistir
       _sessions.removeWhere((s) => s.isExpired);
       final raw = jsonEncode(_sessions.map((s) => s.toJson()).toList());
-      await prefs.setString(_storageKey, raw);
+      await prefs.setString(key, raw);
     } catch (e) {
       debugPrint('[AiSocketService] Error guardando sesiones: $e');
     }
@@ -275,6 +298,7 @@ class AiSocketService extends ChangeNotifier {
   void connect() {
     if (_authService.isPlatformAdmin) return;
     final token = _authService.token;
+    final owner = _owner;
     if (token == null || token.isEmpty || !_authService.hasValidToken) {
       _status = AiSocketStatus.offline;
       unawaited(_authService.logout());
@@ -298,6 +322,7 @@ class AiSocketService extends ChangeNotifier {
 
       _subscription = _channel!.stream.listen(
         (data) {
+          if (owner != _owner) return;
           try {
             final Map<String, dynamic> event = jsonDecode(data.toString());
             _handleEvent(event);
@@ -888,6 +913,8 @@ class AiSocketService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authService.removeListener(_accountChanged);
+    _owner = null;
     disconnect();
     super.dispose();
   }

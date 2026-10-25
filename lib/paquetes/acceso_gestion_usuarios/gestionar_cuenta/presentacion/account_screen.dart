@@ -1,4 +1,5 @@
 import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
+import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -382,20 +383,6 @@ class _AccountScreenState extends State<AccountScreen> {
         title: const Text('Eliminar dirección'),
         content: Text('¿Quieres eliminar “${address.alias}”?'),
         actions: [
-          IconButton(
-            tooltip: 'Plan de empresa',
-            icon: const Icon(Icons.business_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Plan de empresa',
-            icon: const Icon(Icons.business_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
-            ),
-          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Conservar'),
@@ -693,6 +680,22 @@ class _AccountScreenState extends State<AccountScreen> {
           ],
         ),
         actions: [
+          if (auth.isAdmin)
+            IconButton(
+              tooltip: 'Plan de empresa',
+              icon: const Icon(Icons.business_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              ),
+            ),
+          if (user?.isUniversalCustomer == true)
+            IconButton(
+              tooltip: 'Cambiar de tienda',
+              icon: const Icon(Icons.storefront_outlined),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const StoresScreen())),
+            ),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: Container(

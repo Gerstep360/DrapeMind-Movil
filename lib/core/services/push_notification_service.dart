@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import 'package:drapemind_mobile/core/config/api_config.dart';
 import 'package:drapemind_mobile/core/models/notification_model.dart';
 import 'package:drapemind_mobile/core/models/realtime_models.dart';
@@ -21,7 +20,8 @@ class PushNotificationService extends ChangeNotifier {
   StreamSubscription<RealtimeEvent>? _eventSubscription;
 
   List<AtelierNotification> _notifications = [];
-  List<AtelierNotification> get notifications => List.unmodifiable(_notifications);
+  List<AtelierNotification> get notifications =>
+      List.unmodifiable(_notifications);
 
   int get unreadCount => _notifications.where((n) => !n.leido).length;
 
@@ -30,12 +30,23 @@ class PushNotificationService extends ChangeNotifier {
 
   String? _deviceToken;
   String? get deviceToken => _deviceToken;
+  String? _owner;
+  void _accountChanged() {
+    final user = _authService.currentUser;
+    final owner = user == null ? null : '${user.tenantId}_${user.id}';
+    if (owner == _owner) return;
+    _owner = owner;
+    _notifications = [];
+    _isLoading = false;
+    notifyListeners();
+  }
 
   PushNotificationService({
     required AuthService authService,
     required EventsSocketService eventsService,
-  })  : _authService = authService,
-        _eventsService = eventsService {
+  }) : _authService = authService,
+       _eventsService = eventsService {
+    _authService.addListener(_accountChanged);
     _initDevice();
   }
 
@@ -54,11 +65,7 @@ class PushNotificationService extends ChangeNotifier {
     // Inicialización del SDK de Firebase Messaging en Android/iOS
     try {
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
 
       final realFcmToken = await messaging.getToken();
       if (realFcmToken != null && realFcmToken.isNotEmpty) {
@@ -87,7 +94,9 @@ class PushNotificationService extends ChangeNotifier {
         _handleNotificationTapFromBackground(initialMessage);
       }
     } catch (e) {
-      debugPrint('[PushNotificationService] Firebase Messaging activo en canal local: $e');
+      debugPrint(
+        '[PushNotificationService] Firebase Messaging activo en canal local: $e',
+      );
     }
 
     if (_authService.isAuthenticated) {
@@ -111,13 +120,21 @@ class PushNotificationService extends ChangeNotifier {
   }
 
   void _handleFcmMessage(RemoteMessage msg) {
-    final rawId = msg.data['notification_id']?.toString() ?? msg.messageId ?? '';
-    final title = msg.notification?.title ?? msg.data['title'] ?? msg.data['titulo'] ?? 'Notificación Atelier';
-    final body = msg.notification?.body ?? msg.data['body'] ?? msg.data['mensaje'] ?? '';
+    final rawId =
+        msg.data['notification_id']?.toString() ?? msg.messageId ?? '';
+    final title =
+        msg.notification?.title ??
+        msg.data['title'] ??
+        msg.data['titulo'] ??
+        'Notificación Atelier';
+    final body =
+        msg.notification?.body ?? msg.data['body'] ?? msg.data['mensaje'] ?? '';
     final dedupeKey = rawId.isNotEmpty ? 'id_$rawId' : 'text_${title}_$body';
 
     if (_isDuplicateNotification(dedupeKey)) {
-      debugPrint('[PushNotificationService] FCM duplicado ignorado: $dedupeKey');
+      debugPrint(
+        '[PushNotificationService] FCM duplicado ignorado: $dedupeKey',
+      );
       return;
     }
 
@@ -144,12 +161,20 @@ class PushNotificationService extends ChangeNotifier {
   }
 
   void _handleNotificationTapFromBackground(RemoteMessage msg) {
-    debugPrint('[PushNotificationService] Tap recibido en notificacion de fondo: ${msg.data}');
+    debugPrint(
+      '[PushNotificationService] Tap recibido en notificacion de fondo: ${msg.data}',
+    );
     final payload = msg.data;
-    String screen = (payload['screen'] ?? payload['url'] ?? payload['enlace'] ?? '').toString();
+    String screen =
+        (payload['screen'] ?? payload['url'] ?? payload['enlace'] ?? '')
+            .toString();
     if (screen.isEmpty) {
-      final tipo = (payload['type'] ?? payload['tipo'] ?? '').toString().toUpperCase();
-      if (tipo.contains('PEDIDO') || tipo.contains('ORDER') || tipo.contains('PAGO')) {
+      final tipo = (payload['type'] ?? payload['tipo'] ?? '')
+          .toString()
+          .toUpperCase();
+      if (tipo.contains('PEDIDO') ||
+          tipo.contains('ORDER') ||
+          tipo.contains('PAGO')) {
         screen = '/orders';
       } else if (tipo.contains('RESERVA')) {
         screen = '/reservations';
@@ -164,7 +189,6 @@ class PushNotificationService extends ChangeNotifier {
     NavigationService.navigateTo(screen: screen, data: payload);
   }
 
-
   void _listenRealtimeEvents() {
     _eventSubscription?.cancel();
     _eventSubscription = _eventsService.onEvent.listen((event) {
@@ -176,12 +200,15 @@ class PushNotificationService extends ChangeNotifier {
     final payloadMap = event.raw;
     if (event.type == 'notification') {
       final rawId = payloadMap['id']?.toString() ?? '';
-      final title = payloadMap['title'] ?? payloadMap['titulo'] ?? 'Notificación';
+      final title =
+          payloadMap['title'] ?? payloadMap['titulo'] ?? 'Notificación';
       final body = payloadMap['body'] ?? payloadMap['mensaje'] ?? '';
       final dedupeKey = rawId.isNotEmpty ? 'id_$rawId' : 'text_${title}_$body';
 
       if (_isDuplicateNotification(dedupeKey)) {
-        debugPrint('[PushNotificationService] Evento WebSocket duplicado ignorado: $dedupeKey');
+        debugPrint(
+          '[PushNotificationService] Evento WebSocket duplicado ignorado: $dedupeKey',
+        );
         return;
       }
 
@@ -194,10 +221,12 @@ class PushNotificationService extends ChangeNotifier {
         'id': intId,
         'titulo': title,
         'mensaje': body,
-        'tipo': payloadMap['notification_type'] ?? payloadMap['tipo'] ?? 'GENERAL',
+        'tipo':
+            payloadMap['notification_type'] ?? payloadMap['tipo'] ?? 'GENERAL',
         'data_payload': payloadMap['data'] ?? payloadMap['payload'] ?? {},
         'leido': false,
-        'created_at': payloadMap['created_at'] ?? DateTime.now().toIso8601String(),
+        'created_at':
+            payloadMap['created_at'] ?? DateTime.now().toIso8601String(),
       };
 
       final newNotif = AtelierNotification.fromJson(notifMap);
@@ -221,7 +250,6 @@ class PushNotificationService extends ChangeNotifier {
     }
   }
 
-
   Future<void> registerDeviceWithBackend() async {
     final token = _authService.token;
     if (token == null || token.isEmpty || _deviceToken == null) return;
@@ -238,7 +266,8 @@ class PushNotificationService extends ChangeNotifier {
           'token': _deviceToken,
           'dispositivo_id': 'dm_${Platform.operatingSystem}_terminal',
           'plataforma': Platform.operatingSystem,
-          'modelo': 'DrapeMind Atelier Client (${Platform.operatingSystemVersion})',
+          'modelo':
+              'DrapeMind Atelier Client (${Platform.operatingSystemVersion})',
         }),
       );
     } catch (e) {
@@ -261,7 +290,9 @@ class PushNotificationService extends ChangeNotifier {
         body: jsonEncode({'token': _deviceToken}),
       );
     } catch (e) {
-      debugPrint('[PushNotificationService] Error desregistrando dispositivo: $e');
+      debugPrint(
+        '[PushNotificationService] Error desregistrando dispositivo: $e',
+      );
     }
   }
 
@@ -279,13 +310,17 @@ class PushNotificationService extends ChangeNotifier {
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 && token == _authService.token) {
         final Map<String, dynamic> data = jsonDecode(res.body);
         final List items = data['items'] ?? [];
-        _notifications = items.map((x) => AtelierNotification.fromJson(x)).toList();
+        _notifications = items
+            .map((x) => AtelierNotification.fromJson(x))
+            .toList();
       }
     } catch (e) {
-      debugPrint('[PushNotificationService] Error consultando notificaciones: $e');
+      debugPrint(
+        '[PushNotificationService] Error consultando notificaciones: $e',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -303,11 +338,10 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications/$notificationId/read?originating_token=${_deviceToken ?? ""}');
-      await http.patch(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
+      final url = Uri.parse(
+        '${ApiConfig.apiV1Url}/notifications/$notificationId/read?originating_token=${_deviceToken ?? ""}',
       );
+      await http.patch(url, headers: {'Authorization': 'Bearer $token'});
     } catch (e) {
       debugPrint('[PushNotificationService] Error marcando leida: $e');
     }
@@ -323,11 +357,10 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty) return;
 
     try {
-      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications/read-all?originating_token=${_deviceToken ?? ""}');
-      await http.post(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
+      final url = Uri.parse(
+        '${ApiConfig.apiV1Url}/notifications/read-all?originating_token=${_deviceToken ?? ""}',
       );
+      await http.post(url, headers: {'Authorization': 'Bearer $token'});
     } catch (e) {
       debugPrint('[PushNotificationService] Error marcando todas leidas: $e');
     }
@@ -341,6 +374,7 @@ class PushNotificationService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authService.removeListener(_accountChanged);
     _eventSubscription?.cancel();
     super.dispose();
   }

@@ -39,6 +39,7 @@ enum UserRole {
 class User {
   final int? tenantId;
   final bool isPlatformAdmin;
+  final bool isUniversalCustomer;
   final String? tenantSlug;
   final String? tenantName;
   final int id;
@@ -53,6 +54,7 @@ class User {
   User({
     this.tenantId,
     this.isPlatformAdmin = false,
+    this.isUniversalCustomer = false,
     this.tenantSlug,
     this.tenantName,
     required this.id,
@@ -69,6 +71,7 @@ class User {
     return User(
       tenantId: json['tenant_id'] as int?,
       isPlatformAdmin: json['is_platform_admin'] == true,
+      isUniversalCustomer: json['is_universal_customer'] == true,
       tenantSlug: json['tenant_slug'] as String?,
       tenantName: json['tenant_name'] as String?,
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
@@ -97,6 +100,7 @@ class User {
     return User(
       tenantId: tenantId,
       isPlatformAdmin: isPlatformAdmin,
+      isUniversalCustomer: isUniversalCustomer,
       tenantSlug: tenantSlug,
       tenantName: tenantName,
       id: id ?? this.id,
@@ -113,6 +117,7 @@ class User {
   Map<String, dynamic> toJson() => {
     'tenant_id': tenantId,
     'is_platform_admin': isPlatformAdmin,
+    'is_universal_customer': isUniversalCustomer,
     'tenant_slug': tenantSlug,
     'tenant_name': tenantName,
     'id': id,

@@ -176,6 +176,7 @@ class OrderItem {
 
 class Order {
   final int id;
+  final int? sucursalId;
   final String codigoPublico;
   final OrderStatus estado;
   final String canal;
@@ -191,6 +192,7 @@ class Order {
 
   Order({
     required this.id,
+    this.sucursalId,
     required this.codigoPublico,
     required this.estado,
     this.canal = 'MOBILE',
@@ -215,6 +217,7 @@ class Order {
 
     return Order(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      sucursalId: json['sucursal_id'] as int?,
       codigoPublico: json['codigo_publico']?.toString() ?? '',
       estado: OrderStatus.fromString(json['estado']?.toString()),
       canal: json['canal']?.toString() ?? 'MOBILE',
@@ -246,6 +249,7 @@ class Order {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'sucursal_id': sucursalId,
     'codigo_publico': codigoPublico,
     'estado': estado.toServerString(),
     'canal': canal,
@@ -264,6 +268,7 @@ class Order {
 class CheckoutRequest {
   final DeliveryType tipoEntrega;
   final int? direccionId;
+  final int? sucursalId;
   final double? costoEnvio;
   final String? observacion;
   final String? codigoPromocion;
@@ -271,6 +276,7 @@ class CheckoutRequest {
   CheckoutRequest({
     required this.tipoEntrega,
     this.direccionId,
+    this.sucursalId,
     this.costoEnvio,
     this.observacion,
     this.codigoPromocion,
@@ -278,6 +284,8 @@ class CheckoutRequest {
 
   Map<String, dynamic> toJson() => {
     'tipo_entrega': tipoEntrega.toServerString(),
+    'canal': 'MOBILE',
+    if (sucursalId != null) 'sucursal_id': sucursalId,
     if (direccionId != null) 'direccion_id': direccionId,
     if (costoEnvio != null) 'costo_envio': costoEnvio,
     if (observacion != null && observacion!.isNotEmpty)

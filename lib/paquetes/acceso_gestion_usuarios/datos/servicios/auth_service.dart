@@ -17,6 +17,7 @@ class AuthService extends ChangeNotifier {
   bool _onboardingSkipped = false;
   String? _token;
   String? _destination;
+  String? _storeEntryError;
   Timer? _expiryTimer;
 
   AuthService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
@@ -27,6 +28,7 @@ class AuthService extends ChangeNotifier {
   bool get isAdmin => !isPlatformAdmin && _currentUser?.rol == UserRole.admin;
   bool get isPlatformAdmin => _currentUser?.isPlatformAdmin == true;
   String? get destination => _destination;
+  String? get storeEntryError => _storeEntryError;
   bool get isVendedor => _currentUser?.rol == UserRole.vendedor;
   bool get isEncargado => _currentUser?.rol == UserRole.encargado;
   bool get isCajero => _currentUser?.rol == UserRole.cajero;
@@ -58,8 +60,10 @@ class AuthService extends ChangeNotifier {
 
       // 1. Restaurar perfil desde cache local de inmediato (sin bloqueo de red)
       final cached = await SecurityService().getCachedUserProfile();
+      final requestedStore = CompanyService.entrySlug;
       if (CompanyService.entrySlug != null &&
-          cached?['tenant_slug'] != CompanyService.entrySlug) {
+          cached?['tenant_slug'] != CompanyService.entrySlug &&
+          cached?['is_universal_customer'] != true) {
         await logout();
         return false;
       }
@@ -90,6 +94,19 @@ class AuthService extends ChangeNotifier {
       } catch (_) {
         // En caso de estar sin conexion o fallo transitorio,
         // se conserva la sesion activa del usuario con su token y perfil cacheados
+      }
+
+      if (requestedStore != null &&
+          _currentUser?.isUniversalCustomer == true &&
+          _currentUser?.tenantSlug != requestedStore) {
+        try {
+          await enterStore(requestedStore);
+        } on ApiException catch (e) {
+          _storeEntryError = e.message;
+        } catch (_) {
+          _storeEntryError =
+              'No pudimos abrir esta tienda. Intenta nuevamente.';
+        }
       }
 
       _isLoading = false;
@@ -155,6 +172,22 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Register a new user
+  Future<void> enterStore(String slug) async {
+    _storeEntryError = null;
+    final response = await _apiClient.post('/auth/store', body: {'slug': slug});
+    final data = Map<String, dynamic>.from(response);
+    final tokenData = TokenResponse.fromJson(data);
+    await _apiClient.setToken(tokenData.accessToken);
+    _token = tokenData.accessToken;
+    _scheduleTokenExpiry(_token!);
+    _currentUser = User.fromJson(data['user']);
+    await CompanyService.useAccount(_currentUser!.tenantSlug);
+    await SecurityService().cacheUserProfile(data['user']);
+    _destination = data['redirect_path'];
+    _onboardingSkipped = false;
+    notifyListeners();
+  }
+
   Future<User> register({
     required String nombre,
     required String email,
@@ -283,6 +316,7 @@ class AuthService extends ChangeNotifier {
     _currentUser = null;
     _token = null;
     _destination = null;
+    _storeEntryError = null;
     _onboardingSkipped = false;
     await _apiClient.clearToken();
     await SecurityService().clearSecurityState();

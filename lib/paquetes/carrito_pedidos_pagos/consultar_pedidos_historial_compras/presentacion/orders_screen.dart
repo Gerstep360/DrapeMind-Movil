@@ -402,19 +402,20 @@ class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
 
   void _copyReceiptToClipboard() {
     final order = _receiptData?['order'] ?? {};
+    final merchant = _receiptData?['empresa'] ?? {};
     final total = order['total'] ?? widget.initialOrder.total;
     final code = order['codigo_publico'] ?? widget.initialOrder.codigoPublico;
     final status = order['estado'] ?? widget.initialOrder.estado.displayName;
 
     final summary =
         '''
---- DRAPEMIND ATELIER BOLIVIA ---
+--- ${merchant['nombre'] ?? 'Comercio'} ---
 Comprobante Oficial de Venta #DM-ORD-${widget.orderId.toString().padLeft(5, '0')}
-NIT: 7492019012 · Santa Cruz, Bolivia
+${merchant['direccion'] ?? ''} ${merchant['telefono'] ?? ''}
 Código: $code
 Estado: $status
 Total Cancelado: Bs $total BOB
-Política: 30 días de garantía para cambios en showrooms oficiales.
+Consulta las condiciones de cambios con la tienda. Documento no fiscal.
 ''';
 
     Clipboard.setData(ClipboardData(text: summary));
@@ -435,13 +436,16 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
   Widget build(BuildContext context) {
     final orderMap = _receiptData?['order'] as Map<String, dynamic>?;
     final sucursalMap = _receiptData?['sucursal'] as Map<String, dynamic>?;
+    final merchantMap = _receiptData?['empresa'] as Map<String, dynamic>?;
     final clienteMap = _receiptData?['cliente'] as Map<String, dynamic>?;
     final itemsList = (_receiptData?['items'] as List?) ?? [];
     final paymentsList = (_receiptData?['payments'] as List?) ?? [];
 
     final total = _parseNum(orderMap?['total'], widget.initialOrder.total);
-    final subtotal =
-        _parseNum(orderMap?['subtotal'], widget.initialOrder.subtotal);
+    final subtotal = _parseNum(
+      orderMap?['subtotal'],
+      widget.initialOrder.subtotal,
+    );
     final deliveryCost = _parseNum(orderMap?['costo_envio'], 0.0);
     final discount = _parseNum(orderMap?['descuento'], 0.0);
     final statusStr =
@@ -496,12 +500,12 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Comprobante Oficial',
+                      const Text(
+                        'Comprobante de compra',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
@@ -509,7 +513,7 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                         ),
                       ),
                       Text(
-                        'DrapeMind Atelier Bolivia',
+                        merchantMap?['nombre'] ?? 'Comercio',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textMuted,
@@ -627,8 +631,8 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'DRAPEMIND ATELIER BOLIVIA',
+                                    Text(
+                                      merchantMap?['nombre'] ?? 'Comercio',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w900,
@@ -637,14 +641,14 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                                       ),
                                     ),
                                     const Text(
-                                      'Alta Costura Contemporánea · Confección de Autor',
+                                      'Comprobante de compra no fiscal',
                                       style: TextStyle(
                                         fontSize: 10,
                                         color: AppColors.textMuted,
                                       ),
                                     ),
-                                    const Text(
-                                      'NIT: 7492019012 · Registro Comercial No. 49102-SCZ',
+                                    Text(
+                                      '${merchantMap?['direccion'] ?? ''} ${merchantMap?['telefono'] ?? ''}',
                                       style: TextStyle(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w600,
@@ -720,8 +724,7 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                           const SizedBox(height: 6),
                           _buildDetailRow(
                             'SUCURSAL:',
-                            sucursalMap?['nombre'] ??
-                                'Showroom Central Santa Cruz',
+                            sucursalMap?['nombre'] ?? 'Sucursal no registrada',
                           ),
                           if (sucursalMap?['direccion'] != null)
                             _buildDetailRow(
@@ -783,9 +786,14 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                           else
                             ...itemsList.map((item) {
                               final name = item['nombre'] ?? 'Prenda Atelier';
-                              final qty = _parseNum(item['cantidad'], 1).toInt();
-                              final unitPrice =
-                                  _parseNum(item['precio_unitario'], 0.0);
+                              final qty = _parseNum(
+                                item['cantidad'],
+                                1,
+                              ).toInt();
+                              final unitPrice = _parseNum(
+                                item['precio_unitario'],
+                                0.0,
+                              );
                               final sub = _parseNum(item['subtotal'], 0.0);
                               final variant =
                                   '${item['color'] ?? ""} ${item['talla'] ?? ""}'
@@ -948,7 +956,7 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
                                         ),
                                       ),
                                       const Text(
-                                        'Firma Digital DrapeMind Cloud ERP',
+                                        'Comprobante verificado',
                                         style: TextStyle(
                                           fontSize: 9.5,
                                           color: AppColors.textMuted,
@@ -973,7 +981,7 @@ Política: 30 días de garantía para cambios en showrooms oficiales.
 
                           // Policy Disclaimer
                           const Text(
-                            'POLÍTICA DEL ATELIER: Este comprobante certifica la adquisición y entrega de prendas exclusivas DrapeMind. Cuentas con 30 días para cambios de talla en cualquier showroom con etiquetas intactas.',
+                            'Conserva este comprobante. Consulta con la tienda las condiciones de cambios y garantías de tu compra. Documento no fiscal.',
                             style: TextStyle(
                               fontSize: 9.5,
                               color: AppColors.textMuted,

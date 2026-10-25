@@ -17,6 +17,7 @@ class EventsSocketService extends ChangeNotifier {
   int _reconnectAttempt = 0;
   bool _authRejected = false;
   bool _manualDisconnect = false;
+  String? _connectedToken;
 
   final _eventStreamController = StreamController<RealtimeEvent>.broadcast();
   Stream<RealtimeEvent> get onEvent => _eventStreamController.stream;
@@ -30,11 +31,13 @@ class EventsSocketService extends ChangeNotifier {
   void connect() {
     if (_authService.isPlatformAdmin) return;
     final token = _authService.token;
+    if (_connectedToken != null && _connectedToken != token) disconnect();
     if (token == null || token.isEmpty || !_authService.hasValidToken) {
       unawaited(_authService.logout());
       return;
     }
     if (_channel != null || _isConnected) return;
+    _connectedToken = token;
 
     _clearReconnect();
     _manualDisconnect = false;
@@ -45,6 +48,7 @@ class EventsSocketService extends ChangeNotifier {
 
       _subscription = _channel!.stream.listen(
         (data) {
+          if (token != _authService.token) return;
           try {
             final Map<String, dynamic> json = jsonDecode(data.toString());
             if (json['type'] == 'connected') {

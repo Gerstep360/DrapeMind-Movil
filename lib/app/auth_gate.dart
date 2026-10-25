@@ -20,7 +20,8 @@ class AuthGate extends StatelessWidget {
     final auth = context.watch<AuthService>();
     final security = context.watch<SecurityService>();
 
-    if (auth.isRestoring && auth.currentUser == null) {
+    if (auth.isRestoring &&
+        (auth.currentUser == null || CompanyService.entrySlug != null)) {
       return const Scaffold(
         backgroundColor: AppColors.paper,
         body: Center(child: CircularProgressIndicator(color: AppColors.ink)),
@@ -52,6 +53,7 @@ class StoreEntryGate extends StatefulWidget {
 
 class _StoreEntryGateState extends State<StoreEntryGate> {
   bool _ready = false;
+  String? _error;
   @override
   void initState() {
     super.initState();
@@ -60,6 +62,22 @@ class _StoreEntryGateState extends State<StoreEntryGate> {
 
   Future<void> _apply() async {
     final auth = context.read<AuthService>();
+    final slug = CompanyService.slugFromLink(widget.link);
+    if (slug != null &&
+        auth.isAuthenticated &&
+        auth.currentUser?.isUniversalCustomer == true) {
+      try {
+        await auth.enterStore(slug);
+      } catch (_) {
+        if (mounted) {
+          setState(
+            () => _error = 'No pudimos abrir esta tienda. Vuelve a intentarlo.',
+          );
+        }
+      }
+      if (mounted) setState(() => _ready = true);
+      return;
+    }
     if (await CompanyService.acceptStoreLink(widget.link)) {
       if (auth.isAuthenticated &&
           auth.currentUser?.tenantSlug != CompanyService.entrySlug) {
@@ -70,7 +88,28 @@ class _StoreEntryGateState extends State<StoreEntryGate> {
   }
 
   @override
-  Widget build(BuildContext context) => _ready
-      ? const AuthGate()
-      : const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) {
+    final error = _error ?? context.watch<AuthService>().storeEntryError;
+    return error != null
+        ? Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(error),
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _error = null);
+                      _apply();
+                    },
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : _ready
+        ? const AuthGate()
+        : const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
 }

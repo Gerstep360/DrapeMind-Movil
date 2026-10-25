@@ -43,22 +43,11 @@ class OrderService {
 
   /// Retrieve official purchase receipt / voucher (CU-12)
   Future<Map<String, dynamic>> getOrderReceipt(int orderId) async {
-    try {
-      final response = await _apiClient.get(
-        '/orders/$orderId/receipt',
-        queryParams: {'format': 'json'},
-      );
-      if (response is Map<String, dynamic>) {
-        return response;
-      }
-    } catch (_) {}
-
-    // Respaldo de contingencia: comprobante oficial público verificado
-    final fallback = await _apiClient.get(
-      '/orders/$orderId/public-receipt',
-      requiresAuth: false,
+    final response = await _apiClient.get(
+      '/orders/$orderId/receipt',
+      queryParams: {'format': 'json'},
     );
-    return fallback as Map<String, dynamic>;
+    return Map<String, dynamic>.from(response);
   }
 
   /// Validate a promotional code before checkout (CU-36)

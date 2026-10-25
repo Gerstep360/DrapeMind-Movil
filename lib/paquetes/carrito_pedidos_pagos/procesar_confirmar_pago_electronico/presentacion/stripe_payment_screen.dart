@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/datos/servicios/payment_service.dart';
 import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/payment_models.dart';
@@ -125,7 +127,8 @@ class _StripePaymentScreenState extends State<StripePaymentScreen> {
       await stripe.Stripe.instance.initPaymentSheet(
         paymentSheetParameters: stripe.SetupPaymentSheetParameters(
           paymentIntentClientSecret: _intentData!['client_secret'] as String,
-          merchantDisplayName: 'DrapeMind Atelier',
+          merchantDisplayName:
+              context.read<AuthService>().currentUser?.tenantName ?? 'Tienda',
           returnURL: 'drapemind://stripe-redirect',
           style: ThemeMode.dark,
         ),
