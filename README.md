@@ -2,7 +2,7 @@
 
 Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, desarrollada con **Flutter** y **Provider**.
 
-## Acceso automático y tiendas · v1.0.10
+## Acceso automático y tiendas · v1.0.11
 
 El formulario solicita correo y contraseña. El backend identifica la empresa y el rol guardados; no hay selectores de administración ni campos de empresa. Las cuentas SaaS abren un resumen de empresas y las cuentas empresariales conservan su contexto. Los enlaces `drapemind://tienda/<slug>` permiten entrar directamente a una tienda.
 
@@ -26,14 +26,21 @@ Altair usa el proveedor del backend, sin claves ni selección de múltiples mode
 
 ## 🚀 Descarga y Versión de Producción (Release)
 
-La aplicación ya se encuentra compilada y preconfigurada para conectarse directamente al servidor VPS de producción.
+La compilación de distribución fija `https://167.86.106.105/DrapeMind` mediante `DRAPEMIND_API_URL`. Ese valor tiene prioridad sobre una dirección local guardada anteriormente en el teléfono.
 
-### 📥 Enlaces de Descarga Directa:
-* **[Descargar APK Release v1.0.5 (drapemind-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.5/drapemind-release.apk)** *(62 MB)*
-* **[Descarga alternativa (app-release.apk)](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.5/app-release.apk)**
-* **[Ver Release Oficial en GitHub (Tag v1.0.5)](https://github.com/Gerstep360/DrapeMind-Movil/releases/tag/v1.0.5)**
+### Compilar y compartir la APK actual
 
-### 📋 Novedades v1.0.5 (Modularización, Pasarela Stripe y Vestidor RA):
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/compilar_apk_vps.ps1
+```
+
+El script necesita Flutter en PATH; también acepta `-FlutterExecutable C:/Dev/flutter/bin/flutter.bat`. Genera `build/app/outputs/flutter-apk/DrapeMind-1.0.11+12.apk` y `release-vps.json` con versión, URL y SHA256, sin claves ni contraseñas. Comparte ese archivo con los usuarios de prueba. Las [publicaciones de GitHub](https://github.com/Gerstep360/DrapeMind-Movil/releases) anteriores a esta versión no contienen los cambios actuales; crear una compilación local no publica una nueva release automáticamente.
+
+Si un acceso falla, comprueba primero la versión instalada y el mensaje del formulario. Las cuentas de demostración del seeder local no existen automáticamente en producción; un 401 indica que el servidor rechazó las credenciales. No es necesario reinstalar ni volver a ejecutar el seeder para validar una cuenta existente.
+
+Desde Mi perfil, el cliente puede cambiar de tienda con una sola cuenta. `drapemind://tienda/<slug>` abre el contexto de una tienda en Android; los enlaces HTTPS abren actualmente la web, pues todavía no se han configurado Android App Links verificados. Preferencias y direcciones son personales; carrito, favoritos, pedidos y chats se mantienen por tienda.
+
+### Historial v1.0.5 (Modularización, Pasarela Stripe y Vestidor RA)
 * **Arquitectura Modular por Paquetes:** Reestructuración completa a arquitectura basada en paquetes de negocio (`lib/paquetes/`, `lib/compartido/`, `lib/navegacion/`) garantizando escalabilidad y modularidad limpia.
 * **Pasarela de Pago Electrónico Stripe (CU-11):** Integración nativa de cobro con tarjeta de crédito/débito virtual en entorno sandbox, cálculo dinámico de recargos y confirmación de pago atómica.
 * **Probador Virtual por Realidad Aumentada (CU-17):** Estimación de pose corporal on-device, calibración geométrica de prendas textiles y ajuste en tiempo real sobre la cámara.
@@ -46,29 +53,28 @@ La aplicación ya se encuentra compilada y preconfigurada para conectarse direct
 
 La aplicación viene configurada de fábrica en [`lib/core/config/api_config.dart`](lib/core/config/api_config.dart) para comunicarse automáticamente con el servidor en la nube:
 
-* **Servidor VPS:** `http://167.86.106.105/DrapeMind`
-* **API REST:** `http://167.86.106.105/DrapeMind/api/v1`
-* **WebSockets Altair IA:** `ws://167.86.106.105/DrapeMind/api/v1/ws/ai`
-* **WebSockets Eventos en Tiempo Real:** `ws://167.86.106.105/DrapeMind/api/v1/ws/events`
+* **Servidor VPS:** `https://167.86.106.105/DrapeMind`
+* **API REST:** `https://167.86.106.105/DrapeMind/api/v1`
+* **WebSockets Altair IA:** `wss://167.86.106.105/DrapeMind/api/v1/ws/ai`
+* **WebSockets Eventos en Tiempo Real:** `wss://167.86.106.105/DrapeMind/api/v1/ws/events`
 
-> [!NOTE]
-> **Cambio dinámico de servidor:** Desde la pantalla de Login o desde el Perfil de Usuario, puedes presionar el botón de configuración de red para cambiar manualmente la IP (ej. a una IP local `192.168.x.x:8000`) si deseas probar en entorno de desarrollo local.
+Para desarrollo local utiliza el comando `flutter run --dart-define=DRAPEMIND_API_URL=...` indicado arriba. La opción avanzada de conexión del login solo aparece en debug con `DRAPEMIND_DEV_CONNECTION=true`; la URL fijada en una APK de distribución tiene prioridad sobre la configuración guardada.
 
 ---
 
 ## 📲 Cómo Instalar el APK en Android
 
-1. Descarga el archivo [drapemind-release.apk](https://github.com/Gerstep360/DrapeMind-Movil/releases/download/v1.0.0/drapemind-release.apk) directamente en tu teléfono celular o emulador Android.
+1. Copia al teléfono la APK actual `DrapeMind-1.0.11+12.apk`, generada mediante el script de compilación anterior.
 2. Abre el archivo descargado. Si Android te solicita permisos, activa la opción **"Permitir desde esta fuente"** o **"Instalar aplicaciones de fuentes desconocidas"**.
 3. Presiona **Instalar** y luego **Abrir**.
-4. ¡Listo! La app se conectará automáticamente al catálogo y servicios de IA en el VPS.
+4. Abre la app e inicia sesión con una cuenta existente en el VPS o crea una cuenta personal. Los empleados acceden a su empresa; los clientes pueden visitar las tiendas disponibles.
 
 ---
 
 ## ✨ Funcionalidades Principales
 
 * **Catálogo Omnicanal:** Exploración de prendas, filtros por talla, color, material, precio y género.
-* **Asistente Inteligente Altair:** Chat conversacional con IA (Google Gemini) para asesoría de imagen, outfits personalizados y búsqueda semántica en lenguaje natural.
+* **Asistente Inteligente Altair:** Chat conversacional mediante NVIDIA API desde FastAPI para asesoría de imagen, outfits personalizados y búsqueda con herramientas del catálogo.
 * **Probador Virtual (Realidad Aumentada):** Superposición de prendas sobre la cámara frontal con calibración de escala y proporciones.
 * **Perchero Digital & Carrito:** Gestión de prendas seleccionadas con cálculo de subtotal.
 * **Reservas con Código QR:** Apartado de prendas en sucursal física con generación de código QR criptográfico y temporizador de expiración (TTL).
