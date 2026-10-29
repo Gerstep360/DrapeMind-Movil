@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_ii/caja/retail_screen.dart';
 import 'package:drapemind_mobile/incrementos/incremento_ii/proveedor_web_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/paquetes/saas/company_access_gate.dart';
@@ -31,6 +32,16 @@ class AuthGate extends StatelessWidget {
     if (!auth.isAuthenticated) return const LoginScreen();
     if (security.isLocked) return PinLockScreen(onUnlocked: () {});
     if (auth.isPlatformAdmin) return const PlatformScreen();
+    if ([
+      'ADMIN',
+      'ENCARGADO',
+      'CAJERO',
+    ].contains(auth.currentUser?.rol.toServerString())) {
+      return CompanyAccessGate(
+        key: ValueKey(auth.currentUser?.id),
+        child: const RetailScreen(),
+      );
+    }
     if (auth.currentUser?.rol.toServerString() == 'PROVEEDOR') {
       return const CompanyAccessGate(child: ProveedorWebScreen());
     }

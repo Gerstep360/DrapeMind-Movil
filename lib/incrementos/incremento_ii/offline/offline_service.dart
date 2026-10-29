@@ -34,10 +34,9 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     auth.addListener(_accountChanged);
     if (monitor) {
       WidgetsBinding.instance.addObserver(this);
-      _timer = Timer.periodic(
-        const Duration(seconds: 15),
-        (_) => checkConnection(),
-      );
+      _timer = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (bundle != null || queue.isNotEmpty) checkConnection();
+      });
     }
     scheduleMicrotask(_accountChanged);
   }
@@ -57,6 +56,11 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
       owner?.endsWith('|${bundle!.owner}') == true &&
       bundle!.validUntil.isAfter(DateTime.now()) &&
       auth.hasValidToken;
+  bool get canSell => [
+    'ADMIN',
+    'ENCARGADO',
+    'CAJERO',
+  ].contains(auth.currentUser?.rol.toServerString());
   int get pending => queue
       .where(
         (r) =>
@@ -111,11 +115,7 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> checkConnection() async {
     final scope = owner;
-    if (_disposed ||
-        scope == null ||
-        _checking ||
-        _restoring ||
-        (bundle == null && queue.isEmpty)) {
+    if (_disposed || scope == null || _checking || _restoring) {
       return;
     }
     _checking = true;
@@ -244,16 +244,19 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     final pending = queue
         .where(
           (r) =>
+              r.kind != 'PICKUP' &&
               (['PENDING', 'SENDING', 'UNCERTAIN'].contains(r.state) ||
+                  (r.kind == 'SALE' && r.state == 'CONFLICT') ||
                   (r.state == 'CONFIRMED' &&
                       r.body['snapshot_version'] == bundle?.version &&
                       DateTime.parse(
                         r.body['creado_at'],
                       ).isAfter(bundle!.downloadedAt) &&
-                      (DateTime.tryParse(
-                            r.reservation?['vence_at'] ?? '',
-                          )?.isAfter(DateTime.now()) ??
-                          false))) &&
+                      (r.kind == 'SALE' ||
+                          (DateTime.tryParse(
+                                r.reservation?['vence_at'] ?? '',
+                              )?.isAfter(DateTime.now()) ??
+                              false)))) &&
               r.body['sucursal_id'] == branch,
         )
         .fold<int>(
@@ -324,7 +327,29 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> cancel(OfflineRequest record) async {
     record = queue.where((r) => r.key == record.key).firstOrNull ?? record;
-    if (syncing ||
+    if (record.kind == 'RESERVATION' && record.state == 'CONFLICT') {
+      if (!online) {
+        message =
+            'Conéctate para cancelar una solicitud que ya recibió la tienda.';
+        _publish();
+        return;
+      }
+      try {
+        await api.post(
+          "/offline/operations/${record.body['operacion_id']}/cancel",
+          body: {},
+        );
+      } on ApiException catch (e) {
+        if (e.statusCode != 404) {
+          message = e.message;
+          _publish();
+          await sync();
+          return;
+        }
+      }
+    }
+    if (record.kind != 'RESERVATION' ||
+        syncing ||
         record.owner != owner ||
         !['PENDING', 'CONFLICT'].contains(record.state)) {
       return;
@@ -353,6 +378,7 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     syncing = true;
     _publish();
     try {
+      await _pullResults(scope);
       for (final original
           in queue
               .where(
@@ -368,18 +394,12 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
         if (scope != owner) break;
         try {
           final result = await api.post(
-            '/offline/reservations',
-            body: record.body,
+            '/offline/operations',
+            body: {'tipo': record.kind, 'payload': record.body},
             headers: {'Authorization': 'Bearer $token'},
             timeout: const Duration(seconds: 25),
           );
-          await _save(
-            record.change(
-              state: 'CONFIRMED',
-              reservation: Map<String, dynamic>.from(result['reservation']),
-              message: 'La tienda recibió tu reserva.',
-            ),
-          );
+          await _save(_mergeResult(record, Map<String, dynamic>.from(result)));
         } on ApiException catch (e) {
           final status = e.statusCode ?? 0;
           await _save(
@@ -425,6 +445,265 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     b[8] = (b[8] & 63) | 128;
     final s = b.map((v) => v.toRadixString(16).padLeft(2, '0')).join();
     return '${s.substring(0, 8)}-${s.substring(8, 12)}-${s.substring(12, 16)}-${s.substring(16, 20)}-${s.substring(20)}';
+  }
+
+  OfflineRequest _mergeResult(
+    OfflineRequest record,
+    Map<String, dynamic> result,
+  ) {
+    final state = result['estado'];
+    if (!['CONFIRMED', 'CONFLICT', 'REJECTED'].contains(state)) {
+      throw ServerException(
+        'La tienda no confirmó un resultado válido. Comprobaremos la operación nuevamente.',
+      );
+    }
+    final data = result['resultado'] as Map?;
+    return record.change(
+      state: state,
+      serverId: result['id'],
+      attempts: result['intentos'] ?? record.attempts,
+      reservation: data?['reservation'] == null
+          ? null
+          : Map<String, dynamic>.from(data!['reservation']),
+      sale: data?['sale'] == null
+          ? null
+          : Map<String, dynamic>.from(data!['sale']),
+      message:
+          result['error']?['message'] ??
+          (state == 'CONFIRMED'
+              ? 'Operación confirmada por la tienda.'
+              : 'Necesita revisión del encargado.'),
+    );
+  }
+
+  Future<void> _pullResults(String scope) async {
+    try {
+      final result = await api.get(
+        '/offline/operations',
+        timeout: const Duration(seconds: 10),
+      );
+      final results = List<dynamic>.from(result as List);
+      final known = results.map((r) => r['operacion_id']).toSet();
+      final missing = queue
+          .where(
+            (r) =>
+                r.attempts > 0 &&
+                ['PENDING', 'UNCERTAIN', 'CONFLICT'].contains(r.state) &&
+                !known.contains(r.body['operacion_id']),
+          )
+          .map((r) => r.body['operacion_id'])
+          .toList();
+      for (var offset = 0; offset < missing.length; offset += 100) {
+        if (owner != scope) return;
+        final extra = await api.post(
+          '/offline/operations/results',
+          body: {
+            'operaciones': missing.sublist(
+              offset,
+              min(offset + 100, missing.length),
+            ),
+          },
+        );
+        results.addAll(extra as List);
+      }
+      for (final raw in results) {
+        if (owner != scope) return;
+        final row = Map<String, dynamic>.from(raw),
+            key = "$scope|${raw['operacion_id']}";
+        final existing = queue.where((r) => r.key == key).firstOrNull;
+        final body = Map<String, dynamic>.from(row['payload']);
+        final branch = bundle?.branches
+            .where((b) => b['id'] == body['sucursal_id'])
+            .firstOrNull;
+        final record =
+            existing ??
+            OfflineRequest(
+              key: key,
+              owner: scope,
+              kind: row['tipo'],
+              name: row['tipo'] == 'RESERVATION'
+                  ? 'Reserva de prendas'
+                  : row['tipo'] == 'PICKUP'
+                  ? 'Retiro de reserva'
+                  : 'Venta de contado',
+              branch: branch?['nombre'] ?? "Sucursal ${body['sucursal_id']}",
+              body: body,
+            );
+        final updated = _mergeResult(record, row);
+        await store.saveRequest(updated);
+        if (owner != scope) return;
+        queue = existing == null
+            ? [...queue, updated]
+            : queue.map((r) => r.key == key ? updated : r).toList();
+        _publish();
+      }
+    } catch (_) {
+      /* Preserve the durable local queue when results cannot be downloaded. */
+    }
+  }
+
+  String variantName(int id) {
+    final variant = bundle?.variants.where((v) => v['id'] == id).firstOrNull;
+    final product = bundle?.products
+        .where((p) => p['id'] == variant?['producto_id'])
+        .firstOrNull;
+    return product == null
+        ? 'Variante $id'
+        : "${product['nombre']} · ${variant?['talla']} · ${variant?['color']}";
+  }
+
+  int _cents(Object? value) {
+    final n = num.tryParse(value.toString());
+    if (n == null || !n.isFinite || n < 0) {
+      throw ApiException('Introduce un importe válido.');
+    }
+    return (n * 100).round();
+  }
+
+  Future<void> cashSale(
+    List<Map<String, dynamic>> lines,
+    int branchId,
+    String received,
+  ) async {
+    final data = bundle;
+    if (data == null || !usable || !canSell) {
+      throw ApiException(
+        'Actualiza el catálogo con tu cuenta de caja antes de cobrar.',
+      );
+    }
+    if (lines.isEmpty ||
+        lines.map((l) => l['variante_id']).toSet().length != lines.length) {
+      throw ApiException(
+        'Añade prendas y agrupa las cantidades de cada talla.',
+      );
+    }
+    final items = lines.map((line) {
+      final id = line['variante_id'] as int, q = line['cantidad'] as int;
+      final variant = data.variants.where((v) => v['id'] == id).firstOrNull;
+      final product = data.products
+          .where((p) => p['id'] == variant?['producto_id'])
+          .firstOrNull;
+      if (product == null || q < 1 || q > 100 || q > available(id, branchId)) {
+        throw ApiException('Revisa las cantidades disponibles en la sucursal.');
+      }
+      return <String, dynamic>{
+        ...line,
+        'precio_unitario': product['precio'].toString(),
+      };
+    }).toList();
+    final total = items.fold<int>(
+      0,
+      (n, i) => n + _cents(i['precio_unitario']) * (i['cantidad'] as int),
+    );
+    if (_cents(received) < total) {
+      throw ApiException('El efectivo recibido no cubre el total.');
+    }
+    await _queueCash('SALE', branchId, items, received);
+  }
+
+  Future<void> pickup(Map<String, dynamic> reservation, String received) async {
+    if (!usable || !canSell) {
+      throw ApiException('Actualiza el catálogo con tu cuenta de caja.');
+    }
+    if (!DateTime.parse(reservation['vence_at']).isAfter(DateTime.now())) {
+      throw ApiException(
+        'Esta reserva ya venció. Actualiza la lista antes de cobrar.',
+      );
+    }
+    if (queue.any(
+      (r) =>
+          r.body['reserva_id'] == reservation['id'] &&
+          !['CANCELLED', 'REJECTED'].contains(r.state),
+    )) {
+      throw ApiException(
+        'Esta reserva ya tiene un cobro guardado. Comprueba su resultado.',
+      );
+    }
+    final items = (reservation['items'] as List)
+        .map((i) => Map<String, dynamic>.from(i))
+        .toList();
+    final total = items.fold<int>(
+      0,
+      (n, i) => n + _cents(i['precio_unitario']) * (i['cantidad'] as int),
+    );
+    if (_cents(received) < total) {
+      throw ApiException(
+        'El efectivo recibido no cubre el total de la reserva.',
+      );
+    }
+    await _queueCash(
+      'PICKUP',
+      reservation['sucursal_id'],
+      items,
+      received,
+      reservationId: reservation['id'],
+    );
+  }
+
+  Future<void> _queueCash(
+    String kind,
+    int branchId,
+    List<Map<String, dynamic>> items,
+    String received, {
+    int? reservationId,
+  }) async {
+    final scope = owner, data = bundle;
+    if (scope == null || data == null) {
+      throw ApiException('Inicia sesión antes de cobrar.');
+    }
+    final branch = data.branches.where((b) => b['id'] == branchId).firstOrNull;
+    if (branch == null) {
+      throw ApiException('Selecciona una sucursal autorizada.');
+    }
+    final id = _uuid();
+    final record = OfflineRequest(
+      key: '$scope|$id',
+      owner: scope,
+      kind: kind,
+      name: kind == 'SALE'
+          ? 'Venta de contado'
+          : 'Retiro de reserva $reservationId',
+      branch: branch['nombre'],
+      body: {
+        'operacion_id': id,
+        'sucursal_id': branchId,
+        'snapshot_version': data.version,
+        'creado_at': DateTime.now().toUtc().toIso8601String(),
+        'items': items,
+        'efectivo_recibido': (_cents(received) / 100).toStringAsFixed(2),
+        if (reservationId != null) 'reserva_id': reservationId,
+      },
+    );
+    await store.saveRequest(record);
+    if (owner != scope) return;
+    queue = [...queue, record];
+    message =
+        'Cobro guardado. El comprobante es provisional hasta sincronizar.';
+    _publish();
+    if (online) unawaited(sync());
+  }
+
+  Future<void> refreshReservations() async {
+    final scope = owner;
+    if (!online || !canSell || scope == null) return;
+    final rows = await api.get('/retail/reservations');
+    final data = bundle;
+    if (owner == scope && data != null) {
+      final updated = OfflineBundle({...data.data, 'reservations': rows});
+      await store.saveBundle(scope, updated);
+      if (owner == scope) {
+        bundle = updated;
+        _publish();
+      }
+    }
+  }
+
+  Future<void> prepareReservation(int id, String state) async {
+    if (!online) {
+      throw ApiException('Conéctate para actualizar la preparación.');
+    }
+    await api.post('/retail/reservations/$id/prepare', body: {'estado': state});
+    await refreshReservations();
   }
 
   @override

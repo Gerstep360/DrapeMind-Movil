@@ -387,14 +387,15 @@ class _OfflineScreenState extends State<OfflineScreen> {
                 onPressed: service.syncing ? null : () => service.retry(record),
                 child: const Text('Volver a intentar'),
               ),
-            if (['PENDING', 'CONFLICT'].contains(record.state))
+            if (record.kind == 'RESERVATION' &&
+                ['PENDING', 'CONFLICT'].contains(record.state))
               TextButton(
                 onPressed: service.syncing
                     ? null
                     : () => service.cancel(record),
                 child: const Text('Cancelar solicitud'),
               ),
-            if (record.state == 'CONFIRMED')
+            if (record.state == 'CONFIRMED' && record.kind == 'RESERVATION')
               TextButton(
                 onPressed: service.online
                     ? () => Navigator.of(context).push(

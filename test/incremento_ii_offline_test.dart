@@ -105,6 +105,7 @@ class MemoryStore extends OfflineStore {
 }
 
 class TestApi extends ApiClient {
+  bool hideHistory = false;
   bool dropResponse = true;
   int calls = 0, created = 0;
   final receipts = <String, Map<String, dynamic>>{};
@@ -115,7 +116,11 @@ class TestApi extends ApiClient {
     Map<String, String>? headers,
     bool requiresAuth = true,
     Duration timeout = const Duration(seconds: 15),
-  }) async => path == '/offline/bundle' ? bundle().data : {'available': true};
+  }) async => path == '/offline/bundle'
+      ? bundle().data
+      : path == '/offline/operations'
+      ? (hideHistory ? [] : receipts.values.toList())
+      : {'available': true};
   @override
   Future<dynamic> post(
     String path, {
@@ -125,11 +130,19 @@ class TestApi extends ApiClient {
     bool requiresAuth = true,
     Duration timeout = const Duration(seconds: 25),
   }) async {
+    if (path == '/offline/operations/results') {
+      return receipts.entries
+          .where((e) => (body['operaciones'] as List).contains(e.key))
+          .map((e) => e.value)
+          .toList();
+    }
     calls++;
-    final id = body!['operacion_id'] as String;
+    final payload = body!['payload'] ?? body,
+        kind = body['tipo'] ?? 'RESERVATION';
+    final id = payload['operacion_id'] as String;
     receipts.putIfAbsent(id, () {
       created++;
-      return {
+      final reservation = {
         'id': 31,
         'codigo_publico': 'a1234567-1111-4222-8333-123456789012',
         'estado': 'PENDIENTE',
@@ -137,38 +150,71 @@ class TestApi extends ApiClient {
             .add(const Duration(hours: 1))
             .toIso8601String(),
       };
+      final total = (payload['items'] as List).fold<num>(
+        0,
+        (n, i) =>
+            n +
+            (num.tryParse(i['precio_unitario'].toString()) ?? 0) *
+                (i['cantidad'] as int),
+      );
+      return {
+        'id': created,
+        'usuario_id': 4,
+        'operacion_id': id,
+        'tipo': kind,
+        'payload': payload,
+        'estado': 'CONFIRMED',
+        'intentos': 1,
+        'resultado': kind == 'RESERVATION'
+            ? {'reservation': reservation}
+            : {
+                'sale': {
+                  'pedido_id': 31,
+                  'codigo_publico': reservation['codigo_publico'],
+                  'estado': 'ENTREGADO',
+                  'total': total.toStringAsFixed(2),
+                  'cambio':
+                      ((num.tryParse(payload['efectivo_recibido'].toString()) ??
+                                  0) -
+                              total)
+                          .toStringAsFixed(2),
+                },
+              },
+      };
     });
     if (dropResponse) {
       dropResponse = false;
       throw NetworkException('Respuesta perdida');
     }
-    return {'reservation': receipts[id]};
+    return receipts[id];
+  }
+}
+
+Future<void> loadOfflineFonts() async {
+  final packages =
+      jsonDecode(
+            await File('.dart_tool/package_config.json').readAsString(),
+          )['packages']
+          as List;
+  final flutter = packages.firstWhere((p) => p['name'] == 'flutter');
+  final sdk = Directory.fromUri(Uri.parse(flutter['rootUri'])).parent.parent;
+  for (final font in {
+    'Roboto': 'roboto-regular.ttf',
+    'MaterialIcons': 'materialicons-regular.otf',
+  }.entries) {
+    final loader = FontLoader(font.key);
+    loader.addFont(
+      File(
+        '${sdk.path}/bin/cache/artifacts/material_fonts/${font.value}',
+      ).readAsBytes().then((bytes) => ByteData.sublistView(bytes)),
+    );
+    await loader.load();
   }
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async {
-    final packages =
-        jsonDecode(
-              await File('.dart_tool/package_config.json').readAsString(),
-            )['packages']
-            as List;
-    final flutter = packages.firstWhere((p) => p['name'] == 'flutter');
-    final sdk = Directory.fromUri(Uri.parse(flutter['rootUri'])).parent.parent;
-    for (final font in {
-      'Roboto': 'roboto-regular.ttf',
-      'MaterialIcons': 'materialicons-regular.otf',
-    }.entries) {
-      final loader = FontLoader(font.key);
-      loader.addFont(
-        File(
-          '${sdk.path}/bin/cache/artifacts/material_fonts/${font.value}',
-        ).readAsBytes().then((bytes) => ByteData.sublistView(bytes)),
-      );
-      await loader.load();
-    }
-  });
+  setUpAll(loadOfflineFonts);
   test(
     'SQLite preserves downloaded data and queued operations after reopening, separated by owner',
     () async {
@@ -249,7 +295,7 @@ void main() {
       expect(service.queue.single.state, 'UNCERTAIN');
       await service.checkConnection();
       expect(service.queue.single.state, 'CONFIRMED');
-      expect(api.calls, 2);
+      expect(api.calls, 1);
       expect(api.created, 1);
       auth.switchStore();
       await service.ready;
