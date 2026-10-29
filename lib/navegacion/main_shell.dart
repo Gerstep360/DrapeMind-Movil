@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
+import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_screen.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/navegacion/dm_mobile_navigation.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -48,6 +50,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final cartCount = context.watch<CartService>().itemCount;
+    final offline = context.watch<OfflineService>();
     final screens = [
       CatalogScreen(onOpenAiStudio: () => _openTab(1)),
       const AiStudioScreen(),
@@ -62,6 +65,21 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       extendBody: false,
       body: IndexedStack(index: _currentIndex, children: screens),
+      floatingActionButton: !offline.online || offline.pending > 0
+          ? FloatingActionButton.extended(
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const OfflineScreen())),
+              icon: Icon(
+                offline.online ? Icons.sync : Icons.cloud_off_outlined,
+              ),
+              label: Text(
+                offline.pending > 0
+                    ? '${offline.pending} solicitudes'
+                    : 'Colección guardada',
+              ),
+            )
+          : null,
       bottomNavigationBar: DmMobileNavigation(
         selectedIndex: _currentIndex,
         cartCount: cartCount,

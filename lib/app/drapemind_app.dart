@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/app/auth_gate.dart';
@@ -20,6 +21,9 @@ class DrapeMindApp extends StatelessWidget {
     providers: [
       ChangeNotifierProvider(create: (_) => SecurityService()),
       ChangeNotifierProvider(create: (_) => AuthService()..tryAutoLogin()),
+      ChangeNotifierProvider(
+        create: (context) => OfflineService(auth: context.read<AuthService>()),
+      ),
       ChangeNotifierProxyProvider<AuthService, CartService>(
         create: (_) => CartService(),
         update: (_, auth, cart) {

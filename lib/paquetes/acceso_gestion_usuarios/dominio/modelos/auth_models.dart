@@ -3,7 +3,8 @@ enum UserRole {
   admin,
   vendedor,
   encargado,
-  cajero;
+  cajero,
+  proveedor;
 
   static UserRole fromString(String? role) {
     switch (role?.toUpperCase()) {
@@ -15,6 +16,8 @@ enum UserRole {
         return UserRole.encargado;
       case 'CAJERO':
         return UserRole.cajero;
+      case 'PROVEEDOR':
+        return UserRole.proveedor;
       default:
         return UserRole.cliente;
     }
@@ -30,6 +33,8 @@ enum UserRole {
         return 'ENCARGADO';
       case UserRole.cajero:
         return 'CAJERO';
+      case UserRole.proveedor:
+        return 'PROVEEDOR';
       case UserRole.cliente:
         return 'CLIENTE';
     }

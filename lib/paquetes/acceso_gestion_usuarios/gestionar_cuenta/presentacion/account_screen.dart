@@ -1,6 +1,7 @@
 import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
 import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/estado/dm_empty_state.dart';
@@ -680,6 +681,14 @@ class _AccountScreenState extends State<AccountScreen> {
           ],
         ),
         actions: [
+          if (user?.rol.toServerString() != 'PROVEEDOR')
+            IconButton(
+              tooltip: 'Catálogo y reservas sin conexión',
+              icon: const Icon(Icons.download_for_offline_outlined),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const OfflineScreen())),
+            ),
           if (auth.isAdmin)
             IconButton(
               tooltip: 'Plan de empresa',
