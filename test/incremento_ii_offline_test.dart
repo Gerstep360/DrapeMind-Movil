@@ -297,11 +297,15 @@ void main() {
       expect(service.queue.single.state, 'CONFIRMED');
       expect(api.calls, 1);
       expect(api.created, 1);
+      final previous = service.queue.single.change(state: 'CONFLICT');
       auth.switchStore();
       await service.ready;
       expect(service.bundle, isNull);
       expect(service.queue, isEmpty);
       expect(store.rows.length, 1);
+      await service.cancel(previous);
+      expect(api.calls, 1);
+      expect(store.rows.values.single.state, 'CONFIRMED');
     },
   );
   test('Expired download cannot create new offline reservations', () async {

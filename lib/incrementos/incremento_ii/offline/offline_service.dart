@@ -326,7 +326,17 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> cancel(OfflineRequest record) async {
-    record = queue.where((r) => r.key == record.key).firstOrNull ?? record;
+    final current = queue.where((r) => r.key == record.key).firstOrNull;
+    if (current == null ||
+        syncing ||
+        current.owner != owner ||
+        current.kind != 'RESERVATION' ||
+        !['PENDING', 'CONFLICT'].contains(current.state)) {
+      return;
+    }
+    record = current;
+    final token = auth.token;
+    if (token == null) return;
     if (record.kind == 'RESERVATION' && record.state == 'CONFLICT') {
       if (!online) {
         message =
@@ -338,8 +348,10 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
         await api.post(
           "/offline/operations/${record.body['operacion_id']}/cancel",
           body: {},
+          headers: {'Authorization': 'Bearer $token'},
         );
       } on ApiException catch (e) {
+        if (record.owner != owner) return;
         if (e.statusCode != 404) {
           message = e.message;
           _publish();
