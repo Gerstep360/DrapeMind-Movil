@@ -27,6 +27,40 @@ class _ArFittingScreenState extends State<ArFittingScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _arService = ArService();
   final _reservationService = ReservationService();
+  bool _openingBody = false;
+
+  Future<void> _openSelectedGarment() async {
+    if (_openingBody) return;
+    setState(() => _openingBody = true);
+    try {
+      final config = await ApiClient().get(
+        '/ar/products/${widget.product.id}/body-asset',
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BodyTryOnScreen(
+            assetUrl: ApiConfig.resolveMediaUrl(config['asset_url']),
+            productName: config['nombre'],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e is ApiException
+                  ? e.message
+                  : 'No se pudo abrir el vestidor de esta prenda.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _openingBody = false);
+    }
+  }
 
   ArConfigModel? _arConfig;
   bool _isLoading = true;
@@ -864,10 +898,8 @@ class _ArFittingScreenState extends State<ArFittingScreen>
               size: 18,
               color: AppColors.white,
             ),
-            tooltip: 'Escanear cuerpo y probar polera AR',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const BodyTryOnScreen()),
-            ),
+            tooltip: 'Probar esta prenda con la cámara',
+            onPressed: _openingBody ? null : _openSelectedGarment,
           ),
         ],
       ),
@@ -908,12 +940,8 @@ class _ArFittingScreenState extends State<ArFittingScreen>
                 // SUB-BARRA DE ESTADO Y COMPARADOR
                 TextButton.icon(
                   icon: const Icon(Icons.accessibility_new_rounded),
-                  label: const Text('Escanear cuerpo · probar polera Studio'),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const BodyTryOnScreen(),
-                    ),
-                  ),
+                  label: const Text('Probar esta prenda con la cámara'),
+                  onPressed: _openingBody ? null : _openSelectedGarment,
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(

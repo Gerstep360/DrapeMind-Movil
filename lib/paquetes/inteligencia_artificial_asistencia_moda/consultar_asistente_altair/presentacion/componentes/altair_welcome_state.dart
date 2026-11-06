@@ -48,12 +48,18 @@ class AltairWelcomeState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 28),
+        OutlinedButton.icon(
+          onPressed: onOpenPreferences,
+          icon: const Icon(Icons.tune_rounded),
+          label: const Text('Mis preferencias de esta tienda'),
+        ),
+        const SizedBox(height: 12),
         _Suggestion(
           icon: Icons.checkroom_outlined,
           title: 'Un look para una ocasión',
           description: 'Una cena, la oficina o tu próximo plan.',
           onTap: () => onPrompt(
-            'Ayúdame a elegir un look para una ocasión. Pregúntame qué plan tengo.',
+            'Recomiéndame un look con mis preferencias y presupuesto guardados. Si falta algo necesario, muéstrame el formulario para completarlo.',
           ),
         ),
         _Suggestion(
@@ -62,6 +68,14 @@ class AltairWelcomeState extends StatelessWidget {
           description: 'Busquemos por color, talla y presupuesto.',
           onTap: () => onPrompt(
             'Quiero encontrar una prenda. Ayúdame a precisar el tipo, talla y presupuesto.',
+          ),
+        ),
+        _Suggestion(
+          icon: Icons.new_releases_outlined,
+          title: 'Novedades para mi estilo',
+          description: 'Prendas recientes de esta tienda según tus gustos.',
+          onTap: () => onPrompt(
+            'Muéstrame novedades reales de esta tienda que encajen con mis preferencias y presupuesto guardados.',
           ),
         ),
         _Suggestion(

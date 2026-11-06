@@ -11,6 +11,7 @@ import '../offline/models.dart';
 import '../offline/offline_service.dart';
 import '../offline/offline_screen.dart';
 import '../../incremento_iii/reports_screen.dart';
+import '../../incremento_iv/dashboard_screen.dart';
 import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/consultar_pedidos_historial_compras/presentacion/orders_screen.dart';
 
 class RetailScreen extends StatefulWidget {
@@ -190,7 +191,9 @@ class _RetailScreenState extends State<RetailScreen> {
             tooltip: 'Más opciones de tienda',
             onSelected: (value) => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => value == 'reports'
+                builder: (_) => value == 'dashboard'
+                    ? const BusinessDashboardScreen()
+                    : value == 'reports'
                     ? const ReportsScreen()
                     : const OrdersScreen(),
               ),
@@ -209,6 +212,16 @@ class _RetailScreenState extends State<RetailScreen> {
                 const PopupMenuItem(
                   value: 'reports',
                   child: Text('Reportes de tu negocio'),
+                ),
+              if (context
+                      .read<AuthService>()
+                      .currentUser
+                      ?.rol
+                      .toServerString() ==
+                  'ADMIN')
+                const PopupMenuItem(
+                  value: 'dashboard',
+                  child: Text('Indicadores de tu tienda'),
                 ),
             ],
           ),

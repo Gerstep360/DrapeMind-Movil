@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,7 +11,9 @@ import 'componentes/ar_painters.dart';
 
 /// On-device upper-body try-on. The demo is not a catalogue item or a size scan.
 class BodyTryOnScreen extends StatefulWidget {
-  const BodyTryOnScreen({super.key});
+  final String? assetUrl;
+  final String? productName;
+  const BodyTryOnScreen({super.key, this.assetUrl, this.productName});
   @override
   State<BodyTryOnScreen> createState() => _BodyTryOnScreenState();
 }
@@ -278,7 +281,11 @@ class _BodyTryOnScreenState extends State<BodyTryOnScreen>
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        title: const Text('Prueba corporal'),
+        title: Text(
+          widget.productName ?? 'Prueba corporal',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             tooltip: 'Cambiar cámara',
@@ -328,10 +335,9 @@ class _BodyTryOnScreenState extends State<BodyTryOnScreen>
                           child: CameraPreview(
                             camera,
                             child: IgnorePointer(
-                              child: CustomPaint(
-                                painter: DemoGarmentPainter(
-                                  _scan.ready ? _scan.anchors : null,
-                                ),
+                              child: LayoutBuilder(
+                                builder: (context, box) =>
+                                    _garment(Size(box.maxWidth, box.maxHeight)),
                               ),
                             ),
                           ),
@@ -389,7 +395,8 @@ class _BodyTryOnScreenState extends State<BodyTryOnScreen>
                         Flexible(
                           child: Text(
                             _scan.ready
-                                ? 'Polera Studio · prueba AR'
+                                ? (widget.productName ??
+                                      'Polera Studio · prueba AR')
                                 : 'Escaneando postura · mantente de frente',
                           ),
                         ),
@@ -397,8 +404,10 @@ class _BodyTryOnScreenState extends State<BodyTryOnScreen>
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Prenda de demostración, no a la venta. Seguimiento 2D: no calcula tallas, profundidad ni oclusión. Las imágenes se procesan en tu teléfono.',
+                  Text(
+                    widget.assetUrl == null
+                        ? 'Prenda de demostración, no a la venta. Seguimiento 2D: no calcula tallas, profundidad ni oclusión. Las imágenes se procesan en tu teléfono.'
+                        : 'Vista orientativa 2D de la prenda seleccionada. No mide tallas ni reproduce profundidad u oclusión. La cámara se procesa en tu teléfono.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12),
                   ),
@@ -408,6 +417,53 @@ class _BodyTryOnScreenState extends State<BodyTryOnScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _garment(Size size) {
+    if (widget.assetUrl == null) {
+      return CustomPaint(
+        size: size,
+        painter: DemoGarmentPainter(_scan.ready ? _scan.anchors : null),
+      );
+    }
+    final anchors = _scan.anchors;
+    if (!_scan.ready || anchors == null) return const SizedBox.expand();
+    final left = anchors.clothPoint(0, 0, size);
+    final right = anchors.clothPoint(1, 0, size);
+    final hip = anchors.clothPoint(.5, 1, size);
+    final shoulder = (left + right) / 2;
+    final width = (right - left).distance * 1.6;
+    final height = (hip - shoulder).distance * 1.3;
+    // The transparent upper-body asset follows detected shoulders, never a fixed pose.
+    final delta = right.dx >= left.dx ? right - left : left - right;
+    final angle = math.atan2(delta.dy, delta.dx);
+    return Stack(
+      children: [
+        Positioned(
+          left: shoulder.dx - width / 2,
+          top: shoulder.dy - height * .12,
+          width: width,
+          height: height,
+          child: Transform.rotate(
+            angle: angle,
+            alignment: Alignment.topCenter,
+            child: Image.network(
+              widget.assetUrl!,
+              fit: BoxFit.fill,
+              loadingBuilder: (context, child, progress) => progress == null
+                  ? child
+                  : const Center(child: CircularProgressIndicator()),
+              errorBuilder: (context, error, stack) => const Center(
+                child: Text(
+                  'No se pudo cargar la prenda. Vuelve a abrir el vestidor.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
