@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$FlutterExecutable = 'flutter',
     [string]$ApiUrl = 'https://167.86.106.105/DrapeMind'
 )
@@ -29,7 +29,8 @@ try {
     }
     & $FlutterExecutable clean
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo limpiar la compilación anterior.' }
-    & $FlutterExecutable build apk --release "--dart-define=DRAPEMIND_API_URL=$ApiUrl"
+    # cmd merges native stderr so PowerShell does not turn compiler warnings into exceptions.
+    & cmd.exe /d /c "`"$FlutterExecutable`" build apk --release --dart-define=DRAPEMIND_API_URL=$ApiUrl 2>&1"
     if ($LASTEXITCODE -ne 0) { throw 'Flutter no pudo completar la APK.' }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -42,7 +43,7 @@ try {
         try {
             $stream.CopyTo($memory)
             $compiled = [Text.Encoding]::UTF8.GetString($memory.ToArray())
-            foreach ($marker in @('/offline/operations', '/offline/operations/results', '/retail/reservations', $ApiUrl)) {
+            foreach ($marker in @('/offline/operations', '/offline/operations/results', '/business-reports', '/retail/reservations', $ApiUrl)) {
                 if (-not $compiled.Contains($marker)) { throw "La APK no contiene el código esperado: $marker" }
             }
         }

@@ -4,9 +4,11 @@ import 'package:drapemind_mobile/navegacion/main_shell.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
 import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
 import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_cancelar_reserva/presentacion/reservations_screen.dart';
+import 'package:drapemind_mobile/incrementos/incremento_iii/reports_screen.dart';
 
 class NavigationService {
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   static BuildContext? get context => navigatorKey.currentContext;
 
@@ -55,7 +57,9 @@ class NavigationService {
       return;
     }
 
-    if (normalized.contains('ai') || normalized.contains('chat') || normalized.contains('studio')) {
+    if (normalized.contains('ai') ||
+        normalized.contains('chat') ||
+        normalized.contains('studio')) {
       if (nav != null && nav.canPop()) {
         nav.popUntil((route) => route.isFirst);
       }
@@ -71,7 +75,9 @@ class NavigationService {
       return;
     }
 
-    if (normalized.contains('account') || normalized.contains('cuenta') || normalized.contains('perfil')) {
+    if (normalized.contains('account') ||
+        normalized.contains('cuenta') ||
+        normalized.contains('perfil')) {
       if (nav != null && nav.canPop()) {
         nav.popUntil((route) => route.isFirst);
       }
@@ -91,7 +97,9 @@ class NavigationService {
       return;
     }
 
-    if (normalized.contains('catalog') || normalized.contains('ropa') || normalized.contains('prenda')) {
+    if (normalized.contains('catalog') ||
+        normalized.contains('ropa') ||
+        normalized.contains('prenda')) {
       if (nav != null && nav.canPop()) {
         nav.popUntil((route) => route.isFirst);
       }
@@ -101,7 +109,9 @@ class NavigationService {
         final prodId = int.tryParse(rawProdId.toString());
         if (prodId != null) {
           await nav.push(
-            MaterialPageRoute(builder: (_) => ProductDetailScreen(productId: prodId)),
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(productId: prodId),
+            ),
           );
         }
       }
@@ -111,7 +121,7 @@ class NavigationService {
     if (normalized.contains('report')) {
       if (nav != null) {
         await nav.push(
-          MaterialPageRoute(builder: (_) => const NotificationsScreen(filterType: 'REPORTE_GENERADO')),
+          MaterialPageRoute(builder: (_) => const ReportsScreen()),
         );
       }
       return;

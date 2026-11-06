@@ -10,6 +10,8 @@ import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/gestionar_cuen
 import '../offline/models.dart';
 import '../offline/offline_service.dart';
 import '../offline/offline_screen.dart';
+import '../../incremento_iii/reports_screen.dart';
+import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/consultar_pedidos_historial_compras/presentacion/orders_screen.dart';
 
 class RetailScreen extends StatefulWidget {
   const RetailScreen({super.key});
@@ -178,8 +180,38 @@ class _RetailScreenState extends State<RetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
-        title: const Text('Caja y reservas'),
+        title: const Text(
+          'Caja y reservas',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Más opciones de tienda',
+            onSelected: (value) => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => value == 'reports'
+                    ? const ReportsScreen()
+                    : const OrdersScreen(),
+              ),
+            ),
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'orders',
+                child: Text('Pedidos y entregas'),
+              ),
+              if (context
+                      .read<AuthService>()
+                      .currentUser
+                      ?.rol
+                      .toServerString() ==
+                  'ADMIN')
+                const PopupMenuItem(
+                  value: 'reports',
+                  child: Text('Reportes de tu negocio'),
+                ),
+            ],
+          ),
           IconButton(
             tooltip: 'Catálogo sin conexión',
             icon: const Icon(Icons.download_for_offline_outlined),

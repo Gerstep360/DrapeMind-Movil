@@ -17,6 +17,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final _orderService = OrderService();
   List<Order> _orders = [];
   bool _isLoading = true;
+  bool _more = true, _loadingMore = false;
   String? _errorMessage;
 
   @override
@@ -33,15 +34,43 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     try {
       final list = await _orderService.getMyOrders();
+      if (!mounted) return;
       setState(() {
         _orders = list;
+        _more = list.length == 50;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'No se pudieron cargar tus pedidos.';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_more || _orders.isEmpty) return;
+    setState(() => _loadingMore = true);
+    try {
+      final list = await _orderService.getMyOrders(beforeId: _orders.last.id);
+      if (!mounted) return;
+      setState(() {
+        _orders = [..._orders, ...list];
+        _more = list.length == 50;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudieron cargar más pedidos. Puedes reintentar.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 
@@ -175,8 +204,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
               onRefresh: _loadOrders,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: _orders.length,
+                itemCount: _orders.length + (_more ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (index == _orders.length) {
+                    return OutlinedButton(
+                      onPressed: _loadingMore ? null : _loadMore,
+                      child: Text(
+                        _loadingMore ? 'Cargando…' : 'Ver más pedidos',
+                      ),
+                    );
+                  }
                   final order = _orders[index];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
@@ -365,6 +402,7 @@ class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
   final _orderService = OrderService();
   bool _loading = true;
   Map<String, dynamic>? _receiptData;
+  bool _downloading = false;
   String? _error;
 
   static num _parseNum(dynamic value, [num fallback = 0.0]) {
@@ -521,6 +559,42 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Descargar PDF',
+                  icon: const Icon(Icons.download_outlined),
+                  onPressed: _downloading
+                      ? null
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          setState(() => _downloading = true);
+                          try {
+                            final saved = await _orderService.downloadReceipt(
+                              widget.orderId,
+                            );
+                            if (saved && mounted) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Comprobante guardado.'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e is ApiException
+                                        ? e.message
+                                        : 'No se pudo descargar el comprobante.',
+                                  ),
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _downloading = false);
+                          }
+                        },
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy, size: 19, color: AppColors.ink),

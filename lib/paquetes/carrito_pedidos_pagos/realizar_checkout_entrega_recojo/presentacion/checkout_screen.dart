@@ -27,6 +27,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int? _selectedAddressId;
   bool _isLoading = false;
   bool _stripeEnabled = false;
+  double? _deliveryFee;
   Order? _completedOrder;
   Payment? _activePayment;
 
@@ -43,6 +44,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     _loadAddresses();
     _loadBranches();
+    ApiClient()
+        .get('/commerce/config')
+        .then((value) {
+          if (mounted) {
+            setState(
+              () => _deliveryFee = double.parse(
+                value['costo_delivery'].toString(),
+              ),
+            );
+          }
+        })
+        .catchError((_) {
+          if (mounted) {
+            setState(
+              () => _branchError =
+                  'No pudimos consultar la tarifa de envío. Reabre el checkout para reintentar.',
+            );
+          }
+        });
     _paymentService
         .provider()
         .then((value) {
@@ -147,6 +167,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _processCheckout() async {
+    if (_deliveryType == DeliveryType.delivery && _deliveryFee == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Espera a consultar la tarifa de envío antes de confirmar.',
+          ),
+        ),
+      );
+      return;
+    }
     if (_deliveryType == DeliveryType.recojo && _selectedBranchId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -167,7 +197,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           direccionId: _deliveryType == DeliveryType.delivery
               ? _selectedAddressId
               : null,
-          costoEnvio: _deliveryType == DeliveryType.delivery ? 25.0 : 0.0,
+          costoEnvio: _deliveryType == DeliveryType.delivery
+              ? (_deliveryFee ?? 0)
+              : 0.0,
           codigoPromocion: _appliedCouponCode,
         ),
       );
@@ -343,8 +375,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               fontSize: 13,
                             ),
                           ),
-                          subtitle: const Text(
-                            'Costo: Bs 25.00 · Entrega en 24-48 horas',
+                          subtitle: Text(
+                            _deliveryFee == null
+                                ? 'Consultando tarifa de envío…'
+                                : 'Costo: Bs ${_deliveryFee!.toStringAsFixed(2)} · Entrega en 24-48 horas',
                             style: TextStyle(fontSize: 11),
                           ),
                           onChanged: (v) => setState(() => _deliveryType = v!),
@@ -690,7 +724,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                               Text(
                                 _deliveryType == DeliveryType.delivery
-                                    ? 'Bs 25.00'
+                                    ? (_deliveryFee == null
+                                          ? 'Por consultar'
+                                          : 'Bs ${_deliveryFee!.toStringAsFixed(2)}')
                                     : 'Bs 0.00',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
@@ -735,7 +771,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ),
                               ),
                               Text(
-                                'Bs ${(((cart?.subtotal ?? 0) - _appliedDiscount + (_deliveryType == DeliveryType.delivery ? 25.0 : 0.0)).clamp(0.0, double.infinity)).toStringAsFixed(2)}',
+                                'Bs ${(((cart?.subtotal ?? 0) - _appliedDiscount + (_deliveryType == DeliveryType.delivery ? (_deliveryFee ?? 0) : 0.0)).clamp(0.0, double.infinity)).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 17,

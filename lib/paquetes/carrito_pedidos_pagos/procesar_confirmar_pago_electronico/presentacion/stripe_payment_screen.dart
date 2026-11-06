@@ -20,7 +20,7 @@ class _StripePaymentScreenState extends State<StripePaymentScreen> {
   Payment? _payment;
   int? _paymentId;
   bool _busy = false;
-  bool _isSandbox = true;
+  bool _isSandbox = false;
   String? _error;
   String? _status;
   Timer? _pollTimer;
@@ -55,7 +55,10 @@ class _StripePaymentScreenState extends State<StripePaymentScreen> {
       final pubKey = (intent['publishable_key'] as String? ?? '').trim();
       final isRealKey =
           pubKey.startsWith('pk_test_') || pubKey.startsWith('pk_live_');
-      final isSandboxMode = intent['sandbox'] == true || !isRealKey;
+      final isSandboxMode = intent['sandbox'] == true;
+      if (!isSandboxMode && !isRealKey) {
+        throw StateError('Stripe no está configurado');
+      }
 
       setState(() {
         _isSandbox = isSandboxMode;
@@ -67,8 +70,10 @@ class _StripePaymentScreenState extends State<StripePaymentScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isSandbox = true;
+          _isSandbox = false;
           _busy = false;
+          _error =
+              'No se pudo preparar el pago. Revisa tu conexión y vuelve a abrir el pedido.';
         });
       }
     }
@@ -151,8 +156,10 @@ class _StripePaymentScreenState extends State<StripePaymentScreen> {
       }
     } catch (_) {
       if (mounted) {
-        // Fallback to sandbox if SDK setup fails
-        setState(() => _isSandbox = true);
+        setState(
+          () => _error =
+              'No se pudo abrir Stripe. El pedido conserva su estado; puedes reintentar.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
