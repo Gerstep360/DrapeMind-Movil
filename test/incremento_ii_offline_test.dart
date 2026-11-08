@@ -9,12 +9,12 @@ import 'package:drapemind_mobile/core/config/api_config.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/dominio/modelos/auth_models.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/models.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_store.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_store.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_screen.dart';
 
 User customer(int tenant, int id) => User.fromJson({
   'id': id,

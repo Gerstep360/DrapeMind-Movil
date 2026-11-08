@@ -6,8 +6,8 @@ import 'package:drapemind_mobile/compartido/componentes/navegacion/dm_mobile_nav
 import 'package:drapemind_mobile/compartido/componentes/productos/dm_product_card.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
-import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/consultar_asistente_altair/presentacion/componentes/altair_welcome_state.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu29_altair/componentes/cu29_altair_welcome_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
-import 'package:drapemind_mobile/paquetes/saas/company_access_gate.dart';
-import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_company_access_gate.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu04_plan_empresa/cu04_subscription_screen.dart';
 
 class AccessApi extends ApiClient {
   bool active = true;

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/services/navigation_service.dart';
-import 'package:drapemind_mobile/navegacion/main_shell.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/dominio/modelos/auth_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/navegacion/main_shell.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_models.dart';
 
 User customer(int tenant, {bool personal = true}) => User(
   id: tenant + 10,

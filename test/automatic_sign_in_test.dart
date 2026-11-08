@@ -12,13 +12,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/services/company_service.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/iniciar_sesion/presentacion/login_screen.dart';
-import 'package:drapemind_mobile/paquetes/saas/platform_screen.dart';
-import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/order_models.dart';
-import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/datos/servicios/ai_socket_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/presentacion/cu05_login_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu01_empresas/cu01_platform_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_stores_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_order_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu29_altair/cu29_ai_socket_service.dart';
 import 'support/golden_assets.dart';
 
 String jwt(bool platform) =>

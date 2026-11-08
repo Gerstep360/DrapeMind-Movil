@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:drapemind_mobile/core/network/api_client.dart';
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/order_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_order_models.dart';
 import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/dominio/modelos/reservation_models.dart';
 
 class ReservationService {

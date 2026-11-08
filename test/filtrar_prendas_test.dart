@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/aplicacion/filtrar_prendas.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/buscar_filtrar_prendas/dominio/catalog_filter.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
 
 void main() {
   const filterProducts = FiltrarPrendas();

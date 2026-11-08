@@ -43,7 +43,7 @@ try {
         try {
             $stream.CopyTo($memory)
             $compiled = [Text.Encoding]::UTF8.GetString($memory.ToArray())
-            foreach ($marker in @('/offline/operations', '/offline/operations/results', '/business-reports', '/retail/reservations', '/payments/deferred', '/payments/cards/setup', $ApiUrl)) {
+            foreach ($marker in @('/offline/operations', '/offline/operations/results', '/business-reports', '/retail/reservations', '/payments/deferred', '/payments/cards/setup', '/voice/transcribe', '/business-predictions/train', $ApiUrl)) {
                 if (-not $compiled.Contains($marker)) { throw "La APK no contiene el código esperado: $marker" }
             }
         }

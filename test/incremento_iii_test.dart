@@ -1,16 +1,16 @@
-import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/checkout_confirmation.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/native_actions.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/reports_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu22_carrito_checkout/cu22_checkout_confirmation.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu25_reportes_voz/cu25_native_actions.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu25_reportes_voz/cu25_reports_screen.dart';
 import 'incremento_ii_offline_test.dart' show loadOfflineFonts;
 import 'dart:io';
 
@@ -69,6 +69,9 @@ class IIIApi extends ApiClient {
     bool requiresAuth = true,
     Duration timeout = const Duration(seconds: 25),
   }) async {
+    if (path == '/voice/transcribe') {
+      return {'texto': 'Revisa las ventas de hoy'};
+    }
     if (path == '/business-reports') {
       reportInput = Map<String, dynamic>.from(body);
       return report;
@@ -131,6 +134,18 @@ void main() {
       await tester.binding.setSurfaceSize(Size(width, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final api = IIIApi(), actions = IIIActions();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('drapemind/documents'),
+            (call) async => call.method == 'stopVoice' ? Uint8List(6444) : null,
+          );
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              const MethodChannel('drapemind/documents'),
+              null,
+            ),
+      );
       final key = GlobalKey();
       await tester.pumpWidget(
         MaterialApp(
@@ -143,6 +158,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Dictar consulta'));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.textContaining('Terminar ('));
       await tester.pumpAndSettle();
       expect(find.text('Revisa las ventas de hoy'), findsOneWidget);
       await tester.tap(find.text('Generar reporte'));

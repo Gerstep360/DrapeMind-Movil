@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:drapemind_mobile/compartido/componentes/productos/dm_product_image.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 
 class DmProductCard extends StatelessWidget {

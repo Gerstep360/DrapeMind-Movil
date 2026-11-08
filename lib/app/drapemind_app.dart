@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_service.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/app/auth_gate.dart';
@@ -9,10 +9,10 @@ import 'package:drapemind_mobile/core/services/company_service.dart';
 import 'package:drapemind_mobile/core/services/navigation_service.dart';
 import 'package:drapemind_mobile/core/services/push_notification_service.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/datos/servicios/cart_service.dart';
-import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/datos/servicios/ai_socket_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu22_carrito_checkout/cu22_cart_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu29_altair/cu29_ai_socket_service.dart';
 
 class DrapeMindApp extends StatelessWidget {
   const DrapeMindApp({super.key});

@@ -1,5 +1,8 @@
 # 📱 DrapeMind Mobile App (Flutter)
 
+[Código y organización vigente del segundo parcial](lib/segundo_parcial/README.md). Navegación de tienda, gestión por permisos, voz NVIDIA, Stripe y modelos de demanda persistentes.
+
+
 Aplicación móvil oficial de **DrapeMind** para clientes y personal de tienda, desarrollada con **Flutter** y **Provider**.
 
 ## Acceso automático y tiendas · v1.0.11

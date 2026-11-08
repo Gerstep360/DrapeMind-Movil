@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/core/models/notification_model.dart';

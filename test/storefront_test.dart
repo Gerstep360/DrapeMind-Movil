@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
 import 'package:drapemind_mobile/compartido/componentes/navegacion/dm_mobile_navigation.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/datos/servicios/catalog_service.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_catalogo_prendas/presentacion/catalog_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_screen.dart';
 import 'support/golden_assets.dart';
 
 class FixtureCatalog extends CatalogService {

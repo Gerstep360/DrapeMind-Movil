@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/caja/retail_screen.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/proveedor_web_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu11_proveedores/cu11_proveedor_web_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:drapemind_mobile/paquetes/saas/company_access_gate.dart';
-import 'package:drapemind_mobile/paquetes/saas/platform_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_company_access_gate.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu01_empresas/cu01_platform_screen.dart';
 import 'package:drapemind_mobile/core/services/company_service.dart';
 
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
-import 'package:drapemind_mobile/navegacion/main_shell.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/navegacion/main_shell.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/security_service.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/iniciar_sesion/presentacion/login_screen.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/iniciar_sesion/presentacion/pin_lock_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/presentacion/cu05_login_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/presentacion/cu05_pin_lock_screen.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/registrar_cliente/presentacion/onboarding_screen.dart';
 
 class AuthGate extends StatelessWidget {
@@ -32,16 +31,6 @@ class AuthGate extends StatelessWidget {
     if (!auth.isAuthenticated) return const LoginScreen();
     if (security.isLocked) return PinLockScreen(onUnlocked: () {});
     if (auth.isPlatformAdmin) return const PlatformScreen();
-    if ([
-      'ADMIN',
-      'ENCARGADO',
-      'CAJERO',
-    ].contains(auth.currentUser?.rol.toServerString())) {
-      return CompanyAccessGate(
-        key: ValueKey(auth.currentUser?.id),
-        child: const RetailScreen(),
-      );
-    }
     if (auth.currentUser?.rol.toServerString() == 'PROVEEDOR') {
       return const CompanyAccessGate(child: ProveedorWebScreen());
     }

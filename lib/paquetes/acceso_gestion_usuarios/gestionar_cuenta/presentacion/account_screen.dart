@@ -1,8 +1,8 @@
-import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
-import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu04_plan_empresa/cu04_subscription_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_stores_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_screen.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/estado/dm_empty_state.dart';

@@ -12,7 +12,7 @@ import 'package:drapemind_mobile/core/models/notification_model.dart';
 import 'package:drapemind_mobile/core/models/realtime_models.dart';
 import 'package:drapemind_mobile/core/services/events_socket_service.dart';
 import 'package:drapemind_mobile/core/services/navigation_service.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 
 class PushNotificationService extends ChangeNotifier {
   final AuthService _authService;

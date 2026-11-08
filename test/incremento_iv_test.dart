@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iv/dashboard_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu27_dashboard/cu27_dashboard_screen.dart';
 import 'incremento_ii_offline_test.dart' show loadOfflineFonts;
 
 class DashboardApi extends ApiClient {

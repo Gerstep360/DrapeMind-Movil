@@ -1,6 +1,6 @@
 import '../models/admin_metrics_models.dart';
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/order_models.dart';
-import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/dominio/modelos/catalog_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_order_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
 import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/dominio/modelos/reservation_models.dart';
 import '../network/api_client.dart';
 

@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/config/api_config.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/dominio/modelos/auth_models.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/caja/retail_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu15_ventas_contado/cu15_retail_screen.dart';
 import 'incremento_ii_offline_test.dart'
     show TestAuth, TestApi, MemoryStore, bundle, loadOfflineFonts;
 

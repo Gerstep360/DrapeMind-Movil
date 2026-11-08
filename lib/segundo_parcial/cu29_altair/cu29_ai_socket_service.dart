@@ -1,0 +1,921 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'package:drapemind_mobile/core/config/api_config.dart';
+import 'package:drapemind_mobile/core/network/api_client.dart';
+import 'package:drapemind_mobile/core/network/api_exception.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu29_altair/cu29_ai_models.dart';
+
+enum AiSocketStatus {
+  offline,
+  connecting,
+  connected,
+  loading,
+  ready,
+  error;
+
+  String get displayName {
+    switch (this) {
+      case AiSocketStatus.offline:
+        return 'Desconectado';
+      case AiSocketStatus.connecting:
+        return 'Conectando...';
+      case AiSocketStatus.connected:
+        return 'Conectado';
+      case AiSocketStatus.loading:
+        return 'Altair pensando...';
+      case AiSocketStatus.ready:
+        return 'Listo';
+      case AiSocketStatus.error:
+        return 'Error de conexión';
+    }
+  }
+}
+
+class AiSocketService extends ChangeNotifier {
+  String? _owner;
+  String get _storageKey =>
+      'drapemind_ai_sessions_v3_${_owner ?? 'signed-out'}';
+  final AuthService _authService;
+  final ApiClient _contextApi = ApiClient();
+  bool _contextBusy = false;
+
+  WebSocketChannel? _channel;
+  StreamSubscription? _subscription;
+  Timer? _reconnectTimer;
+  Timer? _heartbeatTimer;
+  Timer? _thinkingTickerTimer;
+
+  int _reconnectAttempt = 0;
+  String? _queuedMessage;
+  int _responseStartedAt = 0;
+  int _thinkingElapsedMs = 0;
+  bool _authRejected = false;
+  bool _manualDisconnect = false;
+  bool _concurrent = false;
+
+  String? _currentThought;
+  final List<String> _liveThoughtSteps = [];
+  AiSocketStatus _status = AiSocketStatus.offline;
+
+  List<ChatSession> _sessions = [];
+  String? _activeSessionId;
+  List<AgentTraceStep> _toolActivity = [];
+
+  AiSocketService({required AuthService authService})
+    : _authService = authService {
+    _authService.addListener(_accountChanged);
+    _accountChanged();
+  }
+
+  void _accountChanged() {
+    final user = _authService.currentUser;
+    final owner = user == null ? null : '${user.tenantId}_${user.id}';
+    if (owner == _owner) return;
+    disconnect();
+    _owner = owner;
+    _sessions = [];
+    _activeSessionId = null;
+    if (owner != null) _loadSessionsFromStorage();
+  }
+
+  // --- GETTERS ---
+  AiSocketStatus get status => _status;
+  String? get currentThought => _currentThought;
+  List<String> get liveThoughtSteps => List.unmodifiable(_liveThoughtSteps);
+  int get thinkingElapsedMs => _thinkingElapsedMs;
+  double get thinkingElapsedSeconds => _thinkingElapsedMs / 1000.0;
+  String get thinkingElapsedFormatted =>
+      '${(_thinkingElapsedMs / 1000.0).toStringAsFixed(1)}s';
+
+  /// Reconectar explícitamente con la configuración actual (útil tras cambio de host/IP)
+  void reconnectWithCurrentConfig() {
+    disconnect();
+    Future.delayed(const Duration(milliseconds: 250), () {
+      connect();
+    });
+  }
+
+  List<ChatSession> get sessions => List.unmodifiable(_sessions);
+  ChatSession get currentSession {
+    if (_sessions.isEmpty) {
+      final initial = ChatSession.create(title: 'Asesoría Inicial');
+      _sessions.add(initial);
+      _activeSessionId = initial.id;
+      return initial;
+    }
+    return _sessions.firstWhere(
+      (s) => s.id == _activeSessionId,
+      orElse: () => _sessions.first,
+    );
+  }
+
+  List<ChatMessage> get messages => currentSession.messages;
+  List<AgentTraceStep> get toolActivity => List.unmodifiable(_toolActivity);
+  bool get canSend =>
+      !isBusy ||
+      (_concurrent &&
+          currentSession.messages.where((message) => message.pending).length <
+              3 &&
+          (_status == AiSocketStatus.connected ||
+              _status == AiSocketStatus.ready ||
+              _status == AiSocketStatus.loading));
+
+  bool get isBusy => currentSession.messages.any((m) => m.pending);
+  int? get sessionId => currentSession.backendSessionId;
+
+  // --- MULTI-CHAT & 24H STORAGE ---
+  Future<void> _loadSessionsFromStorage() async {
+    final owner = _owner;
+    final key = _storageKey;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (owner != _owner) return;
+      final raw = prefs.getString(key);
+      if (raw != null && raw.isNotEmpty) {
+        final List list = jsonDecode(raw);
+        final loaded = list
+            .map((item) => ChatSession.fromJson(item as Map<String, dynamic>))
+            .where((s) => !s.isExpired) // Eliminar chats mayores a 24 horas
+            .toList();
+
+        if (loaded.isNotEmpty) {
+          _sessions = loaded;
+          _activeSessionId = _sessions.first.id;
+          notifyListeners();
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        '[AiSocketService] Error cargando sesiones de SharedPreferences: $e',
+      );
+    }
+
+    if (owner != _owner) return;
+    // Inicializar sesión por defecto
+    final initial = ChatSession.create(title: 'Asesoría Atelier');
+    _sessions = [initial];
+    _activeSessionId = initial.id;
+    notifyListeners();
+  }
+
+  Future<void> _saveSessionsToStorage() async {
+    final key = _storageKey;
+    final owner = _owner;
+    if (owner == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (owner != _owner) return;
+      // Filtrar expirados de más de 24 horas antes de persistir
+      _sessions.removeWhere((s) => s.isExpired);
+      final raw = jsonEncode(_sessions.map((s) => s.toJson()).toList());
+      await prefs.setString(key, raw);
+    } catch (e) {
+      debugPrint('[AiSocketService] Error guardando sesiones: $e');
+    }
+  }
+
+  /// Crea una nueva sesión de chat separada
+  void createNewSession({String? title}) {
+    if (_contextBusy ||
+        _sessions.any((s) => s.messages.any((m) => m.pending))) {
+      return;
+    }
+    final newSession = ChatSession.create(
+      title: title ?? 'Conversación #${_sessions.length + 1}',
+    );
+    _sessions.insert(0, newSession);
+    _activeSessionId = newSession.id;
+    _toolActivity = [];
+    _liveThoughtSteps.clear();
+    _currentThought = null;
+    _saveSessionsToStorage();
+    notifyListeners();
+  }
+
+  /// Cambia a otra conversación existente
+  void switchSession(String sessionId) {
+    if (_contextBusy ||
+        _sessions.any((s) => s.messages.any((m) => m.pending))) {
+      return;
+    }
+    if (_activeSessionId == sessionId) return;
+    if (_sessions.any((s) => s.id == sessionId)) {
+      _activeSessionId = sessionId;
+      _toolActivity = [];
+      _liveThoughtSteps.clear();
+      _currentThought = null;
+      notifyListeners();
+    }
+  }
+
+  /// Elimina una sesión del historial
+  Future<void> deleteSession(String sessionId) async {
+    if (_contextBusy ||
+        _sessions.any((s) => s.messages.any((m) => m.pending))) {
+      return;
+    }
+    final session = _sessions.where((s) => s.id == sessionId).firstOrNull;
+    if (!await _deleteRemote(session?.backendSessionId)) return;
+    _sessions.removeWhere((s) => s.id == sessionId);
+    if (_sessions.isEmpty) {
+      createNewSession(title: 'Nueva Conversación');
+    } else if (_activeSessionId == sessionId) {
+      _activeSessionId = _sessions.first.id;
+    }
+    _saveSessionsToStorage();
+    notifyListeners();
+  }
+
+  /// Reinicia los mensajes de la sesión actual
+  Future<void> clearConversation() async {
+    if (_contextBusy || isBusy) return;
+    if (!await _deleteRemote(currentSession.backendSessionId)) return;
+    currentSession.messages = [];
+    currentSession.backendSessionId = null;
+    currentSession.updatedAt = DateTime.now();
+    _toolActivity = [];
+    _liveThoughtSteps.clear();
+    _currentThought = null;
+    _responseStartedAt = 0;
+    _saveSessionsToStorage();
+    notifyListeners();
+  }
+
+  /// Cancela la generacion de respuesta en curso y restablece el estado
+  void cancelGeneration() {
+    if (!isBusy) return;
+
+    _stopThinkingTicker();
+    _queuedMessage = null;
+
+    final duration = _responseStartedAt > 0
+        ? DateTime.now().millisecondsSinceEpoch - _responseStartedAt
+        : 0;
+
+    for (final session in _sessions) {
+      if (session.id == _activeSessionId) {
+        for (final m in session.messages) {
+          if (m.pending) {
+            m.pending = false;
+            m.content = m.content.isNotEmpty
+                ? '${m.content}\n\n*[Respuesta detenida por el usuario]*'
+                : '*Consulta cancelada por el usuario.*';
+            m.durationMs = duration;
+          }
+        }
+      }
+    }
+
+    _toolActivity = [];
+    _liveThoughtSteps.clear();
+    _currentThought = null;
+    _responseStartedAt = 0;
+    _thinkingElapsedMs = 0;
+
+    try {
+      _channel?.sink.close(1000, 'cancelled_by_user');
+    } catch (_) {}
+    _channel = null;
+
+    _saveSessionsToStorage();
+    notifyListeners();
+
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (_status != AiSocketStatus.connected) {
+        connect();
+      }
+    });
+  }
+
+  // --- WEBSOCKET CONNECTION ---
+  void connect() {
+    if (_authService.isPlatformAdmin) return;
+    final token = _authService.token;
+    final owner = _owner;
+    if (token == null || token.isEmpty || !_authService.hasValidToken) {
+      _status = AiSocketStatus.offline;
+      unawaited(_authService.logout());
+      notifyListeners();
+      return;
+    }
+    if (_status == AiSocketStatus.connected ||
+        _status == AiSocketStatus.connecting) {
+      return;
+    }
+
+    _clearReconnect();
+    _manualDisconnect = false;
+    _authRejected = false;
+    _status = AiSocketStatus.connecting;
+    notifyListeners();
+
+    try {
+      final wsUri = Uri.parse(ApiConfig.aiWsUrl);
+      _channel = WebSocketChannel.connect(wsUri);
+
+      _subscription = _channel!.stream.listen(
+        (data) {
+          if (owner != _owner) return;
+          try {
+            final Map<String, dynamic> event = jsonDecode(data.toString());
+            _handleEvent(event);
+          } catch (e) {
+            debugPrint('[AiSocketService] Error decodificando evento: $e');
+          }
+        },
+        onError: (error) {
+          _interruptPending();
+          debugPrint('[AiSocketService] WebSocket error: $error');
+          _status = AiSocketStatus.error;
+          _stopThinkingTicker();
+          if (currentSession.messages.isNotEmpty &&
+              currentSession.messages.last.role == 'assistant' &&
+              currentSession.messages.last.pending) {
+            final last = currentSession.messages.last;
+            if (last.content.isEmpty) {
+              last.content =
+                  'Error de comunicación con Altair AI. Revisa tu conexión o inicia sesión.';
+              last.error = true;
+            }
+            last.pending = false;
+            last.durationMs =
+                DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+            _saveSessionsToStorage();
+          }
+          notifyListeners();
+        },
+        onDone: () {
+          _concurrent = false;
+          _interruptPending();
+          debugPrint('[AiSocketService] WebSocket cerrado.');
+          _cleanupSocket();
+          _stopThinkingTicker();
+          if (currentSession.messages.isNotEmpty &&
+              currentSession.messages.last.role == 'assistant' &&
+              currentSession.messages.last.pending) {
+            final last = currentSession.messages.last;
+            if (last.content.isEmpty) {
+              last.content =
+                  'Conexión cerrada. Vuelve a iniciar sesión si tu token expiró.';
+              last.error = true;
+            }
+            last.pending = false;
+            last.durationMs =
+                DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+            _saveSessionsToStorage();
+          }
+          if (!_manualDisconnect &&
+              !_authRejected &&
+              _authService.hasValidToken) {
+            _status = AiSocketStatus.offline;
+            notifyListeners();
+            _scheduleReconnect();
+          } else {
+            _status = AiSocketStatus.offline;
+            notifyListeners();
+          }
+        },
+      );
+
+      _channel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
+      _startHeartbeat();
+    } catch (e) {
+      debugPrint('[AiSocketService] Error conectando WebSocket: $e');
+      _status = AiSocketStatus.error;
+      _stopThinkingTicker();
+      notifyListeners();
+      _scheduleReconnect();
+    }
+  }
+
+  void disconnect() {
+    _manualDisconnect = true;
+    _clearReconnect();
+    _stopHeartbeat();
+    _stopThinkingTicker();
+    _cleanupSocket();
+    _status = AiSocketStatus.offline;
+    notifyListeners();
+  }
+
+  // --- SEND MESSAGE & LIVE THINKING TICKER ---
+  Future<bool> _deleteRemote(int? id) async {
+    if (id == null) return true;
+    _contextBusy = true;
+    try {
+      await _contextApi.delete('/ai/sessions/$id');
+      return true;
+    } on ApiException catch (error) {
+      if (error.statusCode == 404) return true;
+      _currentThought = 'No se pudo eliminar el chat del servidor. Reintenta.';
+      _status = AiSocketStatus.error;
+      notifyListeners();
+      return false;
+    } finally {
+      _contextBusy = false;
+    }
+  }
+
+  Future<void> selectProduct(int id) async {
+    if (_contextBusy || isBusy) return;
+    final session = currentSession;
+    if (session.backendSessionId == null) return;
+    _contextBusy = true;
+    try {
+      final result = await _contextApi.post(
+        '/ai/sessions/${session.backendSessionId}/selection',
+        body: {'product_id': id},
+      );
+      if (_activeSessionId == session.id &&
+          result is Map &&
+          result['followup'] is String) {
+        sendMessage(result['followup'] as String);
+      }
+    } on ApiException {
+      _currentThought = 'Esta opción ya no está disponible. Consulta de nuevo.';
+      _status = AiSocketStatus.error;
+      notifyListeners();
+    } finally {
+      _contextBusy = false;
+    }
+  }
+
+  void sendMessage(String content) {
+    final clean = content;
+    if (clean.trim().isEmpty || !canSend) return;
+
+    final userMsgId = 'user-${DateTime.now().microsecondsSinceEpoch}';
+    final assistantMsgId = 'assistant-${DateTime.now().microsecondsSinceEpoch}';
+
+    // Auto nombrar el título de la sesión si es la primera pregunta
+    if (currentSession.messages.length <= 1) {
+      currentSession.title = clean.length > 28
+          ? '${clean.substring(0, 28)}...'
+          : clean;
+    }
+
+    currentSession.messages.add(
+      ChatMessage(id: userMsgId, role: 'user', content: clean),
+    );
+
+    currentSession.messages.add(
+      ChatMessage(
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+        pending: true,
+      ),
+    );
+
+    currentSession.updatedAt = DateTime.now();
+
+    _toolActivity = [];
+    _liveThoughtSteps.clear();
+    _currentThought = 'Analizando solicitud...';
+    _responseStartedAt = DateTime.now().millisecondsSinceEpoch;
+    _thinkingElapsedMs = 0;
+
+    _startThinkingTicker();
+    _saveSessionsToStorage();
+    notifyListeners();
+
+    if (_status == AiSocketStatus.connected ||
+        _status == AiSocketStatus.ready ||
+        _status == AiSocketStatus.loading) {
+      _sendChat(clean);
+    } else {
+      _queuedMessage = clean;
+      connect();
+    }
+  }
+
+  void _startThinkingTicker() {
+    _stopThinkingTicker();
+    _thinkingTickerTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      _,
+    ) {
+      if (_responseStartedAt > 0) {
+        _thinkingElapsedMs =
+            DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _stopThinkingTicker() {
+    _thinkingTickerTimer?.cancel();
+    _thinkingTickerTimer = null;
+  }
+
+  void _sendChat(String content) {
+    if (_channel != null) {
+      _channel!.sink.add(
+        jsonEncode({
+          'type': 'chat',
+          'request_id': currentSession.messages.last.id,
+          'message': content,
+          'session_id': currentSession.backendSessionId,
+        }),
+      );
+    }
+  }
+
+  // --- EVENT HANDLER ---
+  void _handleEvent(Map<String, dynamic> event) {
+    final type = event['type']?.toString();
+    final requestId = event['request_id']?.toString();
+    var eventSession = currentSession;
+    ChatMessage? target;
+    if (requestId != null) {
+      for (final session in _sessions) {
+        for (final message in session.messages) {
+          if (message.id == requestId) {
+            eventSession = session;
+            target = message;
+          }
+        }
+      }
+      if (target == null) return;
+      _toolActivity = target.trace.map((step) => step.copyWith()).toList();
+    } else if (eventSession.messages.isNotEmpty) {
+      target = eventSession.messages.last;
+    }
+    if (type == 'task_started') {
+      eventSession.backendSessionId = int.tryParse(
+        event['session_id'].toString(),
+      );
+      notifyListeners();
+      return;
+    }
+    if (type == 'task_cancelled') {
+      if (target != null) {
+        target.pending = false;
+        target.actionItems = [];
+        target.content =
+            'Consulta cancelada. Continuamos con tus nuevos requisitos.';
+      }
+      _saveSessionsToStorage();
+      notifyListeners();
+      return;
+    }
+
+    if (type == 'connected') {
+      _concurrent = event['concurrent'] == true;
+      _reconnectAttempt = 0;
+      _status = AiSocketStatus.connected;
+      notifyListeners();
+      if (_queuedMessage != null) {
+        final msg = _queuedMessage!;
+        _queuedMessage = null;
+        _sendChat(msg);
+      }
+      return;
+    }
+
+    if (type == 'thought' || type == 'progress') {
+      final text =
+          event['content']?.toString() ?? event['text']?.toString() ?? '';
+      if (text.isNotEmpty) {
+        _currentThought = text;
+        // Progress is not a verified tool execution.
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'model_status') {
+      final statusStr = event['status']?.toString();
+      _status = statusStr == 'loading'
+          ? AiSocketStatus.loading
+          : AiSocketStatus.ready;
+      if (event['session_id'] != null) {
+        eventSession.backendSessionId = int.tryParse(
+          event['session_id'].toString(),
+        );
+      }
+      _currentThought = statusStr == 'loading'
+          ? 'Preparando Altair…'
+          : 'Pensando…';
+      notifyListeners();
+      return;
+    }
+
+    if (type == 'tool_start') {
+      final name = event['name']?.toString() ?? 'tool';
+      final formatted = event['label']?.toString() ?? _formatToolName(name);
+      _currentThought = formatted;
+      _startTrace(formatted);
+      if (target != null) {
+        target.trace = _toolActivity.map((step) => step.copyWith()).toList();
+      }
+      notifyListeners();
+      return;
+    }
+
+    if (type == 'tool_result') {
+      final name = event['name']?.toString() ?? 'tool';
+      final failed = event['result'] is Map && event['result']['error'] != null;
+      _finishTrace(
+        event['label']?.toString() ?? _formatToolName(name),
+        failed
+            ? 'La consulta devolvió un error'
+            : _resultSummary(event['result']),
+        failed: failed,
+      );
+      if (target != null) {
+        target.trace = _toolActivity.map((step) => step.copyWith()).toList();
+      }
+      notifyListeners();
+      return;
+    }
+
+    if (type == 'results') {
+      if (target != null && target.role == 'assistant') {
+        target.actionItems = (event['action_items'] as List? ?? [])
+            .map((item) => AiActionItem.fromJson(item as Map<String, dynamic>))
+            .toList();
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'presentation') {
+      if (target != null && target.role == 'assistant') {
+        final last = target;
+        last.presentationMode = AiPresentationMode.fromString(
+          event['mode']?.toString(),
+        );
+        last.responseTitle = event['title']?.toString();
+
+        if (event['notices'] is List) {
+          last.notices = (event['notices'] as List)
+              .map((n) => AiNotice.fromJson(n as Map<String, dynamic>))
+              .toList();
+        }
+
+        if (event['response_meta'] is Map) {
+          last.responseMeta = AiResponseMeta.fromJson(
+            event['response_meta'] as Map<String, dynamic>,
+          );
+        }
+
+        if (event['suggested_actions'] is List) {
+          last.suggestedActions = (event['suggested_actions'] as List)
+              .map((a) => AiSuggestedAction.fromJson(a as Map<String, dynamic>))
+              .toList();
+        }
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'answer_snapshot') {
+      if (target != null && target.role == 'assistant') {
+        target.content = event['content']?.toString() ?? '';
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'token') {
+      final content = event['content']?.toString() ?? '';
+      // Tokens are generated content, not a tool action.
+      if (target != null && target.role == 'assistant') {
+        target.content += content;
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'done') {
+      _stopThinkingTicker();
+      // Keep only executed tools in the action history.
+      if (event['session_id'] != null) {
+        eventSession.backendSessionId = int.tryParse(
+          event['session_id'].toString(),
+        );
+      }
+      _status = AiSocketStatus.ready;
+      _currentThought = null;
+
+      if (target != null && target.role == 'assistant') {
+        final last = target;
+        last.pending = false;
+
+        if (event['tools'] is List) {
+          last.tools = (event['tools'] as List)
+              .map((t) => t.toString())
+              .toList();
+        }
+
+        if (event['action_items'] is List) {
+          last.actionItems = (event['action_items'] as List)
+              .map(
+                (item) => AiActionItem.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+        }
+
+        last.trace = _toolActivity.map((step) => step.copyWith()).toList();
+
+        if (event['presentation_mode'] != null) {
+          last.presentationMode = AiPresentationMode.fromString(
+            event['presentation_mode'].toString(),
+          );
+        }
+        if (event['response_title'] != null) {
+          last.responseTitle = event['response_title'].toString();
+        }
+        if (event['notices'] is List) {
+          last.notices = (event['notices'] as List)
+              .map((n) => AiNotice.fromJson(n as Map<String, dynamic>))
+              .toList();
+        }
+        if (event['response_meta'] is Map) {
+          last.responseMeta = AiResponseMeta.fromJson(
+            event['response_meta'] as Map<String, dynamic>,
+          );
+        }
+        if (event['suggested_actions'] is List) {
+          last.suggestedActions = (event['suggested_actions'] as List)
+              .map((a) => AiSuggestedAction.fromJson(a as Map<String, dynamic>))
+              .toList();
+        }
+        last.durationMs = event['duration_ms'] is int
+            ? event['duration_ms']
+            : (DateTime.now().millisecondsSinceEpoch - _responseStartedAt);
+
+        eventSession.updatedAt = DateTime.now();
+        _saveSessionsToStorage();
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'error') {
+      _stopThinkingTicker();
+      _status = AiSocketStatus.error;
+      _currentThought = null;
+      final msg =
+          event['message']?.toString() ?? 'No se pudo completar la consulta.';
+      final authError =
+          event['code']?.toString() == 'AUTH_INVALID' ||
+          msg.toLowerCase().contains('sesión inválida') ||
+          msg.toLowerCase().contains('sesion invalida') ||
+          msg.toLowerCase().contains('token') &&
+              msg.toLowerCase().contains('expir') ||
+          msg.toLowerCase().contains('usuario inactivo');
+      if (authError) {
+        _authRejected = true;
+        _clearReconnect();
+        _reconnectAttempt = 999;
+        _queuedMessage = null;
+        unawaited(_authService.logout());
+        unawaited(_channel?.sink.close(4401, 'auth_expired'));
+      }
+      for (final step in _toolActivity) {
+        if (step.state == 'running') {
+          _finishTrace(step.name, 'Proceso interrumpido', failed: true);
+        }
+      }
+      if (target != null && target.role == 'assistant' && target.pending) {
+        final last = target;
+        last.content = msg;
+        last.pending = false;
+        last.error = true;
+        last.trace = _toolActivity.map((step) => step.copyWith()).toList();
+        last.durationMs =
+            DateTime.now().millisecondsSinceEpoch - _responseStartedAt;
+      }
+      eventSession.updatedAt = DateTime.now();
+      _saveSessionsToStorage();
+      notifyListeners();
+    }
+  }
+
+  void _interruptPending() {
+    for (final session in _sessions) {
+      for (final message in session.messages) {
+        if (message.pending) {
+          message.pending = false;
+          message.error = true;
+          if (message.content.isEmpty) {
+            message.content =
+                'Se interrumpió la conexión con Altair. Puedes reintentar.';
+          }
+        }
+      }
+    }
+    _saveSessionsToStorage();
+  }
+
+  String _formatToolName(String raw) {
+    switch (raw) {
+      case 'get_my_cart':
+        return 'Inspeccionando perchero del cliente';
+      case 'recommend_outfit':
+        return 'Diseñando outfit con stock real';
+      case 'search_products':
+        return 'Consultando catálogo y stock del atelier';
+      case 'get_trending_pieces':
+        return 'Buscando complementos de alta calidad (Q4/Q5)';
+      case 'get_my_orders':
+        return 'Consultando pedidos y compras registradas';
+      case 'get_my_reservations':
+        return 'Verificando reservas de 48 horas en showroom';
+      case 'optimize_outfit_skill':
+        return 'Estrategia de inversión y calidad textil';
+      default:
+        return raw.replaceAll('_', ' ');
+    }
+  }
+
+  String _resultSummary(dynamic result) {
+    if (result is List) return '${result.length} resultados verificados';
+    if (result is Map) return 'Datos verificados';
+    return 'Completado';
+  }
+
+  void _startTrace(String name) {
+    if (_toolActivity.any((step) => step.name == name)) return;
+    _toolActivity.add(
+      AgentTraceStep(
+        name: name,
+        state: 'running',
+        startedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  void _finishTrace(String name, String summary, {bool failed = false}) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (int i = 0; i < _toolActivity.length; i++) {
+      if (_toolActivity[i].name == name &&
+          _toolActivity[i].state == 'running') {
+        _toolActivity[i] = _toolActivity[i].copyWith(
+          state: failed ? 'error' : 'done',
+          summary: summary,
+          durationMs: max(0, now - _toolActivity[i].startedAt),
+        );
+      }
+    }
+  }
+
+  void _scheduleReconnect() {
+    _clearReconnect();
+    if (!_authService.hasValidToken) return;
+    if (_reconnectAttempt >= 5) {
+      debugPrint(
+        '[AiSocketService] Límite de reconexiones alcanzado. Inicia sesión nuevamente.',
+      );
+      _status = AiSocketStatus.offline;
+      notifyListeners();
+      return;
+    }
+    final delaySeconds = min(30, pow(2, _reconnectAttempt++).toInt());
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () => connect());
+  }
+
+  void _clearReconnect() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+  }
+
+  void _startHeartbeat() {
+    _stopHeartbeat();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (_channel != null) {
+        try {
+          _channel!.sink.add(jsonEncode({'type': 'ping'}));
+        } catch (_) {}
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  void _cleanupSocket() {
+    _subscription?.cancel();
+    _subscription = null;
+    _channel?.sink.close();
+    _channel = null;
+  }
+
+  @override
+  void dispose() {
+    _authService.removeListener(_accountChanged);
+    _owner = null;
+    disconnect();
+    super.dispose();
+  }
+}

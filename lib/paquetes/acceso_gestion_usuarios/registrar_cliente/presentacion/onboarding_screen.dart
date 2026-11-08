@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/core/core.dart';
-import 'package:drapemind_mobile/navegacion/main_shell.dart';
+import 'package:drapemind_mobile/segundo_parcial/navegacion/main_shell.dart';
 import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/registrar_cliente/dominio/onboarding_options.dart';
 import 'package:drapemind_mobile/paquetes/sucursales_inventario_proveedores/datos/servicios/preferred_branch_store.dart';
 

@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/core/theme/app_theme.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
-import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu04_plan_empresa/cu04_subscription_screen.dart';
 import 'support/golden_assets.dart';
 
 class AdminFixture extends AuthService {

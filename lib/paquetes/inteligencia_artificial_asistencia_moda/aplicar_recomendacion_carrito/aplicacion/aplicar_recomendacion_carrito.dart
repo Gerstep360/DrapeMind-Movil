@@ -1,6 +1,6 @@
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/datos/servicios/cart_service.dart';
-import 'package:drapemind_mobile/paquetes/carrito_pedidos_pagos/dominio/modelos/cart_models.dart';
-import 'package:drapemind_mobile/paquetes/inteligencia_artificial_asistencia_moda/dominio/modelos/ai_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu22_carrito_checkout/cu22_cart_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu22_carrito_checkout/cu22_cart_models.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu29_altair/cu29_ai_models.dart';
 
 enum RecommendationCartChange { added, removed, replaced, ignored }
 

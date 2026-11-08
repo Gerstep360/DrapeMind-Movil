@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_store.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_store.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_service.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_screen.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_store.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_store.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 
 Map<String, dynamic> snapshot() => {
   'owner': '1:4',

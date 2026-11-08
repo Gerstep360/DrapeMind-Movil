@@ -1,0 +1,366 @@
+import 'package:flutter/foundation.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/presentacion/cu05_login_form_view.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/core/core.dart';
+import 'package:drapemind_mobile/core/theme/app_colors.dart';
+import 'package:drapemind_mobile/core/theme/app_svg.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _isRegister = false;
+  bool _showPassword = false;
+  final _formKey = GlobalKey<FormState>();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _errorMessage = null);
+
+    final auth = context.read<AuthService>();
+    final security = context.read<SecurityService>();
+
+    try {
+      if (_isRegister) {
+        await auth.register(
+          nombre: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          telefono: _phoneController.text.trim(),
+        );
+      } else {
+        await auth.login(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+      }
+
+      // Al loguearse exitosamente, si no tiene PIN configurado, sugerimos activarlo
+      if (mounted && !security.isPinEnabled) {
+        _promptPinSetup();
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _errorMessage =
+              'No pudimos conectar con tu tienda. Intenta nuevamente.',
+        );
+      }
+    }
+  }
+
+  void _promptPinSetup() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      isDismissible: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        String newPin = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.forest.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: AppSvg.raw(
+                      AppSvg.lock,
+                      size: 24,
+                      color: AppColors.forest,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'ACTIVAR ACCESO RÁPIDO SEGURO',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                      color: AppColors.forest,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Para proteger tus compras y tu saldo en Bs, puedes configurar un PIN de 4 dígitos o Huella para no volver a escribir tu contraseña.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (index) {
+                      final isFilled = index < newPin.length;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: isFilled
+                              ? AppColors.forest
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.forest, width: 2),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 20),
+                  // Teclado numérico simplificado para modal
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      for (var i = 1; i <= 9; i++)
+                        _buildModalDigit('$i', () {
+                          if (newPin.length < 4) {
+                            setModalState(() => newPin += '$i');
+                            if (newPin.length == 4) {
+                              context.read<SecurityService>().setPin(newPin);
+                              Navigator.pop(ctx);
+                            }
+                          }
+                        }),
+                      _buildModalDigit('0', () {
+                        if (newPin.length < 4) {
+                          setModalState(() => newPin += '0');
+                          if (newPin.length == 4) {
+                            context.read<SecurityService>().setPin(newPin);
+                            Navigator.pop(ctx);
+                          }
+                        }
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      'Configurar más tarde',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildModalDigit(String d, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        width: 54,
+        height: 54,
+        decoration: BoxDecoration(
+          color: AppColors.paperLight,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.lineStrong),
+        ),
+        child: Center(
+          child: Text(
+            d,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.forest,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showServerConfigDialog() {
+    final controller = TextEditingController(text: ApiConfig.defaultHost);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: AppColors.paperLight,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.lime,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: AppSvg.raw(AppSvg.sparkle, size: 16, color: AppColors.ink),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Servidor Backend',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Selecciona o ingresa la IP y puerto del servidor activo:',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Host (IP pública o local)',
+                hintText: '167.86.106.105 o 127.0.0.1:8000',
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ActionChip(
+                  backgroundColor: AppColors.lime.withAlpha(60),
+                  side: const BorderSide(color: AppColors.lime, width: 1.2),
+                  label: const Text(
+                    'VPS Oficial (167.86.106.105)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  onPressed: () {
+                    controller.text = '167.86.106.105';
+                  },
+                ),
+                ActionChip(
+                  backgroundColor: AppColors.cyan.withAlpha(60),
+                  side: const BorderSide(color: AppColors.cyan, width: 1.2),
+                  label: const Text(
+                    'Wi-Fi LAN (192.168.100.223:8000)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  onPressed: () {
+                    controller.text = '192.168.100.223:8000';
+                  },
+                ),
+                ActionChip(
+                  backgroundColor: AppColors.paperDark,
+                  side: const BorderSide(color: AppColors.line),
+                  label: const Text(
+                    'ADB Reverse / Local (127.0.0.1:8000)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  onPressed: () {
+                    controller.text = '127.0.0.1:8000';
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.ink,
+              foregroundColor: AppColors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text == '167.86.106.105' || text.isEmpty) {
+                await ApiConfig.resetHost();
+              } else {
+                await ApiConfig.setCustomHost(text);
+              }
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+              setState(() {});
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => LoginFormView(
+    formKey: _formKey,
+    name: _nameController,
+    email: _emailController,
+    password: _passwordController,
+    phone: _phoneController,
+    register: _isRegister,
+    loading: context.watch<AuthService>().isLoading,
+    showPassword: _showPassword,
+    error: _errorMessage,
+    submit: _submit,
+    togglePassword: () => setState(() => _showPassword = !_showPassword),
+    changeMode: (value) => setState(() {
+      _isRegister = value;
+      _errorMessage = null;
+    }),
+    configureConnection:
+        kDebugMode && const bool.fromEnvironment('DRAPEMIND_DEV_CONNECTION')
+        ? _showServerConfigDialog
+        : null,
+  );
+}

@@ -6,11 +6,13 @@ class DmMobileNavigation extends StatelessWidget {
   final int selectedIndex;
   final int cartCount;
   final ValueChanged<int> onSelected;
+  final bool business;
   const DmMobileNavigation({
     super.key,
     required this.selectedIndex,
     required this.cartCount,
     required this.onSelected,
+    this.business = false,
   });
 
   static const _labels = ['Tienda', 'Altair', 'Carrito', 'Pedidos', 'Cuenta'];
@@ -39,7 +41,7 @@ class DmMobileNavigation extends StatelessWidget {
               child: Semantics(
                 button: true,
                 selected: selected,
-                label: _labels[index],
+                label: business && index == 4 ? 'Negocio' : _labels[index],
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () => onSelected(index),
@@ -68,7 +70,9 @@ class DmMobileNavigation extends StatelessWidget {
                             backgroundColor: AppColors.ink,
                             textColor: Colors.white,
                             child: AppSvg.raw(
-                              _icons[index],
+                              business && index == 4
+                                  ? AppSvg.store
+                                  : _icons[index],
                               size: 21,
                               color: selected
                                   ? AppColors.ink
@@ -78,7 +82,7 @@ class DmMobileNavigation extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          _labels[index],
+                          business && index == 4 ? 'Negocio' : _labels[index],
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.ink,

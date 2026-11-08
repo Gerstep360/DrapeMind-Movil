@@ -13,11 +13,13 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.embedding.android.FlutterFragmentActivity
 
 class MainActivity : FlutterFragmentActivity() {
+    private val voice by lazy { VoiceCapture(this) }
     private var pending: MethodChannel.Result? = null
     private var pdfBytes: ByteArray? = null
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,"drapemind/documents").setMethodCallHandler { call, result ->
+            if (call.method in setOf("startVoice", "stopVoice", "cancelVoice")) { voice.handle(call.method,result); return@setMethodCallHandler }
             if (pending != null) { result.error("BUSY","Termina la acción anterior.",null); return@setMethodCallHandler }
             try {
                 when(call.method) {
@@ -70,6 +72,15 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannel()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        voice.permission(requestCode, grantResults)
+    }
+    override fun onDestroy() {
+        voice.close()
+        super.onDestroy()
     }
 
     private fun createNotificationChannel() {

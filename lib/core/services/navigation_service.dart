@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_auth_service.dart';
 
-import 'package:drapemind_mobile/navegacion/main_shell.dart';
+import 'package:drapemind_mobile/segundo_parcial/navegacion/main_shell.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
 import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
 import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_cancelar_reserva/presentacion/reservations_screen.dart';
-import 'package:drapemind_mobile/incrementos/incremento_iii/reports_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu25_reportes_voz/cu25_reports_screen.dart';
 
 class NavigationService {
   static final GlobalKey<NavigatorState> navigatorKey =
