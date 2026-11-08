@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/core/models/notification_model.dart';
@@ -71,9 +72,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     final filtered = all.where((n) {
       if (_selectedFilter == 'TODAS') return true;
-      if (_selectedFilter == 'PEDIDOS') return n.tipo == 'COMPRA' || n.tipo == 'PEDIDO_PROCESO';
+      if (_selectedFilter == 'PEDIDOS') {
+        return n.tipo.contains('PEDIDO') || n.tipo == 'COMPRA';
+      }
       if (_selectedFilter == 'AI') return n.tipo == 'AI_RESPUESTA';
-      if (_selectedFilter == 'CATALOGO') return n.tipo == 'NUEVA_ROPA' || n.tipo == 'PROMOCION';
+      if (_selectedFilter == 'CATALOGO') {
+        return n.tipo == 'NUEVA_ROPA' || n.tipo == 'PROMOCION';
+      }
       if (_selectedFilter == 'REPORTES') return n.tipo == 'REPORTE_GENERADO';
       return n.tipo == _selectedFilter;
     }).toList();
@@ -84,11 +89,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: AppColors.paper,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.ink, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.ink,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Centro de Notificaciones',
+        title: Text(
+          context.watch<AuthService>().currentUser?.tenantName ?? 'Tus avisos',
           style: TextStyle(
             color: AppColors.ink,
             fontSize: 18,
@@ -114,25 +123,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: Column(
         children: [
+          if (!pushService.pushEnabled)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pushService.pushError ??
+                        'Recibe avisos de tus tiendas aunque cierres la app.',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  TextButton(
+                    onPressed: pushService.enablePush,
+                    child: const Text('Activar avisos en este teléfono'),
+                  ),
+                ],
+              ),
+            ),
           _buildFilterChips(pushService),
           Expanded(
             child: pushService.isLoading && all.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  )
                 : filtered.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        color: AppColors.gold,
-                        onRefresh: pushService.fetchNotifications,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final notif = filtered[index];
-                            return _buildNotificationCard(context, notif, pushService);
-                          },
-                        ),
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    color: AppColors.gold,
+                    onRefresh: pushService.fetchNotifications,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final notif = filtered[index];
+                        return _buildNotificationCard(
+                          context,
+                          notif,
+                          pushService,
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -172,7 +208,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: isSelected ? AppColors.gold : Colors.black.withAlpha(25),
+                  color: isSelected
+                      ? AppColors.gold
+                      : Colors.black.withAlpha(25),
                 ),
               ),
               showCheckmark: false,
@@ -195,10 +233,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onTap: () {
         service.markAsRead(notif.id);
         final payload = notif.dataPayload;
-        String screen = (payload['screen'] ?? payload['enlace'] ?? payload['url'] ?? '').toString();
+        String screen =
+            (payload['screen'] ?? payload['enlace'] ?? payload['url'] ?? '')
+                .toString();
         if (screen.isEmpty) {
           final tipo = notif.tipo.toUpperCase();
-          if (tipo.contains('PEDIDO') || tipo.contains('ORDER') || tipo.contains('PAGO')) {
+          if (tipo.contains('PEDIDO') ||
+              tipo.contains('ORDER') ||
+              tipo.contains('PAGO')) {
             screen = '/orders';
           } else if (tipo.contains('RESERVA')) {
             screen = '/reservations';
@@ -220,7 +262,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           color: notif.leido ? Colors.white : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: notif.leido ? Colors.black.withAlpha(15) : AppColors.gold.withAlpha(150),
+            color: notif.leido
+                ? Colors.black.withAlpha(15)
+                : AppColors.gold.withAlpha(150),
             width: notif.leido ? 1 : 1.5,
           ),
           boxShadow: [
@@ -256,7 +300,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           notif.titulo,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: notif.leido ? FontWeight.w600 : FontWeight.w800,
+                            fontWeight: notif.leido
+                                ? FontWeight.w600
+                                : FontWeight.w800,
                             color: AppColors.ink,
                           ),
                         ),
@@ -303,7 +349,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                           ),
                           const SizedBox(width: 3),
-                          Icon(Icons.arrow_forward_ios, size: 10, color: accent),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 10,
+                            color: accent,
+                          ),
                         ],
                       ),
                     ],
@@ -327,41 +377,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildEmptyState() => Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.gold.withAlpha(30),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.notifications_none, size: 36, color: AppColors.gold),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Sin notificaciones pendientes',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Las alertas sobre tus compras, pedidos, recomendaciones de Altair AI y nuevas colecciones aparecerán aquí.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.ink.withAlpha(150),
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.gold.withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.notifications_none,
+              size: 36,
+              color: AppColors.gold,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 18),
+          const Text(
+            'Sin notificaciones pendientes',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Las alertas sobre tus compras, pedidos, recomendaciones de Altair AI y nuevas colecciones aparecerán aquí.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.ink.withAlpha(150),
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -55,6 +55,9 @@ class User {
   final String estado;
   final DateTime createdAt;
   final bool hasStyleProfile;
+  final List<String> permisos;
+  bool can(String permission) =>
+      rol == UserRole.admin || permisos.contains(permission);
 
   User({
     this.tenantId,
@@ -70,10 +73,14 @@ class User {
     required this.estado,
     required this.createdAt,
     this.hasStyleProfile = false,
+    this.permisos = const [],
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
+      permisos: (json['permisos'] as List? ?? [])
+          .map((p) => p.toString())
+          .toList(),
       tenantId: json['tenant_id'] as int?,
       isPlatformAdmin: json['is_platform_admin'] == true,
       isUniversalCustomer: json['is_universal_customer'] == true,
@@ -103,6 +110,7 @@ class User {
     bool? hasStyleProfile,
   }) {
     return User(
+      permisos: permisos,
       tenantId: tenantId,
       isPlatformAdmin: isPlatformAdmin,
       isUniversalCustomer: isUniversalCustomer,
@@ -120,6 +128,7 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
+    'permisos': permisos,
     'tenant_id': tenantId,
     'is_platform_admin': isPlatformAdmin,
     'is_universal_customer': isUniversalCustomer,

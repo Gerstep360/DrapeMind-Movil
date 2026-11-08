@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,13 +30,72 @@ class PushNotificationService extends ChangeNotifier {
 
   String? _deviceToken;
   String? get deviceToken => _deviceToken;
+  bool _registered = false;
+  bool get pushEnabled => _deviceToken != null && _registered;
   String? _owner;
+  bool _disposed = false;
+  String? pushError;
+  final List<StreamSubscription<dynamic>> _firebaseSubscriptions = [];
+  Future<void> enablePush() async {
+    try {
+      final status = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (status.authorizationStatus == AuthorizationStatus.denied) {
+        _deviceToken = null;
+        pushError =
+            'Permite las notificaciones de DrapeMind en los ajustes del teléfono.';
+      } else {
+        _deviceToken = await FirebaseMessaging.instance.getToken();
+        await registerDeviceWithBackend();
+      }
+    } catch (_) {
+      pushError =
+          'No pudimos activar los avisos. Revisa tu conexión e intenta nuevamente.';
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> _refreshForAccount() async {
+    final owner = _owner;
+    if (owner == null ||
+        !_authService.isAuthenticated ||
+        _authService.isPlatformAdmin) {
+      return;
+    }
+    try {
+      final status = await FirebaseMessaging.instance.getNotificationSettings();
+      _deviceToken = status.authorizationStatus == AuthorizationStatus.denied
+          ? null
+          : await FirebaseMessaging.instance.getToken();
+    } catch (_) {
+      pushError = 'No pudimos activar los avisos en este dispositivo.';
+    }
+    if (_disposed || owner != _owner) return;
+    _eventsService.connect();
+    await registerDeviceWithBackend();
+    if (!_disposed && owner == _owner) await fetchNotifications();
+  }
+
+  Future<void> _beforeLogout() async {
+    await unregisterDeviceFromBackend();
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {}
+    _deviceToken = null;
+  }
+
   void _accountChanged() {
     final user = _authService.currentUser;
     final owner = user == null ? null : '${user.tenantId}_${user.id}';
     if (owner == _owner) return;
     _owner = owner;
+    _registered = false;
     _notifications = [];
+    _recentNotificationTimestamps.clear();
+    unawaited(_refreshForAccount());
     _isLoading = false;
     notifyListeners();
   }
@@ -47,47 +106,58 @@ class PushNotificationService extends ChangeNotifier {
   }) : _authService = authService,
        _eventsService = eventsService {
     _authService.addListener(_accountChanged);
+    _authService.beforeLogout.add(_beforeLogout);
     _initDevice();
   }
 
   Future<void> _initDevice() async {
     final prefs = await SharedPreferences.getInstance();
-    var token = prefs.getString('dm_device_push_token');
-    if (token == null || token.isEmpty) {
-      final rand = Random.secure();
-      final bytes = List<int>.generate(24, (_) => rand.nextInt(256));
-      final generated = base64Url.encode(bytes);
-      token = 'fcm_android_${Platform.operatingSystem}_$generated';
-      await prefs.setString('dm_device_push_token', token);
-    }
-    _deviceToken = token;
-
+    // Only provider-issued tokens can receive push. Never invent a fallback token.
+    await prefs.remove('dm_device_push_token');
     // Inicialización del SDK de Firebase Messaging en Android/iOS
     try {
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      final permission = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-      final realFcmToken = await messaging.getToken();
+      final realFcmToken =
+          permission.authorizationStatus == AuthorizationStatus.denied
+          ? null
+          : await messaging.getToken();
       if (realFcmToken != null && realFcmToken.isNotEmpty) {
         _deviceToken = realFcmToken;
         await prefs.setString('dm_device_push_token', realFcmToken);
       }
 
-      messaging.onTokenRefresh.listen((newToken) {
-        _deviceToken = newToken;
-        prefs.setString('dm_device_push_token', newToken);
-        if (_authService.isAuthenticated) {
-          registerDeviceWithBackend();
-        }
-      });
+      _firebaseSubscriptions.add(
+        messaging.onTokenRefresh.listen((newToken) async {
+          final permission = await messaging.getNotificationSettings();
+          if (_disposed ||
+              permission.authorizationStatus == AuthorizationStatus.denied) {
+            return;
+          }
+          _deviceToken = newToken;
+          prefs.setString('dm_device_push_token', newToken);
+          if (_authService.isAuthenticated) {
+            registerDeviceWithBackend();
+          }
+        }),
+      );
 
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        _handleFcmMessage(message);
-      });
+      _firebaseSubscriptions.add(
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          _handleFcmMessage(message);
+        }),
+      );
 
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        _handleNotificationTapFromBackground(message);
-      });
+      _firebaseSubscriptions.add(
+        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+          _handleNotificationTapFromBackground(message);
+        }),
+      );
 
       final initialMessage = await messaging.getInitialMessage();
       if (initialMessage != null) {
@@ -95,7 +165,7 @@ class PushNotificationService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint(
-        '[PushNotificationService] Firebase Messaging activo en canal local: $e',
+        '[PushNotificationService] Firebase no está disponible: ${e.runtimeType}',
       );
     }
 
@@ -105,6 +175,7 @@ class PushNotificationService extends ChangeNotifier {
     }
 
     _listenRealtimeEvents();
+    _accountChanged();
   }
 
   final Map<String, int> _recentNotificationTimestamps = {};
@@ -120,6 +191,38 @@ class PushNotificationService extends ChangeNotifier {
   }
 
   void _handleFcmMessage(RemoteMessage msg) {
+    if (!_authService.isAuthenticated) return;
+    final tenantId = int.tryParse(msg.data['tenant_id']?.toString() ?? '');
+    if (tenantId == null) return;
+    if (msg.data['action'] == 'DISMISS_NOTIFICATION') {
+      if (tenantId == _authService.currentUser?.tenantId) {
+        final id = int.tryParse(msg.data['notification_id']?.toString() ?? '');
+        for (final item in _notifications) {
+          if (item.id == id) item.leido = true;
+        }
+        notifyListeners();
+      }
+      return;
+    }
+    if (tenantId != _authService.currentUser?.tenantId) {
+      final context = NavigationService.context;
+      if (context != null &&
+          context.mounted &&
+          _authService.currentUser?.isUniversalCustomer == true) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              '${msg.data['tenant_name'] ?? 'Otra tienda'} · ${msg.data['title'] ?? 'Tienes un aviso'}',
+            ),
+            action: SnackBarAction(
+              label: 'Abrir tienda',
+              onPressed: () => _handleNotificationTapFromBackground(msg),
+            ),
+          ),
+        );
+      }
+      return; // A different store's alert never enters the current store inbox.
+    }
     final rawId =
         msg.data['notification_id']?.toString() ?? msg.messageId ?? '';
     final title =
@@ -161,9 +264,6 @@ class PushNotificationService extends ChangeNotifier {
   }
 
   void _handleNotificationTapFromBackground(RemoteMessage msg) {
-    debugPrint(
-      '[PushNotificationService] Tap recibido en notificacion de fondo: ${msg.data}',
-    );
     final payload = msg.data;
     String screen =
         (payload['screen'] ?? payload['url'] ?? payload['enlace'] ?? '')
@@ -197,7 +297,16 @@ class PushNotificationService extends ChangeNotifier {
   }
 
   void _handleRealtimeEvent(RealtimeEvent event) {
+    if (!_authService.isAuthenticated) return;
     final payloadMap = event.raw;
+    final origin = payloadMap['data'];
+    if (origin is Map &&
+        origin['tenant_id'] != null &&
+        origin['tenant_id'].toString() !=
+            _authService.currentUser?.tenantId.toString()) {
+      return;
+    }
+    if (payloadMap['silent'] == true) return;
     if (event.type == 'notification') {
       final rawId = payloadMap['id']?.toString() ?? '';
       final title =
@@ -255,8 +364,17 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty || _deviceToken == null) return;
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      var deviceId = prefs.getString('dm_physical_device_id');
+      if (deviceId == null) {
+        deviceId = base64Url.encode(
+          List<int>.generate(24, (_) => Random.secure().nextInt(256)),
+        );
+        await prefs.setString('dm_physical_device_id', deviceId);
+      }
+      if (token != _authService.token) return;
       final url = Uri.parse('${ApiConfig.apiV1Url}/devices/register');
-      await http.post(
+      final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
@@ -264,12 +382,18 @@ class PushNotificationService extends ChangeNotifier {
         },
         body: jsonEncode({
           'token': _deviceToken,
-          'dispositivo_id': 'dm_${Platform.operatingSystem}_terminal',
+          'dispositivo_id': deviceId,
           'plataforma': Platform.operatingSystem,
-          'modelo':
-              'DrapeMind Atelier Client (${Platform.operatingSystemVersion})',
+          'modelo': 'DrapeMind (${Platform.operatingSystemVersion})',
         }),
       );
+      if (token == _authService.token) {
+        _registered = response.statusCode == 200;
+        pushError = _registered
+            ? null
+            : 'No pudimos vincular este dispositivo. Intenta nuevamente.';
+        if (!_disposed) notifyListeners();
+      }
     } catch (e) {
       debugPrint('[PushNotificationService] Error registrando dispositivo: $e');
     }
@@ -339,9 +463,15 @@ class PushNotificationService extends ChangeNotifier {
 
     try {
       final url = Uri.parse(
-        '${ApiConfig.apiV1Url}/notifications/$notificationId/read?originating_token=${_deviceToken ?? ""}',
+        '${ApiConfig.apiV1Url}/notifications/$notificationId/read',
       );
-      await http.patch(url, headers: {'Authorization': 'Bearer $token'});
+      await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          if (_deviceToken != null) 'X-Device-Token': _deviceToken!,
+        },
+      );
     } catch (e) {
       debugPrint('[PushNotificationService] Error marcando leida: $e');
     }
@@ -357,10 +487,14 @@ class PushNotificationService extends ChangeNotifier {
     if (token == null || token.isEmpty) return;
 
     try {
-      final url = Uri.parse(
-        '${ApiConfig.apiV1Url}/notifications/read-all?originating_token=${_deviceToken ?? ""}',
+      final url = Uri.parse('${ApiConfig.apiV1Url}/notifications/read-all');
+      await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          if (_deviceToken != null) 'X-Device-Token': _deviceToken!,
+        },
       );
-      await http.post(url, headers: {'Authorization': 'Bearer $token'});
     } catch (e) {
       debugPrint('[PushNotificationService] Error marcando todas leidas: $e');
     }
@@ -374,6 +508,11 @@ class PushNotificationService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _authService.beforeLogout.remove(_beforeLogout);
+    for (final subscription in _firebaseSubscriptions) {
+      subscription.cancel();
+    }
     _authService.removeListener(_accountChanged);
     _eventSubscription?.cancel();
     super.dispose();

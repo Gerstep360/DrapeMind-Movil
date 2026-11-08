@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/paquetes/acceso_gestion_usuarios/datos/servicios/auth_service.dart';
 
 import 'package:drapemind_mobile/navegacion/main_shell.dart';
 import 'package:drapemind_mobile/paquetes/catalogo_comercializacion/consultar_detalle_talla_color_variante/presentacion/product_detail_screen.dart';
@@ -29,6 +31,7 @@ class NavigationService {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         navigateTo(screen: s, data: d);
       });
+      WidgetsBinding.instance.scheduleFrame();
     }
   }
 
@@ -44,6 +47,50 @@ class NavigationService {
       _pendingScreen = screen;
       _pendingData = data;
       return;
+    }
+
+    final ctx = context;
+    final tenantId = int.tryParse(data?['tenant_id']?.toString() ?? '');
+    if (ctx != null && tenantId != null) {
+      final auth = ctx.read<AuthService>();
+      if (!auth.isAuthenticated) {
+        setPendingNavigation(screen, data);
+        return;
+      }
+      if (auth.currentUser?.tenantId != tenantId) {
+        final slug = data?['tenant_slug']?.toString() ?? '';
+        if (!auth.currentUser!.isUniversalCustomer ||
+            !RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$').hasMatch(slug)) {
+          ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Este aviso pertenece a otra tienda. Entra con la cuenta de esa empresa.',
+              ),
+            ),
+          );
+          return;
+        }
+        try {
+          await auth.enterStore(slug);
+          if (auth.currentUser?.tenantId != tenantId) return;
+          setPendingNavigation(screen, data);
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => processPendingNavigation(),
+          );
+          WidgetsBinding.instance.scheduleFrame();
+        } catch (_) {
+          if (ctx.mounted) {
+            ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'No pudimos abrir la tienda. Revisa tu conexión e intenta nuevamente.',
+                ),
+              ),
+            );
+          }
+        }
+        return;
+      }
     }
 
     final nav = navigatorKey.currentState;

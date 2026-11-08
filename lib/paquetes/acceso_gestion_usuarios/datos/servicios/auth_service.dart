@@ -10,6 +10,8 @@ import 'security_service.dart';
 import 'package:drapemind_mobile/core/services/company_service.dart';
 
 class AuthService extends ChangeNotifier {
+  final Set<Future<void> Function()> beforeLogout = {};
+  bool _loggingOut = false;
   final ApiClient _apiClient;
   User? _currentUser;
   bool _isLoading = false;
@@ -311,6 +313,20 @@ class AuthService extends ChangeNotifier {
 
   /// Logout and clear storage
   Future<void> logout() async {
+    if (_loggingOut) return;
+    _loggingOut = true;
+    try {
+      if (_token != null) {
+        for (final cleanup in List.of(beforeLogout)) {
+          try {
+            await cleanup().timeout(const Duration(seconds: 8));
+          } catch (_) {}
+        }
+      }
+    } finally {
+      _loggingOut = false;
+    }
+
     _expiryTimer?.cancel();
     _expiryTimer = null;
     _currentUser = null;
