@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_service.dart';
 import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_service.dart';
 import 'package:provider/provider.dart';
 
@@ -40,6 +41,13 @@ class DrapeMindApp extends StatelessWidget {
           }
           return service;
         },
+      ),
+      ChangeNotifierProvider(
+        lazy: false,
+        create: (context) => DeferredService(
+          auth: context.read<AuthService>(),
+          cart: context.read<CartService>(),
+        ),
       ),
       ChangeNotifierProxyProvider<AuthService, AiSocketService>(
         create: (context) =>

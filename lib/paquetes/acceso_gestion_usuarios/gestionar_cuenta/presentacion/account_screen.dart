@@ -1,6 +1,7 @@
 import 'package:drapemind_mobile/paquetes/saas/subscription_screen.dart';
 import 'package:drapemind_mobile/paquetes/saas/stores_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_screen.dart';
 import 'package:drapemind_mobile/incrementos/incremento_ii/offline/offline_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -736,6 +737,21 @@ class _AccountScreenState extends State<AccountScreen> {
             120 + MediaQuery.of(context).padding.bottom,
           ),
           children: [
+            if (user?.rol.toServerString() == 'CLIENTE')
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.schedule_outlined),
+                title: const Text('Compras pendientes'),
+                subtitle: const Text(
+                  'Guardadas sin conexión y pagos por confirmar',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const DeferredPurchasesScreen(),
+                  ),
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(

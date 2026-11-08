@@ -7,6 +7,7 @@ class CartService extends ChangeNotifier {
   Cart? _cart;
   bool _isLoading = false;
   String? _owner;
+  String? get owner => _owner;
   void bindOwner(String? owner) {
     if (owner != _owner) {
       _owner = owner;

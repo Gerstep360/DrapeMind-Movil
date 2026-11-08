@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:drapemind_mobile/incrementos/incremento_iii/deferred_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/core.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
@@ -691,6 +692,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 18),
 
                   // SUMMARY
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DeferredPurchasesScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.schedule_outlined),
+                    label: const Text(
+                      'Guardar compra para pagar al reconectar',
+                    ),
+                  ),
                   _buildSectionHeader('RESUMEN DE PAGO', AppSvg.package),
                   const SizedBox(height: 8),
                   Card(
