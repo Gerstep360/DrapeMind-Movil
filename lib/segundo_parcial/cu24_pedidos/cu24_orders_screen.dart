@@ -1,3 +1,9 @@
+import '../cu13_catalogo_offline/cu13_offline_service.dart';
+import 'dart:async';
+import 'package:provider/provider.dart';
+import '../cu23_pagos/cu23_deferred_service.dart';
+import '../cu23_pagos/cu23_pedidos_locales.dart';
+import 'package:drapemind_mobile/compartido/componentes/notificaciones/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -14,19 +20,53 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  final _orderService = OrderService();
+  late final OrderService _orderService;
   List<Order> _orders = [];
   bool _isLoading = true;
   bool _more = true, _loadingMore = false;
   String? _errorMessage;
+  DeferredService? _queue;
+  bool _wasOnline = true;
+  final Set<String> _paidSeen = {};
+  int _request = 0;
+  void _queueChanged() {
+    final queue = _queue;
+    if (queue == null || !mounted) return;
+    final paid = queue.purchases
+        .where((r) => queue.state(r) == 'PAGADA')
+        .map((r) => r['operation'].toString())
+        .toSet();
+    final refresh =
+        paid.difference(_paidSeen).isNotEmpty || (!_wasOnline && queue.online);
+    _paidSeen.addAll(paid);
+    _wasOnline = queue.online;
+    if (refresh) unawaited(_loadOrders());
+  }
+
+  @override
+  void dispose() {
+    _queue?.removeListener(_queueChanged);
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
+    _orderService = OrderService(offline: context.read<OfflineService?>());
+    _queue = context.read<DeferredService?>();
+    _paidSeen.addAll(
+      _queue?.purchases
+              .where((r) => _queue!.state(r) == 'PAGADA')
+              .map((r) => r['operation'].toString()) ??
+          [],
+    );
+    _wasOnline = _queue?.online ?? true;
+    _queue?.addListener(_queueChanged);
     _loadOrders();
   }
 
   Future<void> _loadOrders() async {
+    final request = ++_request;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -34,15 +74,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     try {
       final list = await _orderService.getMyOrders();
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _orders = list;
-        _more = list.length == 50;
+        _more =
+            list.length == 50 &&
+            context.read<OfflineService?>()?.online != false;
         _isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
+        _more = false;
         _errorMessage = 'No se pudieron cargar tus pedidos.';
         _isLoading = false;
       });
@@ -86,6 +129,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final queue = context.watch<DeferredService?>();
+    final hasPending = queue?.purchases.isNotEmpty ?? false;
+    final pendingIds =
+        queue?.purchases
+            .where((r) => queue.state(r) != 'PAGADA')
+            .map((r) => r['remote']?['pedido_id'])
+            .toSet() ??
+        <int>{};
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: AppBar(
@@ -121,6 +172,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ],
         ),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(6),
@@ -142,213 +194,179 @@ class _OrdersScreenState extends State<OrdersScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.ink))
-          : _errorMessage != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: AppColors.danger),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _loadOrders,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.ink,
-                    ),
-                    child: const Text(
-                      'Reintentar',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await context.read<DeferredService?>()?.refresh();
+          await _loadOrders();
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            PendingOrderCards(existingIds: _orders.map((o) => o.id).toSet()),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
               ),
-            )
-          : _orders.isEmpty
-          ? Center(
-              child: Column(
+            if (_errorMessage != null && _orders.isEmpty && !hasPending)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(_errorMessage!),
+                    TextButton(
+                      onPressed: _loadOrders,
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            if (!_isLoading &&
+                _orders.isEmpty &&
+                !hasPending &&
+                _errorMessage == null)
+              const Padding(
+                padding: EdgeInsets.all(30),
+                child: Text(
+                  'Aquí verás tus compras y el estado de cada pedido.',
+                ),
+              ),
+            for (final order in _orders.where(
+              (o) => !pendingIds.contains(o.id),
+            ))
+              _orderCard(order),
+            if (_more)
+              OutlinedButton(
+                onPressed: _loadingMore ? null : _loadMore,
+                child: Text(_loadingMore ? 'Cargando…' : 'Ver más pedidos'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _orderCard(Order order) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0410110F),
+            blurRadius: 12,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Responsive header with expanded title and status badge
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Pedido ${order.codigoPublico}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildStatusBadge(order.estado),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tipo: ${order.tipoEntrega.displayName} · Canal: ${order.canal}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '${order.items.length} prendas',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMutedStrong,
+                  ),
+                ),
+              ),
+              Text(
+                'Total: Bs ${order.total.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
+                  color: AppColors.ink,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Comprobante Oficial Button
+          if (order.estado == OrderStatus.pendientePago)
+            FilledButton.icon(
+              icon: const Icon(Icons.credit_card),
+              label: const Text('Pagar con tarjeta'),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => StripePaymentScreen(orderId: order.id),
+                  ),
+                );
+                if (mounted) _loadOrders();
+              },
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                side: const BorderSide(color: AppColors.ink, width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                backgroundColor: AppColors.paper,
+              ),
+              onPressed: () => _showReceiptModal(order),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: const BoxDecoration(
-                      color: AppColors.paperDark,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: AppSvg.raw(
-                        AppSvg.package,
-                        size: 32,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
+                  AppSvg.raw(AppSvg.package, size: 14, color: AppColors.ink),
+                  const SizedBox(width: 8),
                   const Text(
-                    'No tienes pedidos registrados todavía',
+                    'Ver Comprobante Oficial',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: AppColors.ink,
                     ),
                   ),
                 ],
               ),
-            )
-          : RefreshIndicator(
-              color: AppColors.ink,
-              onRefresh: _loadOrders,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _orders.length + (_more ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _orders.length) {
-                    return OutlinedButton(
-                      onPressed: _loadingMore ? null : _loadMore,
-                      child: Text(
-                        _loadingMore ? 'Cargando…' : 'Ver más pedidos',
-                      ),
-                    );
-                  }
-                  final order = _orders[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.line),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0410110F),
-                          blurRadius: 12,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Responsive header with expanded title and status badge
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Pedido ${order.codigoPublico}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  color: AppColors.ink,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _buildStatusBadge(order.estado),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tipo: ${order.tipoEntrega.displayName} · Canal: ${order.canal}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Divider(height: 1),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${order.items.length} prendas',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textMutedStrong,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Total: Bs ${order.total.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                                color: AppColors.ink,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Comprobante Oficial Button
-                        if (order.estado == OrderStatus.pendientePago)
-                          FilledButton.icon(
-                            icon: const Icon(Icons.credit_card),
-                            label: const Text('Pagar con tarjeta'),
-                            onPressed: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      StripePaymentScreen(orderId: order.id),
-                                ),
-                              );
-                              if (mounted) _loadOrders();
-                            },
-                          ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              side: const BorderSide(
-                                color: AppColors.ink,
-                                width: 1.2,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              backgroundColor: AppColors.paper,
-                            ),
-                            onPressed: () => _showReceiptModal(order),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                AppSvg.raw(
-                                  AppSvg.package,
-                                  size: 14,
-                                  color: AppColors.ink,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Ver Comprobante Oficial',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.ink,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -399,7 +417,7 @@ class _ReceiptModalSheet extends StatefulWidget {
 }
 
 class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
-  final _orderService = OrderService();
+  late final OrderService _orderService;
   bool _loading = true;
   Map<String, dynamic>? _receiptData;
   bool _downloading = false;

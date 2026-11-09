@@ -26,7 +26,8 @@ class DrapeMindApp extends StatelessWidget {
         create: (context) => OfflineService(auth: context.read<AuthService>()),
       ),
       ChangeNotifierProxyProvider<AuthService, CartService>(
-        create: (_) => CartService(),
+        create: (context) =>
+            CartService(offline: context.read<OfflineService>()),
         update: (_, auth, cart) {
           final service = cart ?? CartService();
           service.bindOwner(
@@ -35,7 +36,7 @@ class DrapeMindApp extends StatelessWidget {
                 : '${auth.currentUser!.tenantId}_${auth.currentUser!.id}',
           );
           if (auth.isAuthenticated && !auth.isPlatformAdmin) {
-            service.getCart();
+            service.getCart().then<void>((_) {}, onError: (_) {});
           } else {
             service.clearLocal();
           }
@@ -81,10 +82,6 @@ class DrapeMindApp extends StatelessWidget {
           final service =
               current ??
               PushNotificationService(authService: auth, eventsService: events);
-          if (auth.isAuthenticated && !auth.isPlatformAdmin) {
-            service.registerDeviceWithBackend();
-            service.fetchNotifications();
-          }
           return service;
         },
       ),

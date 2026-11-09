@@ -1,3 +1,6 @@
+import '../cu12_descarga_offline/cu12_tienda_descargada.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
+import 'package:drapemind_mobile/compartido/componentes/notificaciones/notification_bell.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +41,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   void initState() {
     super.initState();
-    _service = widget.catalogService ?? CatalogService();
+    _service =
+        widget.catalogService ??
+        CatalogService(offline: context.read<OfflineService?>());
     _loadMetadata();
     _loadProducts();
   }
@@ -334,8 +339,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
-        title: const Text(
-          'DrapeMind',
+        title: Text(
+          context.watch<AuthService?>()?.currentUser?.tenantName ?? 'DrapeMind',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 23,
             letterSpacing: -0.8,
@@ -343,6 +350,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ),
         ),
         actions: [
+          const StoreDownloadButton(),
+          const NotificationBell(),
           IconButton(
             tooltip: 'Mis favoritos',
             icon: const Icon(Icons.favorite_border_rounded),

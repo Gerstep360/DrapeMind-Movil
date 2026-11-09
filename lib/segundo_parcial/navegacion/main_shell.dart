@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'negocio_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
-import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_screen.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/navegacion/dm_mobile_navigation.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -60,7 +58,6 @@ class _MainShellState extends State<MainShell> {
     final cartCount = context.watch<CartService>().itemCount;
     final user = context.watch<AuthService>().currentUser;
     final business = user != null && user.rol != UserRole.cliente;
-    final offline = context.watch<OfflineService>();
     final screens = [
       CatalogScreen(onOpenAiStudio: () => _openTab(1)),
       const AiStudioScreen(),
@@ -76,26 +73,6 @@ class _MainShellState extends State<MainShell> {
       extendBody: false,
       body: Column(
         children: [
-          if (!offline.online || offline.pending > 0)
-            Material(
-              color: const Color(0xFFFFF1CE),
-              child: ListTile(
-                dense: true,
-                title: Text(
-                  !offline.online
-                      ? 'Sin conexión · tu colección guardada sigue disponible'
-                      : '${offline.pending} solicitudes por enviar',
-                ),
-                trailing: TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const OfflineScreen(),
-                    ),
-                  ),
-                  child: const Text('Ver'),
-                ),
-              ),
-            ),
           Expanded(
             child: IndexedStack(
               index: _currentIndex,

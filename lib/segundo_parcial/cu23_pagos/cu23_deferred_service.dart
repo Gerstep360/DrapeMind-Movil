@@ -1,3 +1,4 @@
+import 'package:drapemind_mobile/segundo_parcial/cu22_carrito_checkout/cu22_cart_models.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -22,6 +23,35 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
   Map<String, dynamic>? contextData;
   List<Map<String, dynamic>> purchases = [];
   Timer? _timer;
+  Future<void> _restoring = Future.value();
+  Future<void> get ready => _restoring;
+  void _connectionChanged() {
+    final connected = cart?.offline?.online;
+    if (connected == false) {
+      online = false;
+      changed();
+    } else if (connected == true && !online) {
+      online = true;
+      unawaited(refresh());
+    }
+  }
+
+  Future<void> useCart(Cart value) async {
+    await ready;
+    final scope = _owner, data = contextData;
+    if (scope == null || data == null) {
+      throw Exception(
+        'Descarga los datos de compra de esta tienda con conexión.',
+      );
+    }
+    final next = {...data, 'cart': value.toJson()};
+    await store.saveContext(scope, next);
+    if (scope == _owner) {
+      contextData = next;
+      changed();
+    }
+  }
+
   DeferredService({
     required this.auth,
     ApiClient? client,
@@ -32,10 +62,17 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
        store = local ?? DeferredStore() {
     auth.addListener(_accountChanged);
     cart?.addListener(_cartChanged);
+    cart?.offline?.addListener(_connectionChanged);
     if (automatic) {
       WidgetsBinding.instance.addObserver(this);
       _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-        if (purchases.any((r) => !terminal(r))) unawaited(synchronize());
+        if (purchases.any((r) => !terminal(r))) {
+          if (!online && cart?.offline?.online != false) {
+            unawaited(refresh());
+          } else {
+            unawaited(synchronize());
+          }
+        }
       });
       _accountChanged();
     }
@@ -74,7 +111,7 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
     _owner = next;
     contextData = null;
     purchases = [];
-    if (next != null) unawaited(restore(next));
+    if (next != null) _restoring = restore(next);
     changed();
   }
 
@@ -86,7 +123,7 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
       contextData = data;
       purchases = rows;
       changed();
-      await refresh();
+      unawaited(refresh());
     } catch (_) {
       error =
           'No pudimos abrir el almacenamiento local. No se guardó ninguna compra nueva.';
@@ -135,10 +172,16 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
     final owner = _owner;
     if (owner == null) return;
     try {
+      try {
+        await cart?.synchronizeDraft();
+      } catch (_) {
+        /* The immutable purchase snapshot does not overwrite another device's cart. */
+      }
       final data = Map<String, dynamic>.from(
         await api.get('/payments/deferred/context'),
       );
       if (_owner != owner || data['owner'] != owner.split('|').last) return;
+      if (cart?.cart != null) data['cart'] = cart!.cart!.toJson();
       await store.saveContext(owner, data);
       contextData = data;
       online = true;
@@ -192,7 +235,7 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
     return '${value.substring(0, 8)}-${value.substring(8, 12)}-${value.substring(12, 16)}-${value.substring(16, 20)}-${value.substring(20)}';
   }
 
-  Future<void> enqueue({
+  Future<String> enqueue({
     required String delivery,
     int? branch,
     int? address,
@@ -254,6 +297,7 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
     });
     await _reload(owner);
     unawaited(synchronize());
+    return operation;
   }
 
   Future<void> _saveRemote(Map<String, dynamic> row, dynamic result) async {
@@ -403,6 +447,7 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     auth.removeListener(_accountChanged);
     cart?.removeListener(_cartChanged);
+    cart?.offline?.removeListener(_connectionChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

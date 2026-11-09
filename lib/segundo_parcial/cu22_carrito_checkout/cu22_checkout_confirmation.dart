@@ -9,6 +9,15 @@ import 'package:drapemind_mobile/core/services/company_service.dart';
 class CheckoutConfirmation {
   final ApiClient api;
   CheckoutConfirmation(this.api);
+  Future<bool> hasPending() async {
+    final claims = CompanyService.claims(await api.getToken());
+    if (claims == null) return false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey(
+      'drapemind.checkout.pending|${ApiConfig.apiV1Url}|${claims['tid']}:${claims['sub']}',
+    );
+  }
+
   String canonical(Map<String, dynamic> value) {
     final keys = value.keys.toList()..sort();
     return jsonEncode({for (final k in keys) k: value[k]});

@@ -1,3 +1,4 @@
+import 'package:drapemind_mobile/compartido/componentes/notificaciones/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -656,6 +657,7 @@ class _CartScreenState extends State<CartScreen> {
           ],
         ),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(6),
@@ -719,6 +721,40 @@ class _CartScreenState extends State<CartScreen> {
             )
           : Column(
               children: [
+                if (cartService.localIssue != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Text(cartService.localIssue!),
+                        TextButton(
+                          onPressed: cartService.offline?.online == false
+                              ? null
+                              : () async {
+                                  try {
+                                    await cartService.keepSelection();
+                                  } catch (_) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Tu selección sigue guardada. Reintenta con conexión.',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: const Text('Conservar esta selección'),
+                        ),
+                        const Text(
+                          'Esto reemplazará el carrito guardado desde otro dispositivo.',
+                        ),
+                      ],
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

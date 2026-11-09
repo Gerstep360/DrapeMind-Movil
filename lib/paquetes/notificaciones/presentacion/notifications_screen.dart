@@ -123,24 +123,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: Column(
         children: [
-          if (!pushService.pushEnabled)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    pushService.pushError ??
-                        'Recibe avisos de tus tiendas aunque cierres la app.',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  TextButton(
-                    onPressed: pushService.enablePush,
-                    child: const Text('Activar avisos en este teléfono'),
-                  ),
-                ],
-              ),
-            ),
           _buildFilterChips(pushService),
           Expanded(
             child: pushService.isLoading && all.isEmpty

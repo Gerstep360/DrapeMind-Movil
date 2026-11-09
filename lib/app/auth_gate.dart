@@ -40,11 +40,14 @@ class AuthGate extends StatelessWidget {
         !user.hasStyleProfile &&
         !auth.onboardingSkipped) {
       return CompanyAccessGate(
-        key: ValueKey(user.id),
+        key: ValueKey('${user.id}:${user.rol}'),
         child: const OnboardingScreen(),
       );
     }
-    return CompanyAccessGate(key: ValueKey(user?.id), child: const MainShell());
+    return CompanyAccessGate(
+      key: ValueKey('${user?.id}:${user?.rol}'),
+      child: const MainShell(),
+    );
   }
 }
 

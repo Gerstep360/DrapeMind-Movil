@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -35,7 +37,8 @@ class DmProductImage extends StatelessWidget {
             bytes,
             fit: fit,
             semanticLabel: semanticLabel,
-            errorBuilder: (_, __, ___) => _EditorialFallback(label: semanticLabel),
+            errorBuilder: (_, __, ___) =>
+                _EditorialFallback(label: semanticLabel),
           );
         }
       } catch (_) {
@@ -44,7 +47,8 @@ class DmProductImage extends StatelessWidget {
     }
 
     // Soporte para archivos vectoriales SVG
-    if (trimmed.toLowerCase().endsWith('.svg') || trimmed.toLowerCase().contains('.svg?')) {
+    if (trimmed.toLowerCase().endsWith('.svg') ||
+        trimmed.toLowerCase().contains('.svg?')) {
       return SvgPicture.network(
         trimmed,
         fit: fit,
@@ -52,6 +56,24 @@ class DmProductImage extends StatelessWidget {
       );
     }
 
+    final local = context.watch<OfflineService?>();
+    if (local != null && local.usable && !local.online) {
+      return FutureBuilder(
+        future: local.photo(trimmed),
+        builder: (context, snapshot) {
+          if (snapshot.data != null) {
+            return Image.memory(
+              snapshot.data!,
+              fit: fit,
+              semanticLabel: semanticLabel,
+              errorBuilder: (_, __, ___) =>
+                  _EditorialFallback(label: semanticLabel),
+            );
+          }
+          return _EditorialFallback(label: semanticLabel);
+        },
+      );
+    }
     return Image.network(
       trimmed,
       fit: fit,

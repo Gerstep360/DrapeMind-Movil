@@ -67,6 +67,11 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
             ['PENDING', 'SENDING', 'UNCERTAIN', 'CONFLICT'].contains(r.state),
       )
       .length;
+  void useDownloadedData() {
+    online = false;
+    _publish();
+  }
+
   void _publish() {
     if (!_disposed) notifyListeners();
   }

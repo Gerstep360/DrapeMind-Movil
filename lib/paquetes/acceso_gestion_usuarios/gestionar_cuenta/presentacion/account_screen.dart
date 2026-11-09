@@ -1,8 +1,9 @@
+import 'package:drapemind_mobile/paquetes/notificaciones/presentacion/notifications_screen.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu04_plan_empresa/cu04_subscription_screen.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu05_acceso/cu05_stores_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_deferred_screen.dart';
-import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_orders_screen.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu12_descarga_offline/cu12_tienda_descargada.dart';
 import 'package:provider/provider.dart';
 
 import 'package:drapemind_mobile/compartido/componentes/estado/dm_empty_state.dart';
@@ -683,13 +684,7 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         actions: [
           if (user?.rol.toServerString() != 'PROVEEDOR')
-            IconButton(
-              tooltip: 'Catálogo y reservas sin conexión',
-              icon: const Icon(Icons.download_for_offline_outlined),
-              onPressed: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const OfflineScreen())),
-            ),
+            const StoreDownloadButton(),
           if (auth.isAdmin)
             IconButton(
               tooltip: 'Plan de empresa',
@@ -706,6 +701,13 @@ class _AccountScreenState extends State<AccountScreen> {
                 context,
               ).push(MaterialPageRoute(builder: (_) => const StoresScreen())),
             ),
+          IconButton(
+            tooltip: 'Notificaciones y Avisos',
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: Container(
@@ -741,16 +743,12 @@ class _AccountScreenState extends State<AccountScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.schedule_outlined),
-                title: const Text('Compras pendientes'),
-                subtitle: const Text(
-                  'Guardadas sin conexión y pagos por confirmar',
-                ),
+                title: const Text('Mis pedidos'),
+                subtitle: const Text('Todas tus compras de esta tienda'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const DeferredPurchasesScreen(),
-                  ),
-                ),
+                onTap: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const OrdersScreen())),
               ),
             Container(
               padding: const EdgeInsets.all(20),

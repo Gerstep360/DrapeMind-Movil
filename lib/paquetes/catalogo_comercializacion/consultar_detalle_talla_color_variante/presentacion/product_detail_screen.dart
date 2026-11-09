@@ -1,3 +1,5 @@
+import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
+import 'package:drapemind_mobile/segundo_parcial/cu30_resenas/cu30_reviews_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -15,7 +17,7 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  final _catalogService = CatalogService();
+  late final CatalogService _catalogService;
   final _reservationService = ReservationService();
   final _branchService = BranchService();
 
@@ -31,6 +33,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _catalogService = CatalogService(offline: context.read<OfflineService?>());
     _loadProduct();
   }
 
@@ -586,6 +589,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ],
 
                               // AI TAGS
+                              ExpansionTile(
+                                title: const Text('Opiniones de esta prenda'),
+                                tilePadding: EdgeInsets.zero,
+                                children: [
+                                  ProductReviewsWidget(
+                                    productId: _product!.id,
+                                    productName: _product!.nombre,
+                                  ),
+                                ],
+                              ),
                               if (_product!.tagsAi != null &&
                                   _product!.tagsAi!.isNotEmpty) ...[
                                 Wrap(

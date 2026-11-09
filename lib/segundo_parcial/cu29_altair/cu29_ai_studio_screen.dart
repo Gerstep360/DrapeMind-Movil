@@ -1,3 +1,4 @@
+import 'package:drapemind_mobile/compartido/componentes/notificaciones/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
@@ -163,6 +164,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           ],
         ),
         actions: [
+          const NotificationBell(),
           IconButton(
             tooltip: 'Tus conversaciones',
             onPressed: _history,

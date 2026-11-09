@@ -4,7 +4,7 @@ description: "DrapeMind: tiendas, compras, Altair y gestión empresarial."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none'
 
-version: 1.7.0+20
+version: 1.7.4+24
 
 environment:
   sdk: ^3.8.1
@@ -32,6 +32,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   sqflite: ^2.4.2
   path: ^1.9.1
+  device_info_plus: ^12.4.0
 
 
 dev_dependencies:

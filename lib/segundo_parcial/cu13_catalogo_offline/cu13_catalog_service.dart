@@ -1,17 +1,44 @@
+import 'cu13_offline_service.dart';
+import 'cu13_catalogo_descargado.dart';
+import 'cu13_models.dart';
+import 'package:drapemind_mobile/core/network/api_exception.dart';
 import 'package:drapemind_mobile/core/network/api_client.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_catalog_models.dart';
 
 class CatalogService {
   final ApiClient _apiClient;
+  OfflineService? offline;
+  Future<dynamic> _read(
+    Future<dynamic> Function() remote,
+    dynamic Function(OfflineBundle) cached,
+  ) async {
+    final local = offline;
+    if (local != null) {
+      await local.ready;
+      if (!local.online && local.usable) return cached(local.bundle!);
+    }
+    try {
+      return await remote();
+    } on ApiException catch (error) {
+      if (local != null &&
+          (error is NetworkException ||
+              [502, 503, 504].contains(error.statusCode)) &&
+          local.usable) {
+        local.useDownloadedData();
+        return cached(local.bundle!);
+      }
+      rethrow;
+    }
+  }
 
-  CatalogService({ApiClient? apiClient})
+  CatalogService({ApiClient? apiClient, this.offline})
     : _apiClient = apiClient ?? ApiClient();
 
   /// Retrieve active categories
   Future<List<Category>> getCategories() async {
-    final response = await _apiClient.get(
-      '/catalog/categories',
-      requiresAuth: false,
+    final response = await _read(
+      () => _apiClient.get('/catalog/categories', requiresAuth: false),
+      (bundle) => bundle.rows('categories'),
     );
     if (response is List) {
       return response
@@ -43,10 +70,35 @@ class CatalogService {
       if (talla != null && talla.isNotEmpty) 'talla': talla,
     };
 
-    final response = await _apiClient.get(
-      '/catalog/products',
-      queryParams: queryParams,
-      requiresAuth: false,
+    final response = await _read(
+      () => _apiClient.get(
+        '/catalog/products',
+        queryParams: queryParams,
+        requiresAuth: false,
+      ),
+      (bundle) {
+        final rows = downloadedCatalog(bundle).where((p) {
+          final text =
+              '${p['nombre']} ${p['descripcion'] ?? ""} ${p['marca'] ?? ""}'
+                  .toLowerCase();
+          return (categoriaId == null || p['categoria_id'] == categoriaId) &&
+              (query == null || text.contains(query.toLowerCase().trim())) &&
+              (maxPrice == null ||
+                  double.parse(p['precio'].toString()) <= maxPrice) &&
+              (genero == null ||
+                  genero.isEmpty ||
+                  p['genero_objetivo'] == genero ||
+                  p['genero_objetivo'] == 'UNISEX') &&
+              (talla == null ||
+                  talla.isEmpty ||
+                  (p['variantes'] as List).any(
+                    (v) => v['talla'] == talla && v['stock_disponible'] > 0,
+                  )) &&
+              (calidadMin == null ||
+                  ((p['calidad_nivel'] as num?)?.toInt() ?? 3) >= calidadMin);
+        }).toList();
+        return rows.skip(offset).take(limit).toList();
+      },
     );
 
     if (response is List) {
@@ -59,9 +111,17 @@ class CatalogService {
 
   /// Get product detail with all variants and stock
   Future<Product> getProductDetail(int id) async {
-    final response = await _apiClient.get(
-      '/catalog/products/$id',
-      requiresAuth: false,
+    final response = await _read(
+      () => _apiClient.get('/catalog/products/$id', requiresAuth: false),
+      (bundle) {
+        final product = downloadedCatalog(
+          bundle,
+        ).where((p) => p['id'] == id).firstOrNull;
+        if (product == null) {
+          throw NotFoundException('Esta prenda no forma parte de tu descarga.');
+        }
+        return product;
+      },
     );
     return Product.fromJson(response as Map<String, dynamic>);
   }

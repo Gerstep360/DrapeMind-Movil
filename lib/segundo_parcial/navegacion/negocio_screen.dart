@@ -1,3 +1,4 @@
+import 'package:drapemind_mobile/compartido/componentes/notificaciones/notification_bell.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drapemind_mobile/core/core.dart';
@@ -39,7 +40,10 @@ class BusinessHubScreen extends StatelessWidget {
       onTap: () => open(screen),
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi negocio')),
+      appBar: AppBar(
+        title: const Text('Mi negocio'),
+        actions: const [NotificationBell()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
