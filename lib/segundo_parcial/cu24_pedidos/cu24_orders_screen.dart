@@ -311,7 +311,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              _buildStatusBadge(order.estado),
+              _buildStatusBadge(order),
             ],
           ),
           const SizedBox(height: 8),
@@ -497,20 +497,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildStatusBadge(OrderStatus status) {
+  Widget _buildStatusBadge(Order order) {
     Color bg = AppColors.paperDark;
     Color fg = AppColors.textMain;
+    String label = order.estado.displayName;
 
-    if (status == OrderStatus.pagado || status == OrderStatus.entregado) {
-      bg = AppColors.successBg;
-      fg = AppColors.success;
-    } else if (status == OrderStatus.pendientePago) {
-      bg = AppColors.warningBg;
-      fg = AppColors.warning;
-    } else if (status == OrderStatus.devuelto) {
+    final obs = (order.observacion ?? '').toLowerCase();
+    if (order.estado == OrderStatus.devuelto || obs.contains('cambio') || obs.contains('devolucion') || obs.contains('devolución')) {
       bg = AppColors.dangerBg;
       fg = AppColors.danger;
-    } else if (status == OrderStatus.cancelado) {
+      label = obs.contains('cambio') ? 'Cambio' : 'Devolución';
+    } else if (order.estado == OrderStatus.pagado || order.estado == OrderStatus.entregado) {
+      bg = AppColors.successBg;
+      fg = AppColors.success;
+    } else if (order.estado == OrderStatus.pendientePago) {
+      bg = AppColors.warningBg;
+      fg = AppColors.warning;
+    } else if (order.estado == OrderStatus.cancelado) {
       bg = AppColors.dangerBg;
       fg = AppColors.danger;
     }
@@ -522,7 +525,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status.displayName,
+        label,
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w800,

@@ -196,6 +196,7 @@ class Order {
   final DateTime? paidAt;
   final DateTime? completedAt;
   final List<OrderItem> items;
+  final String? observacion;
 
   Order({
     required this.id,
@@ -212,6 +213,7 @@ class Order {
     this.paidAt,
     this.completedAt,
     this.items = const [],
+    this.observacion,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -251,6 +253,7 @@ class Order {
           ? DateTime.tryParse(json['completed_at'].toString())
           : null,
       items: parsedItems,
+      observacion: json['observacion']?.toString(),
     );
   }
 
