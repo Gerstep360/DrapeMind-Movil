@@ -11,6 +11,7 @@ import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/theme/app_svg.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu23_pagos/cu23_pago_tarjeta.dart';
 import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_cancelar_reserva/presentacion/reservations_screen.dart';
+import 'cu20_exchange_sheet.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -28,6 +29,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   DeferredService? _queue;
   bool _wasOnline = true;
   final Set<String> _paidSeen = {};
+  String _selectedFilter = 'TODOS';
   int _request = 0;
   void _queueChanged() {
     final queue = _queue;
@@ -203,6 +205,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
           padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  _filterChip('TODOS', 'Todos'),
+                  const SizedBox(width: 8),
+                  _filterChip('PAGADO', 'Pagados'),
+                  const SizedBox(width: 8),
+                  _filterChip('DEVUELTO', 'Devoluciones'),
+                  const SizedBox(width: 8),
+                  _filterChip('PENDIENTE_PAGO', 'Por pagar'),
+                  const SizedBox(width: 8),
+                  _filterChip('CANCELADO', 'Cancelados'),
+                ],
+              ),
+            ),
             PendingOrderCards(existingIds: _orders.map((o) => o.id).toSet()),
             if (_isLoading)
               const Padding(
@@ -233,7 +252,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               ),
             for (final order in _orders.where(
-              (o) => !pendingIds.contains(o.id),
+              (o) {
+                if (pendingIds.contains(o.id)) return false;
+                if (_selectedFilter == 'TODOS') return true;
+                if (_selectedFilter == 'DEVUELTO') return o.estado == OrderStatus.devuelto;
+                if (_selectedFilter == 'PAGADO') return o.estado == OrderStatus.pagado || o.estado == OrderStatus.entregado;
+                if (_selectedFilter == 'PENDIENTE_PAGO') return o.estado == OrderStatus.pendientePago;
+                if (_selectedFilter == 'CANCELADO') return o.estado == OrderStatus.cancelado;
+                return true;
+              },
             ))
               _orderCard(order),
             if (_more)
@@ -365,7 +392,106 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ),
+          if (order.estado == OrderStatus.pagado || order.estado == OrderStatus.entregado) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: const BorderSide(color: AppColors.ink, width: 1.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  backgroundColor: AppColors.paperDark,
+                ),
+                onPressed: () => _openExchangeSheet(order),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.swap_horiz, size: 16, color: AppColors.ink),
+                    SizedBox(width: 8),
+                    Text(
+                      'Cambiar o devolver prenda',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (order.estado == OrderStatus.devuelto) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.dangerBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.assignment_return, size: 16, color: AppColors.danger),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Prenda devuelta · Reembolso registrado',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.danger,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _openExchangeSheet(Order order) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ExchangeSheet(
+        order: order,
+        orderService: _orderService,
+        offline: context.read<OfflineService?>(),
+        onConfirmed: _loadOrders,
+      ),
+    );
+  }
+
+  Widget _filterChip(String key, String label) {
+    final active = _selectedFilter == key;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? AppColors.lime : AppColors.paper,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active ? AppColors.ink : AppColors.line,
+            width: active ? 1.5 : 1.0,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: active ? FontWeight.w900 : FontWeight.w700,
+            color: AppColors.ink,
+          ),
+        ),
       ),
     );
   }
@@ -380,6 +506,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     } else if (status == OrderStatus.pendientePago) {
       bg = AppColors.warningBg;
       fg = AppColors.warning;
+    } else if (status == OrderStatus.devuelto) {
+      bg = AppColors.dangerBg;
+      fg = AppColors.danger;
     } else if (status == OrderStatus.cancelado) {
       bg = AppColors.dangerBg;
       fg = AppColors.danger;

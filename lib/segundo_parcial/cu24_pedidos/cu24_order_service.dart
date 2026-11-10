@@ -134,4 +134,32 @@ class OrderService {
     );
     return response as Map<String, dynamic>;
   }
+
+  /// Consultar venta/pedido para cambio o devolución (CU-20)
+  Future<Map<String, dynamic>> findOrderForExchange(String code) async {
+    final response = await _apiClient.get(
+      '/retail/orders/find',
+      queryParams: {'code': code.trim()},
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  /// Cotizar diferencia económica del cambio o devolución
+  Future<Map<String, dynamic>> quoteExchange(Map<String, dynamic> payload) async {
+    final response = await _apiClient.post(
+      '/retail/exchanges',
+      queryParams: {'preview': 'true'},
+      body: payload,
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  /// Confirmar cambio o devolución de prendas
+  Future<Map<String, dynamic>> confirmExchange(Map<String, dynamic> payload) async {
+    final response = await _apiClient.post(
+      '/retail/exchanges',
+      body: payload,
+    );
+    return Map<String, dynamic>.from(response as Map);
+  }
 }

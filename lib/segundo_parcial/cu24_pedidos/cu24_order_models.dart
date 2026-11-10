@@ -5,6 +5,7 @@ enum OrderStatus {
   listo,
   enviado,
   entregado,
+  devuelto,
   cancelado;
 
   static OrderStatus fromString(String? status) {
@@ -19,6 +20,8 @@ enum OrderStatus {
         return OrderStatus.enviado;
       case 'ENTREGADO':
         return OrderStatus.entregado;
+      case 'DEVUELTO':
+        return OrderStatus.devuelto;
       case 'CANCELADO':
         return OrderStatus.cancelado;
       default:
@@ -40,6 +43,8 @@ enum OrderStatus {
         return 'ENVIADO';
       case OrderStatus.entregado:
         return 'ENTREGADO';
+      case OrderStatus.devuelto:
+        return 'DEVUELTO';
       case OrderStatus.cancelado:
         return 'CANCELADO';
     }
@@ -59,6 +64,8 @@ enum OrderStatus {
         return 'En Camino';
       case OrderStatus.entregado:
         return 'Entregado';
+      case OrderStatus.devuelto:
+        return 'Devolución';
       case OrderStatus.cancelado:
         return 'Cancelado';
     }
