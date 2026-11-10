@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
 import 'package:drapemind_mobile/core/network/api_exception.dart';
+import 'package:drapemind_mobile/core/config/api_config.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_order_models.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu24_pedidos/cu24_order_service.dart';
 import 'package:drapemind_mobile/segundo_parcial/cu13_catalogo_offline/cu13_offline_service.dart';
@@ -36,6 +37,11 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
   // Prendas nuevas elegidas para cambio
   bool _wantNewGarment = false;
   int _selectedVariantId = 0;
+  Map<String, dynamic>? _selectedProduct;
+  Map<String, dynamic>? _selectedVariant;
+  int _variantQuantity = 1;
+  String _garmentSearch = '';
+  String _paymentMethod = 'STRIPE';
   final List<Map<String, dynamic>> _newLines = [];
 
   final TextEditingController _noteCtrl = TextEditingController(
@@ -127,8 +133,9 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
         'variante_id': l['variante_id'],
         'cantidad': l['cantidad'],
       }).toList(),
-      'efectivo_recibido': received,
-      'efectivo_devuelto': refunded,
+      'efectivo_recibido': _paymentMethod == 'STRIPE' ? '0.00' : received,
+      'efectivo_devuelto': _paymentMethod == 'STRIPE' ? '0.00' : refunded,
+      'metodo_pago': _paymentMethod,
     };
   }
 
@@ -184,18 +191,24 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
 
     try {
       final payload = _buildPayload(preview: false);
-      await widget.orderService.confirmExchange(payload);
+      final res = await widget.orderService.confirmExchange(payload);
       if (!mounted) return;
       Navigator.of(context).pop();
       widget.onConfirmed();
+
+      String feedback = _newLines.isEmpty
+          ? '¡Devolución y reembolso confirmados correctamente!'
+          : '¡Cambio de prenda confirmado con éxito!';
+      if (res['stripe_refund'] != null) {
+        feedback = '¡Devolución confirmada! Reembolso Stripe emitido a tu tarjeta.';
+      } else if (res['stripe_payment_needed'] == true) {
+        feedback = '¡Cambio registrado! Autoriza el pago de la diferencia con Stripe.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.ink,
-          content: Text(
-            _newLines.isEmpty
-                ? '¡Devolución y reembolso confirmados correctamente!'
-                : '¡Cambio de prenda confirmado con éxito!',
-          ),
+          content: Text(feedback),
         ),
       );
     } catch (e) {
@@ -463,10 +476,10 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
               ),
               const SizedBox(height: 12),
 
-              // Selector de nueva prenda si eligió cambio
+              // Selector visual de nueva prenda con fotos si eligió cambio
               if (_wantNewGarment) ...[
                 const Text(
-                  '2. Selecciona la nueva prenda',
+                  '2. Selecciona la nueva prenda (Catálogo Visual)',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -474,85 +487,238 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.paperDark,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      isExpanded: true,
-                      value: _selectedVariantId == 0 ? null : _selectedVariantId,
-                      hint: const Text('Elige una variante disponible'),
-                      items: variants.map((v) {
-                        final vid = (v['id'] as num).toInt();
-                        final prodId = (v['producto_id'] as num?)?.toInt();
-                        final p = products.cast<Map<String, dynamic>?>().firstWhere(
-                              (prod) => (prod?['id'] as num?)?.toInt() == prodId,
-                              orElse: () => null,
-                            );
-                        final name = p != null
-                            ? '${p['nombre']} · ${v['talla']} · ${v['color']} (Bs ${p['precio']})'
-                            : 'Variante $vid · ${v['talla']} · ${v['color']}';
-                        return DropdownMenuItem<int>(
-                          value: vid,
-                          child: Text(name, style: const TextStyle(fontSize: 12)),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            _selectedVariantId = val;
-                          });
-                        }
-                      },
-                    ),
+
+                // Buscador de prendas
+                TextField(
+                  onChanged: (val) => setState(() => _garmentSearch = val.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar prenda por nombre…',
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    filled: true,
+                    fillColor: AppColors.paperDark,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.ink,
-                        foregroundColor: AppColors.paper,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Añadir prenda nueva', style: TextStyle(fontSize: 12)),
-                      onPressed: _selectedVariantId == 0
-                          ? null
-                          : () {
-                              final v = variants.firstWhere(
-                                (varItem) => (varItem['id'] as num).toInt() == _selectedVariantId,
-                              );
-                              final prodId = (v['producto_id'] as num?)?.toInt();
-                              final p = products.cast<Map<String, dynamic>?>().firstWhere(
-                                    (prod) => (prod?['id'] as num?)?.toInt() == prodId,
-                                    orElse: () => null,
-                                  );
+
+                // Catálogo horizontal de prendas con fotos
+                Builder(builder: (context) {
+                  final filteredProds = products.where((p) {
+                    if (_garmentSearch.isEmpty) return true;
+                    final name = (p['nombre'] ?? '').toString().toLowerCase();
+                    return name.contains(_garmentSearch);
+                  }).toList();
+
+                  if (filteredProds.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      alignment: Alignment.center,
+                      child: const Text('No se encontraron prendas con ese nombre.', style: TextStyle(fontSize: 12)),
+                    );
+                  }
+
+                  return SizedBox(
+                    height: 195,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: filteredProds.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (context, idx) {
+                        final p = filteredProds[idx];
+                        final prodId = (p['id'] as num?)?.toInt();
+                        final prodVariants = variants.where(
+                          (v) => (v['producto_id'] as num?)?.toInt() == prodId,
+                        ).toList();
+                        final isSelectedProd = _selectedProduct?['id'] == prodId;
+                        final imgList = (p['imagenes'] as List?) ?? [];
+                        final firstImg = imgList.isNotEmpty ? imgList.first.toString() : '';
+
+                        return Container(
+                          width: 155,
+                          decoration: BoxDecoration(
+                            color: isSelectedProd ? AppColors.lime.withValues(alpha: 0.25) : AppColors.paper,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelectedProd ? AppColors.ink : AppColors.line,
+                              width: isSelectedProd ? 2.0 : 1.2,
+                            ),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
                               setState(() {
-                                final existing = _newLines.indexWhere(
-                                  (l) => l['variante_id'] == _selectedVariantId,
-                                );
-                                if (existing >= 0) {
-                                  _newLines[existing]['cantidad'] += 1;
-                                } else {
-                                  _newLines.add({
-                                    'variante_id': _selectedVariantId,
-                                    'cantidad': 1,
-                                    'name': p != null ? '${p['nombre']} (${v['talla']})' : 'Prenda #${v['id']}',
-                                    'precio': p?['precio'] ?? 0,
-                                  });
+                                _selectedProduct = p;
+                                if (prodVariants.isNotEmpty) {
+                                  _selectedVariant = prodVariants.first;
+                                  _selectedVariantId = (prodVariants.first['id'] as num).toInt();
                                 }
-                                _quote = null;
                               });
                             },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Foto de la prenda
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                  child: Container(
+                                    height: 90,
+                                    width: double.infinity,
+                                    color: AppColors.paperDark,
+                                    child: firstImg.isNotEmpty
+                                        ? Image.network(
+                                            ApiConfig.resolveMediaUrl(firstImg),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => const Center(
+                                              child: Icon(Icons.checkroom, size: 28, color: AppColors.textMuted),
+                                            ),
+                                          )
+                                        : const Center(
+                                            child: Icon(Icons.checkroom, size: 28, color: AppColors.textMuted),
+                                          ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p['nombre']?.toString() ?? 'Prenda',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                                      ),
+                                      Text(
+                                        'Bs ${p['precio']}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.ink,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Chips de tallas disponibles
+                                      Wrap(
+                                        spacing: 4,
+                                        children: prodVariants.take(3).map((v) {
+                                          final vid = (v['id'] as num).toInt();
+                                          final isVarSel = _selectedVariantId == vid;
+                                          return InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedProduct = p;
+                                                _selectedVariant = v;
+                                                _selectedVariantId = vid;
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: isVarSel ? AppColors.ink : AppColors.paperDark,
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: AppColors.ink, width: 1),
+                                              ),
+                                              child: Text(
+                                                '${v['talla']}',
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isVarSel ? AppColors.paper : AppColors.ink,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
+                  );
+                }),
+                const SizedBox(height: 8),
+
+                // Panel de prenda seleccionada para agregar
+                if (_selectedProduct != null && _selectedVariant != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.paperDark,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.ink, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_selectedProduct!['nombre']} · ${_selectedVariant!['talla']} · ${_selectedVariant!['color']}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                              ),
+                              Text(
+                                'Precio: Bs ${_selectedProduct!['precio']}',
+                                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Control de cantidad
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, size: 20),
+                              onPressed: _variantQuantity > 1 ? () => setState(() => _variantQuantity--) : null,
+                            ),
+                            Text('$_variantQuantity', style: const TextStyle(fontWeight: FontWeight.w800)),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, size: 20),
+                              onPressed: () => setState(() => _variantQuantity++),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.ink,
+                            foregroundColor: AppColors.paper,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              final existing = _newLines.indexWhere(
+                                (l) => l['variante_id'] == _selectedVariantId,
+                              );
+                              if (existing >= 0) {
+                                _newLines[existing]['cantidad'] += _variantQuantity;
+                              } else {
+                                _newLines.add({
+                                  'variante_id': _selectedVariantId,
+                                  'cantidad': _variantQuantity,
+                                  'name': '${_selectedProduct!['nombre']} (${_selectedVariant!['talla']} ${_selectedVariant!['color']})',
+                                  'precio': _selectedProduct!['precio'] ?? 0,
+                                  'imagen': ((_selectedProduct!['imagenes'] as List?) ?? []).firstOrNull,
+                                });
+                              }
+                              _variantQuantity = 1;
+                              _quote = null;
+                            });
+                          },
+                          child: const Text('Añadir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
                 if (_newLines.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   ..._newLines.asMap().entries.map((entry) {
@@ -682,6 +848,83 @@ class _ExchangeSheetState extends State<ExchangeSheet> {
                           'Crédito por prendas devueltas: Bs ${credit.toStringAsFixed(2)}\nPrendas nuevas: Bs ${totalNew.toStringAsFixed(2)}',
                           style: const TextStyle(fontSize: 11.5, color: AppColors.ink),
                         ),
+                        if (diff > 0) ...[
+                          const SizedBox(height: 12),
+                          const Text(
+                            '¿Cómo deseas abonar la diferencia?',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _paymentMethod = 'STRIPE'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: _paymentMethod == 'STRIPE' ? AppColors.lime : AppColors.paper,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppColors.ink, width: _paymentMethod == 'STRIPE' ? 2 : 1),
+                                    ),
+                                    child: const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Tarjeta (Stripe)', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+                                        Text('Pago online seguro', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _paymentMethod = 'EFECTIVO'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: _paymentMethod == 'EFECTIVO' ? AppColors.lime : AppColors.paper,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppColors.ink, width: _paymentMethod == 'EFECTIVO' ? 2 : 1),
+                                    ),
+                                    child: const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('En Tienda', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+                                        Text('Efectivo al retirar', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else if (diff < 0) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.paper,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.success),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.credit_card, size: 16, color: AppColors.success),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _quote!['stripe_refund_eligible'] == true
+                                        ? 'Reembolso automático a tu tarjeta vía Stripe'
+                                        : 'Reembolso en efectivo en caja al entregar la prenda',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.ink),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   );
