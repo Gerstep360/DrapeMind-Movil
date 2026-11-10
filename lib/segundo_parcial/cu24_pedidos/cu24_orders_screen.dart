@@ -253,6 +253,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             for (final order in _orders.where(
               (o) {
+                if (o.total <= 0) return false;
                 if (pendingIds.contains(o.id)) return false;
                 if (_selectedFilter == 'TODOS') return true;
                 if (_selectedFilter == 'DEVUELTO') return o.estado == OrderStatus.devuelto;
@@ -412,7 +413,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     Icon(Icons.swap_horiz, size: 16, color: AppColors.ink),
                     SizedBox(width: 8),
                     Text(
-                      'Cambiar o devolver prenda',
+                      'Cambios o devoluciones',
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,
