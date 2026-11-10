@@ -14,6 +14,9 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
   final AuthService auth;
   final ApiClient api;
   final OfflineStore store;
+  final http.Client _photoClient;
+  final bool _ownsPhotoClient;
+  int photosSaved = 0, photosFailed = 0, photosTotal = 0, photosProcessed = 0;
   OfflineBundle? bundle;
   List<OfflineRequest> queue = [];
   bool downloading = false, syncing = false, online = true;
@@ -28,9 +31,12 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     required this.auth,
     ApiClient? api,
     OfflineStore? store,
+    http.Client? photoClient,
     bool monitor = true,
   }) : api = api ?? ApiClient(),
-       store = store ?? OfflineStore() {
+       store = store ?? OfflineStore(),
+       _photoClient = photoClient ?? http.Client(),
+       _ownsPhotoClient = photoClient == null {
     auth.addListener(_accountChanged);
     if (monitor) {
       WidgetsBinding.instance.addObserver(this);
@@ -151,11 +157,19 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> download() async {
+  Future<void> download({bool strict = false}) async {
     final scope = owner;
-    if (scope == null || downloading) return;
+    if (scope == null || downloading) {
+      if (strict) {
+        throw ApiException(
+          'Abre una tienda y espera a que termine la descarga actual.',
+        );
+      }
+      return;
+    }
     downloading = true;
     message = '';
+    photosSaved = photosFailed = photosTotal = photosProcessed = 0;
     phase = 'Descargando prendas y disponibilidad…';
     _publish();
     try {
@@ -164,7 +178,9 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
         timeout: const Duration(seconds: 60),
       );
       final data = OfflineBundle.fromJson(Map<String, dynamic>.from(result));
-      if (owner != scope || !scope.endsWith('|${data.owner}')) return;
+      if (owner != scope || !scope.endsWith('|${data.owner}')) {
+        throw ApiException('La tienda cambió. Abre nuevamente la descarga.');
+      }
       phase = 'Guardando tu colección…';
       _publish();
       await store.saveBundle(scope, data);
@@ -174,15 +190,24 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
         await _cachePhotos(scope, data);
         phase = 'Catálogo guardado';
       }
+      if (owner != scope) {
+        throw ApiException('La tienda cambió durante la descarga.');
+      }
     } on ApiException catch (e) {
       if (owner == scope) {
         message = e.message;
         if (e is NetworkException) online = false;
       }
+      if (strict) rethrow;
     } catch (_) {
       if (owner == scope) {
         message =
             'No pudimos guardar la descarga. Revisa el espacio disponible e inténtalo nuevamente.';
+      }
+      if (strict) {
+        throw ApiException(
+          message.isEmpty ? 'No se completó la descarga.' : message,
+        );
       }
     } finally {
       downloading = false;
@@ -191,31 +216,49 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _cachePhotos(String scope, OfflineBundle data) async {
-    final urls = data.products
-        .expand((p) => ((p['imagenes'] as List?) ?? []).take(1))
+    final urls = [...data.products, ...data.variants]
+        .expand(
+          (p) => [
+            ...((p['imagenes'] as List?) ?? []),
+            if (p['imagen'] is String) p['imagen'],
+          ],
+        )
         .map((p) => ApiConfig.resolveMediaUrl(p.toString()))
         .where((url) => url.startsWith('http'))
         .toSet()
         .toList();
+    photosTotal = urls.length;
     var next = 0, done = 0;
     Future<void> worker() async {
       while (next < urls.length && owner == scope) {
         final url = urls[next++];
         try {
-          final response = await http
+          final response = await _photoClient
               .get(Uri.parse(url))
-              .timeout(const Duration(seconds: 5));
+              .timeout(const Duration(seconds: 12));
           if (response.statusCode == 200 &&
               (response.headers['content-type'] ?? '').startsWith('image/') &&
+              response.bodyBytes.isNotEmpty &&
+              !String.fromCharCodes(
+                response.bodyBytes.take(200),
+              ).trimLeft().toLowerCase().startsWith('<!doctype html') &&
+              !String.fromCharCodes(
+                response.bodyBytes.take(200),
+              ).trimLeft().toLowerCase().startsWith('<html') &&
               response.bodyBytes.length <= 2000000 &&
               owner == scope) {
             await store.savePhoto(scope, url, response.bodyBytes);
             _photos.remove(url);
+            photosSaved++;
+          } else {
+            photosFailed++;
           }
         } catch (_) {
+          photosFailed++;
           /* The catalog remains usable when an optional photograph cannot be downloaded. */
         }
         done++;
+        photosProcessed = done;
         if (owner == scope) {
           phase = 'Guardando fotos $done de ${urls.length}…';
           _publish();
@@ -725,6 +768,7 @@ class OfflineService extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    if (_ownsPhotoClient) _photoClient.close();
     _disposed = true;
     _timer?.cancel();
     auth.removeListener(_accountChanged);

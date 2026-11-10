@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:drapemind_mobile/core/theme/app_colors.dart';
-import 'package:drapemind_mobile/core/theme/app_svg.dart';
 
 class DmProductImage extends StatelessWidget {
   final String imageUrl;
@@ -46,9 +45,11 @@ class DmProductImage extends StatelessWidget {
       }
     }
 
+    final vector =
+        trimmed.toLowerCase().endsWith('.svg') ||
+        trimmed.toLowerCase().contains('.svg?');
     // Soporte para archivos vectoriales SVG
-    if (trimmed.toLowerCase().endsWith('.svg') ||
-        trimmed.toLowerCase().contains('.svg?')) {
+    if (vector && context.read<OfflineService?>()?.online != false) {
       return SvgPicture.network(
         trimmed,
         fit: fit,
@@ -62,6 +63,13 @@ class DmProductImage extends StatelessWidget {
         future: local.photo(trimmed),
         builder: (context, snapshot) {
           if (snapshot.data != null) {
+            if (vector) {
+              return SvgPicture.memory(
+                snapshot.data!,
+                fit: fit,
+                semanticsLabel: semanticLabel,
+              );
+            }
             return Image.memory(
               snapshot.data!,
               fit: fit,
@@ -114,64 +122,43 @@ class _EditorialFallback extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     image: true,
     label: 'Fotografía de $label en preparación',
-    child: ColoredBox(
-      color: AppColors.forestLight,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            top: -30,
-            right: -22,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.lime.withValues(alpha: 0.16),
-              ),
-            ),
-          ),
-          Column(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxHeight < 130 || constraints.maxWidth < 100;
+        return Container(
+          color: AppColors.paperDark,
+          alignment: Alignment.center,
+          padding: EdgeInsets.all(compact ? 4 : 16),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.lime, width: 1.5),
+              Text(
+                'DM',
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontSize: compact ? 16 : 38,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
                 ),
-                child: Center(
-                  child: AppSvg.raw(
-                    AppSvg.tshirt,
-                    size: 32,
-                    color: AppColors.white,
+              ),
+              if (!compact) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'FOTO EN PREPARACIÓN',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'DrapeMind',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const Text(
-                'ATELIER',
-                style: TextStyle(
-                  color: AppColors.lime,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.5,
-                ),
-              ),
+              ],
             ],
           ),
-        ],
-      ),
+        );
+      },
     ),
   );
 }

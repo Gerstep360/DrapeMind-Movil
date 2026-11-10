@@ -14,7 +14,8 @@ import 'package:drapemind_mobile/paquetes/reservas_atencion_tienda/consultar_qr_
 import 'cu20_exchange_sheet.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({super.key});
+  final OrderService? service;
+  const OrdersScreen({super.key, this.service});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -54,7 +55,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    _orderService = OrderService(offline: context.read<OfflineService?>());
+    _orderService =
+        widget.service ??
+        OrderService(offline: context.read<OfflineService?>());
     _queue = context.read<DeferredService?>();
     _paidSeen.addAll(
       _queue?.purchases
@@ -124,8 +127,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) =>
-          _ReceiptModalSheet(orderId: order.id, initialOrder: order),
+      builder: (ctx) => _ReceiptModalSheet(
+        orderId: order.id,
+        initialOrder: order,
+        service: _orderService,
+      ),
     );
   }
 
@@ -251,18 +257,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   'Aquí verás tus compras y el estado de cada pedido.',
                 ),
               ),
-            for (final order in _orders.where(
-              (o) {
-                if (o.total <= 0) return false;
-                if (pendingIds.contains(o.id)) return false;
-                if (_selectedFilter == 'TODOS') return true;
-                if (_selectedFilter == 'DEVUELTO') return o.estado == OrderStatus.devuelto;
-                if (_selectedFilter == 'PAGADO') return o.estado == OrderStatus.pagado || o.estado == OrderStatus.entregado;
-                if (_selectedFilter == 'PENDIENTE_PAGO') return o.estado == OrderStatus.pendientePago;
-                if (_selectedFilter == 'CANCELADO') return o.estado == OrderStatus.cancelado;
-                return true;
-              },
-            ))
+            for (final order in _orders.where((o) {
+              if (o.total <= 0) return false;
+              if (pendingIds.contains(o.id)) return false;
+              if (_selectedFilter == 'TODOS') return true;
+              if (_selectedFilter == 'DEVUELTO') {
+                return o.estado == OrderStatus.devuelto;
+              }
+              if (_selectedFilter == 'PAGADO') {
+                return o.estado == OrderStatus.pagado ||
+                    o.estado == OrderStatus.entregado;
+              }
+              if (_selectedFilter == 'PENDIENTE_PAGO') {
+                return o.estado == OrderStatus.pendientePago;
+              }
+              if (_selectedFilter == 'CANCELADO') {
+                return o.estado == OrderStatus.cancelado;
+              }
+              return true;
+            }))
               _orderCard(order),
             if (_more)
               OutlinedButton(
@@ -393,7 +406,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ),
-          if (order.estado == OrderStatus.pagado || order.estado == OrderStatus.entregado) ...[
+          if (order.estado == OrderStatus.pagado ||
+              order.estado == OrderStatus.entregado ||
+              order.estado == OrderStatus.devuelto) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -432,15 +447,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
               decoration: BoxDecoration(
                 color: AppColors.dangerBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.danger.withValues(alpha: 0.3),
+                ),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.assignment_return, size: 16, color: AppColors.danger),
+                  Icon(
+                    Icons.assignment_return,
+                    size: 16,
+                    color: AppColors.danger,
+                  ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Prenda devuelta · Reembolso registrado',
+                      'Prenda devuelta · Consulta el estado del reembolso',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
@@ -503,11 +524,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
     String label = order.estado.displayName;
 
     final obs = (order.observacion ?? '').toLowerCase();
-    if (order.estado == OrderStatus.devuelto || obs.contains('cambio') || obs.contains('devolucion') || obs.contains('devolución')) {
+    if (order.estado == OrderStatus.devuelto ||
+        obs.contains('cambio') ||
+        obs.contains('devolucion') ||
+        obs.contains('devolución')) {
       bg = AppColors.dangerBg;
       fg = AppColors.danger;
       label = obs.contains('cambio') ? 'Cambio' : 'Devolución';
-    } else if (order.estado == OrderStatus.pagado || order.estado == OrderStatus.entregado) {
+    } else if (order.estado == OrderStatus.pagado ||
+        order.estado == OrderStatus.entregado) {
       bg = AppColors.successBg;
       fg = AppColors.success;
     } else if (order.estado == OrderStatus.pendientePago) {
@@ -543,7 +568,12 @@ class _ReceiptModalSheet extends StatefulWidget {
   final int orderId;
   final Order initialOrder;
 
-  const _ReceiptModalSheet({required this.orderId, required this.initialOrder});
+  final OrderService service;
+  const _ReceiptModalSheet({
+    required this.orderId,
+    required this.initialOrder,
+    required this.service,
+  });
 
   @override
   State<_ReceiptModalSheet> createState() => _ReceiptModalSheetState();
@@ -566,6 +596,7 @@ class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
   @override
   void initState() {
     super.initState();
+    _orderService = widget.service;
     _fetchReceipt();
   }
 
@@ -577,13 +608,17 @@ class _ReceiptModalSheetState extends State<_ReceiptModalSheet> {
 
     try {
       final data = await _orderService.getOrderReceipt(widget.orderId);
+      if (!mounted) return;
       setState(() {
         _receiptData = data;
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
-        _error = 'No se pudo cargar el comprobante oficial en vivo.';
+        _error = error is ApiException
+            ? error.message
+            : 'No se pudo cargar el comprobante. Reintenta con conexión.';
         _loading = false;
       });
     }
@@ -603,7 +638,7 @@ Comprobante Oficial de Venta #DM-ORD-${widget.orderId.toString().padLeft(5, '0')
 ${merchant['direccion'] ?? ''} ${merchant['telefono'] ?? ''}
 Código: $code
 Estado: $status
-Total Cancelado: Bs $total BOB
+Total del pedido: Bs $total BOB
 Consulta las condiciones de cambios con la tienda. Documento no fiscal.
 ''';
 
@@ -935,7 +970,7 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                           // Client & Branch Details
                           _buildDetailRow(
                             'CLIENTE:',
-                            clienteMap?['nombre'] ?? 'Cliente Atelier',
+                            clienteMap?['nombre'] ?? 'Cliente no identificado',
                           ),
                           if (clienteMap?['email'] != null &&
                               clienteMap!['email'].isNotEmpty)
@@ -959,9 +994,13 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                           const SizedBox(height: 6),
                           _buildDetailRow(
                             'MODALIDAD:',
-                            orderMap?['tipo_entrega'] == 'RECOJO'
-                                ? 'Retiro en Atelier'
-                                : 'Envío a Domicilio',
+                            switch (orderMap?['tipo_entrega'] ??
+                                widget.initialOrder.tipoEntrega
+                                    .toServerString()) {
+                              'RECOJO' => 'Recojo en tienda',
+                              'TIENDA' => 'Compra en tienda',
+                              _ => 'Envío a domicilio',
+                            },
                           ),
                           _buildDetailRow('UUID:', publicCode),
 
@@ -1010,7 +1049,7 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                             )
                           else
                             ...itemsList.map((item) {
-                              final name = item['nombre'] ?? 'Prenda Atelier';
+                              final name = item['nombre'] ?? 'Prenda';
                               final qty = _parseNum(
                                 item['cantidad'],
                                 1,
@@ -1099,11 +1138,14 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                               color: AppColors.ink,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 16,
+                              runSpacing: 8,
                               children: [
                                 const Text(
-                                  'TOTAL CANCELADO:',
+                                  'TOTAL DEL PEDIDO:',
                                   style: TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w900,
@@ -1112,7 +1154,7 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                                   ),
                                 ),
                                 Text(
-                                  'Bs ${total.toStringAsFixed(2)} BOB',
+                                  'Bs ${total.toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w900,
@@ -1173,7 +1215,7 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                                         CrossAxisAlignment.start,
                                     children: [
                                       const Text(
-                                        'DOCUMENTO OFICIAL AUTÉNTICO',
+                                        'REFERENCIA DE COMPRA',
                                         style: TextStyle(
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w900,
@@ -1181,14 +1223,14 @@ Consulta las condiciones de cambios con la tienda. Documento no fiscal.
                                         ),
                                       ),
                                       const Text(
-                                        'Comprobante verificado',
+                                        'Documento no fiscal',
                                         style: TextStyle(
                                           fontSize: 9.5,
                                           color: AppColors.textMuted,
                                         ),
                                       ),
                                       Text(
-                                        'HASH: ${publicCode.length > 16 ? publicCode.substring(0, 16) : publicCode}...',
+                                        'Código: ${publicCode.length > 16 ? publicCode.substring(0, 16) : publicCode}...',
                                         style: const TextStyle(
                                           fontSize: 9,
                                           fontFamily: 'monospace',

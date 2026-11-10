@@ -168,6 +168,31 @@ class DeferredService extends ChangeNotifier with WidgetsBindingObserver {
         'CANCELACION_PENDIENTE': 'Cancelación pendiente',
       }[state] ??
       'Pendiente de sincronizar';
+
+  /// Read-only checkout preparation. Never queues or charges a purchase.
+  Future<void> prepareDownload() async {
+    await ready;
+    final scope = _owner;
+    if (scope == null) {
+      throw Exception('Abre la tienda con tu cuenta de cliente.');
+    }
+    final data = Map<String, dynamic>.from(
+      await api.get('/payments/deferred/context'),
+    );
+    if (_owner != scope || data['owner'] != scope.split('|').last) {
+      throw Exception('La tienda cambió. Vuelve a abrir la descarga.');
+    }
+    if (cart?.cart != null) data['cart'] = cart!.cart!.toJson();
+    await store.saveContext(scope, data);
+    if (_owner != scope) {
+      throw Exception('La tienda cambió durante la descarga.');
+    }
+    contextData = data;
+    online = true;
+    error = null;
+    changed();
+  }
+
   Future<void> refresh() async {
     final owner = _owner;
     if (owner == null) return;

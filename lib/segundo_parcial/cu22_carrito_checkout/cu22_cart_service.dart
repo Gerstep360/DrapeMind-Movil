@@ -28,6 +28,17 @@ class CartService extends ChangeNotifier {
     }
   }
 
+  Future<Cart> prepareDownload() async {
+    if (_local == null) {
+      throw ApiException(
+        'No está disponible el almacenamiento de esta tienda.',
+      );
+    }
+    final result = await _local!.prepareDownload();
+    _publish();
+    return result;
+  }
+
   Future<void> finishLocalCheckout() async {
     await _local?.edit('replace');
   }

@@ -107,6 +107,32 @@ class LocalCart {
     }
   }
 
+  /// Explicit download requires a successful server read AND a durable copy.
+  Future<Cart> prepareDownload() async {
+    await ready;
+    await _edit;
+    await synchronize();
+    final scope = owner;
+    if (scope == null || dirty || !offline.online) {
+      throw ApiException(
+        issue ??
+            'Recupera conexión para guardar el carrito. Tu selección sigue conservada.',
+      );
+    }
+    final remote = Cart.fromJson(
+      Map<String, dynamic>.from(await api.get('/cart')),
+    );
+    if (scope != owner) {
+      throw ApiException('La tienda cambió. Abre nuevamente la descarga.');
+    }
+    await accept(remote, scope);
+    if (scope != owner || dirty || current == null) {
+      throw ApiException('El carrito cambió. Vuelve a actualizar la descarga.');
+    }
+    await persist(current!, false);
+    return current!;
+  }
+
   Future<Cart> edit(
     String action, {
     List<Map<String, dynamic>> items = const [],
